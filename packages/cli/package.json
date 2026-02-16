@@ -1,0 +1,20 @@
+{
+  "name": "@trinacria/cli",
+  "version": "0.1.0",
+  "private": false,
+  "types": "dist/index.d.ts",
+  "bin": {
+    "trinacria": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "@trinacria/core": "*"
+  }
+}
