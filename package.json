@@ -8,7 +8,8 @@
     "build:cli": "npm run build -w @trinacria/cli",
     "build:playground": "npm run build -w playground",
     "build": "npm run build:core && npm run build:http && npm run build:cli && npm run build:playground",
-    "rebuild": "npm run clean && npm run build"
+    "rebuild": "npm run clean && npm run build",
+    "dev:playground": "npm run dev -w playground"
   },
   "workspaces": [
     "packages/*",

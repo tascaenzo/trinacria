@@ -27,6 +27,8 @@ export class Container {
    * Stato di inizializzazione.
    */
   private initialized = false;
+  private initializing = false;
+  private initPromise: Promise<void> | null = null;
 
   /**
    * Container padre (scope superiore).
@@ -78,13 +80,24 @@ export class Container {
 
   async init(): Promise<void> {
     if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
 
-    // Istanzia tutti i provider locali
-    for (const provider of this.providers.values()) {
-      await this.instantiate(provider);
+    this.initializing = true;
+    this.initPromise = (async () => {
+      // Istanzia tutti i provider locali
+      for (const provider of this.providers.values()) {
+        await this.instantiate(provider);
+      }
+
+      this.initialized = true;
+    })();
+
+    try {
+      await this.initPromise;
+    } finally {
+      this.initializing = false;
+      this.initPromise = null;
     }
-
-    this.initialized = true;
   }
 
   // --------------------------------------------------
@@ -92,7 +105,7 @@ export class Container {
   // --------------------------------------------------
 
   async resolve<T>(token: Token<T>): Promise<T> {
-    if (!this.initialized) {
+    if (!this.initialized && !this.initializing) {
       throw new Error(
         "Container non inizializzato. Chiama init() prima di resolve().",
       );
@@ -102,6 +115,11 @@ export class Container {
 
     if (this.instances.has(key)) {
       return this.instances.get(key) as Promise<T>;
+    }
+
+    const localProvider = this.providers.get(key);
+    if (localProvider) {
+      return this.instantiate(localProvider as Provider<T>);
     }
 
     if (this.parent) {

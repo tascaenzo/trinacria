@@ -1,0 +1,15 @@
+{
+  "name": "playground",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "trinacria start",
+    "build": "trinacria build",
+    "dev": "trinacria dev"
+  },
+  "dependencies": {
+    "@trinacria/core": "*",
+    "@trinacria/cli": "*",
+    "@trinacria/http": "*"
+  }
+}
