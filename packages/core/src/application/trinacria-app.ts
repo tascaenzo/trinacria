@@ -109,6 +109,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
     }
 
     this.started = true;
+    this.setupSignalHandlers();
 
     CoreLog.info("[Trinacria] Application started successfully.");
   }
@@ -138,5 +139,24 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
 
   getProvidersByKind<T>(kind: ProviderKind<T>): Provider<T>[] {
     return this.registry.getProvidersByKind(kind);
+  }
+
+  private setupSignalHandlers() {
+    const handleSignal = async (signal: NodeJS.Signals) => {
+      CoreLog.warn(
+        `[Trinacria] Received ${signal}. Starting graceful shutdown...`,
+      );
+
+      try {
+        await this.shutdown();
+        process.exit(0);
+      } catch (err) {
+        CoreLog.error("[Trinacria] Error during shutdown", err);
+        process.exit(1);
+      }
+    };
+
+    process.once("SIGTERM", () => handleSignal("SIGTERM"));
+    process.once("SIGINT", () => handleSignal("SIGINT"));
   }
 }
