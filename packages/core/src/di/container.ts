@@ -5,7 +5,14 @@ import {
   isValueProvider,
 } from "./provider";
 import type { ProviderKind } from "./provider-kind";
-import type { Provider } from "./provider-types";
+import type { MaybePromise, Provider } from "./provider-types";
+import {
+  CircularDependencyError,
+  ContainerStateError,
+  DuplicateProviderError,
+  ProviderNotFoundError,
+  UnknownProviderTypeError,
+} from "../errors";
 
 /**
  * Hierarchical dependency injection container.
@@ -26,6 +33,7 @@ export class Container {
    * Tracks tokens currently being resolved to detect circular dependencies.
    */
   private readonly resolving = new Set<symbol>();
+  private readonly creationOrder: symbol[] = [];
 
   /**
    * Initialization state flags.
@@ -43,34 +51,54 @@ export class Container {
   // REGISTRATION
   // --------------------------------------------------
 
-  register<T>(provider: Provider<T>): void {
-    if (this.initialized) {
-      throw new Error(
-        "Non è possibile registrare provider dopo l'inizializzazione del container.",
+  register<T>(provider: Provider<T>, force = false): void {
+    if (this.initialized && !force) {
+      throw new ContainerStateError(
+        "Cannot register providers after container initialization.",
       );
     }
 
     const key = provider.token.key;
 
     if (this.providers.has(key)) {
-      throw new Error(
-        `Provider per token ${describeToken(provider.token)} già registrato.`,
+      throw new DuplicateProviderError(
+        `Provider for token ${describeToken(provider.token)} is already registered.`,
       );
     }
 
     this.providers.set(key, provider);
   }
 
-  unregister(token: Token<any>): void {
-    if (this.initialized) {
-      throw new Error(
-        "Non è possibile rimuovere provider dopo l'inizializzazione del container.",
+  unregister(token: Token<any>, force = false): void {
+    if (this.initialized && !force) {
+      throw new ContainerStateError(
+        "Cannot remove providers after container initialization.",
       );
     }
 
     const key = token.key;
     this.providers.delete(key);
     this.instances.delete(key);
+    const orderIndex = this.creationOrder.indexOf(key);
+    if (orderIndex !== -1) {
+      this.creationOrder.splice(orderIndex, 1);
+    }
+  }
+
+  async unregisterAndDestroy(token: Token<any>, force = false): Promise<void> {
+    const key = token.key;
+    const instancePromise = this.instances.get(key);
+
+    if (instancePromise) {
+      try {
+        const instance = await instancePromise;
+        await this.runOnDestroy(instance);
+      } catch {
+        // Keep unregister semantics deterministic even if destroy hook throws.
+      }
+    }
+
+    this.unregister(token, force);
   }
 
   has(token: Token<any>): boolean {
@@ -104,14 +132,45 @@ export class Container {
     }
   }
 
+  async destroy(): Promise<void> {
+    const errors: unknown[] = [];
+    const keys = [...this.creationOrder].reverse();
+
+    for (const key of keys) {
+      const instancePromise = this.instances.get(key);
+      if (!instancePromise) continue;
+
+      try {
+        const instance = await instancePromise;
+        await this.runOnDestroy(instance);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+
+    this.instances.clear();
+    this.resolving.clear();
+    this.creationOrder.length = 0;
+    this.initialized = false;
+    this.initializing = false;
+    this.initPromise = null;
+
+    if (errors.length > 0) {
+      throw new AggregateError(
+        errors,
+        "One or more provider onDestroy hooks failed.",
+      );
+    }
+  }
+
   // --------------------------------------------------
   // RESOLUTION
   // --------------------------------------------------
 
   async resolve<T>(token: Token<T>): Promise<T> {
     if (!this.initialized && !this.initializing) {
-      throw new Error(
-        "Container non inizializzato. Chiama init() prima di resolve().",
+      throw new ContainerStateError(
+        "Container is not initialized. Call init() before resolve().",
       );
     }
 
@@ -130,8 +189,8 @@ export class Container {
       return this.parent.resolve(token);
     }
 
-    throw new Error(
-      `Nessun provider trovato per token ${describeToken(token)}.`,
+    throw new ProviderNotFoundError(
+      `No provider found for token ${describeToken(token)}.`,
     );
   }
 
@@ -149,8 +208,8 @@ export class Container {
 
     // Circular detection
     if (this.resolving.has(key)) {
-      throw new Error(
-        `Dipendenza circolare rilevata per token ${describeToken(provider.token)}.`,
+      throw new CircularDependencyError(
+        `Circular dependency detected for token ${describeToken(provider.token)}.`,
       );
     }
 
@@ -160,7 +219,9 @@ export class Container {
       try {
         // ValueProvider
         if (isValueProvider(provider)) {
-          return await provider.useValue;
+          const value = await provider.useValue;
+          await this.runOnInit(value);
+          return value;
         }
 
         // Resolve declared dependencies in order.
@@ -168,21 +229,26 @@ export class Container {
 
         // ClassProvider
         if (isClassProvider(provider)) {
-          return new provider.useClass(...deps);
+          const value = new provider.useClass(...deps);
+          await this.runOnInit(value);
+          return value;
         }
 
         // FactoryProvider
         if (isFactoryProvider(provider)) {
-          return await provider.useFactory(...deps);
+          const value = await provider.useFactory(...deps);
+          await this.runOnInit(value);
+          return value;
         }
 
-        throw new Error("Tipo di provider sconosciuto.");
+        throw new UnknownProviderTypeError("Unknown provider type.");
       } finally {
         this.resolving.delete(key);
       }
     })();
 
     this.instances.set(key, instancePromise);
+    this.creationOrder.push(key);
 
     return instancePromise;
   }
@@ -210,6 +276,21 @@ export class Container {
   getProvidersByKind<T>(kind: ProviderKind<T>): Provider<T>[] {
     return this.getProviders().filter((p): p is Provider<T> => p.kind === kind);
   }
+
+  private async runOnInit(instance: unknown): Promise<void> {
+    if (isLifecycleAware(instance) && typeof instance.onInit === "function") {
+      await instance.onInit();
+    }
+  }
+
+  private async runOnDestroy(instance: unknown): Promise<void> {
+    if (
+      isLifecycleAware(instance) &&
+      typeof instance.onDestroy === "function"
+    ) {
+      await instance.onDestroy();
+    }
+  }
 }
 
 // --------------------------------------------------
@@ -218,4 +299,13 @@ export class Container {
 
 function describeToken(token: Token<any>): string {
   return token.description ?? token.key.toString();
+}
+
+interface LifecycleAware {
+  onInit?: () => MaybePromise<void>;
+  onDestroy?: () => MaybePromise<void>;
+}
+
+function isLifecycleAware(value: unknown): value is LifecycleAware {
+  return typeof value === "object" && value !== null;
 }

@@ -3,6 +3,24 @@ import type { Provider } from "../di/provider-types";
 import type { Token } from "../token";
 import { Container } from "../di/container";
 import type { ProviderKind } from "../di";
+import {
+  ModuleDependencyError,
+  ModuleExportError,
+  ModuleUnregistrationError,
+  TokenConflictError,
+} from "../errors";
+
+export interface ModuleGraphNode {
+  name: string;
+  imports: string[];
+  exports: string[];
+  providers: string[];
+}
+
+export interface ModuleGraphSnapshot {
+  modules: ModuleGraphNode[];
+  providerKinds: Record<string, number>;
+}
 
 /**
  * Builds module container graphs and manages exported-token visibility.
@@ -11,6 +29,11 @@ import type { ProviderKind } from "../di";
 export class ModuleRegistry {
   private readonly root: Container;
   private readonly moduleContainers = new Map<ModuleDefinition, Container>();
+  private readonly moduleImports = new Map<
+    ModuleDefinition,
+    Set<ModuleDefinition>
+  >();
+  private readonly globalTokens = new Set<symbol>();
 
   /**
    * Logical index used for ProviderKind discovery.
@@ -30,8 +53,66 @@ export class ModuleRegistry {
     return this.root;
   }
 
+  registerGlobalProvider(provider: Provider): void {
+    this.root.register(provider);
+    this.globalTokens.add(provider.token.key);
+  }
+
   build(rootModule: ModuleDefinition): void {
     this.buildModuleRecursive(rootModule);
+  }
+
+  async unregister(module: ModuleDefinition): Promise<void> {
+    const container = this.moduleContainers.get(module);
+    if (!container) {
+      return;
+    }
+
+    const dependents = this.moduleImports.get(module);
+    if (dependents && dependents.size > 0) {
+      const dependentNames = Array.from(dependents)
+        .map((item) => item.name)
+        .sort()
+        .join(", ");
+
+      throw new ModuleDependencyError(
+        `Cannot unregister module "${module.name}" because it is imported by: ${dependentNames}.`,
+      );
+    }
+
+    try {
+      await container.destroy();
+    } catch (error) {
+      throw new ModuleUnregistrationError(
+        `Failed to destroy providers while unregistering module "${module.name}": ${toErrorMessage(error)}`,
+      );
+    }
+
+    // Remove exported providers from root visibility.
+    const exports = module.exports ?? [];
+    for (const exportedToken of exports) {
+      await this.root.unregisterAndDestroy(exportedToken, true);
+    }
+
+    // Remove local providers from ProviderKind discovery index.
+    for (const provider of container.getProviders()) {
+      this.unindexProviderByKind(provider);
+      container.unregister(provider.token, true);
+    }
+
+    // Remove reverse-import links created by this module.
+    for (const imported of module.imports ?? []) {
+      const importers = this.moduleImports.get(imported);
+      if (!importers) continue;
+
+      importers.delete(module);
+      if (importers.size === 0) {
+        this.moduleImports.delete(imported);
+      }
+    }
+
+    this.moduleImports.delete(module);
+    this.moduleContainers.delete(module);
   }
 
   /**
@@ -56,6 +137,58 @@ export class ModuleRegistry {
     return (this.kindIndex.get(kind.key) ?? []) as Provider<T>[];
   }
 
+  async destroy(): Promise<void> {
+    const errors: unknown[] = [];
+
+    for (const container of this.moduleContainers.values()) {
+      try {
+        await container.destroy();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+
+    try {
+      await this.root.destroy();
+    } catch (error) {
+      errors.push(error);
+    }
+
+    if (errors.length > 0) {
+      throw new AggregateError(
+        errors,
+        "One or more containers failed to destroy.",
+      );
+    }
+  }
+
+  describeGraph(): ModuleGraphSnapshot {
+    const modules = Array.from(this.moduleContainers.entries()).map(
+      ([module, container]) => ({
+        name: module.name,
+        imports: (module.imports ?? []).map((item) => item.name).sort(),
+        exports: (module.exports ?? [])
+          .map((token) => describeToken(token))
+          .sort(),
+        providers: container
+          .getProviders()
+          .map((provider) => describeToken(provider.token))
+          .sort(),
+      }),
+    );
+
+    const providerKinds: Record<string, number> = {};
+
+    for (const [key, providers] of this.kindIndex.entries()) {
+      providerKinds[key.toString()] = providers.length;
+    }
+
+    return {
+      modules: modules.sort((a, b) => a.name.localeCompare(b.name)),
+      providerKinds,
+    };
+  }
+
   // --------------------------------------------------
   // INTERNAL
   // --------------------------------------------------
@@ -73,6 +206,7 @@ export class ModuleRegistry {
     const importedModules = module.imports ?? [];
     for (const imported of importedModules) {
       this.buildModuleRecursive(imported);
+      this.linkModuleImport(module, imported);
     }
 
     // 3) Register local module providers.
@@ -95,7 +229,7 @@ export class ModuleRegistry {
       const provider = this.findLocalProvider(moduleContainer, exportedToken);
 
       if (!provider) {
-        throw new Error(
+        throw new ModuleExportError(
           `Module "${module.name}" exports an unregistered token: ${describeToken(
             exportedToken,
           )}`,
@@ -103,12 +237,13 @@ export class ModuleRegistry {
       }
 
       if (this.root.has(exportedToken)) {
-        throw new Error(
+        throw new TokenConflictError(
           `Token ${describeToken(exportedToken)} is already exported by another module.`,
         );
       }
 
-      this.root.register(provider);
+      // Root container can already be initialized when modules are added at runtime.
+      this.root.register(provider, true);
     }
 
     return moduleContainer;
@@ -127,6 +262,35 @@ export class ModuleRegistry {
     } else {
       this.kindIndex.set(key, [provider]);
     }
+  }
+
+  private unindexProviderByKind(provider: Provider<any>): void {
+    if (!provider.kind) return;
+
+    const key = provider.kind.key;
+    const existing = this.kindIndex.get(key);
+    if (!existing) return;
+
+    const filtered = existing.filter((p) => p.token.key !== provider.token.key);
+    if (filtered.length === 0) {
+      this.kindIndex.delete(key);
+      return;
+    }
+
+    this.kindIndex.set(key, filtered);
+  }
+
+  private linkModuleImport(
+    importer: ModuleDefinition,
+    imported: ModuleDefinition,
+  ): void {
+    const importers = this.moduleImports.get(imported);
+    if (importers) {
+      importers.add(importer);
+      return;
+    }
+
+    this.moduleImports.set(imported, new Set([importer]));
   }
 
   private validateModuleDependencies(
@@ -149,13 +313,18 @@ export class ModuleRegistry {
       }
     }
 
+    // Global providers are visible in every module scope.
+    for (const tokenKey of this.globalTokens) {
+      visibleTokens.add(tokenKey);
+    }
+
     // Verify that each declared dependency is visible in module scope.
     for (const provider of container.getProviders()) {
       if (!("deps" in provider) || !provider.deps) continue;
 
       for (const dep of provider.deps) {
         if (!visibleTokens.has(dep.key)) {
-          throw new Error(
+          throw new ModuleDependencyError(
             `In module "${module.name}", provider ${describeToken(
               provider.token,
             )} depends on non-visible token: ${describeToken(dep)}.`,
@@ -183,4 +352,12 @@ export class ModuleRegistry {
 
 function describeToken(token: Token<any>): string {
   return token.description ?? token.key.toString();
+}
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }
