@@ -288,6 +288,11 @@ Tutti i provider vengono istanziati in modo asincrono e deterministico.
 - `resolve(token)`
 - `getProvidersByKind(kind)`
 - `registerModule()` dinamico
+- `unregisterModule()` dinamico
+- `isModuleRegistered(module)`
+- `listModules()`
+- `hasToken(token)`
+- `describeGraph()`
 
 ---
 
@@ -309,7 +314,50 @@ Serve per il rilascio pulito delle risorse.
 await app.registerModule(AdminModule);
 ```
 
-I plugin vengono notificati automaticamente.
+La registrazione runtime è transazionale:
+
+1. il modulo viene aggiunto alla lista runtime interna
+2. il grafo modulo viene costruito nel registry
+3. i container vengono inizializzati (eager)
+4. i plugin vengono notificati via `onModuleRegistered`
+
+Se un plugin fallisce, Trinacria esegue rollback:
+
+1. chiama `onModuleUnregistered` sui plugin già notificati (ordine inverso)
+2. rimuove il modulo dal registry (cleanup container/export/kind-index)
+3. rimuove il modulo dalla lista runtime
+4. lancia `ModuleRegistrationError` con dettagli su errore di registrazione + rollback
+
+Questo mantiene lo stato runtime coerente anche in caso di failure parziali dei plugin.
+
+---
+
+# 🔧 Dettagli `unregisterModule()`
+
+`unregisterModule(module)` esegue:
+
+1. validazione che nessun altro modulo importi il modulo target
+2. esecuzione hook `onDestroy()` dei provider modulo (ordine inverso di creazione)
+3. rimozione token esportati dalla visibilità root
+4. pulizia riferimenti provider-kind usati dalla discovery plugin
+5. notifica plugin via `onModuleUnregistered`
+
+Se gli hook plugin falliscono in unregistration, il cleanup resta valido e Trinacria solleva `ModuleUnregistrationError`.
+
+---
+
+# 🔬 Hook Lifecycle Provider
+
+Le istanze provider possono esporre hook opzionali:
+
+- `onInit(): void | Promise<void>`
+- `onDestroy(): void | Promise<void>`
+
+Comportamento:
+
+- `onInit` viene invocato dopo l’istanziazione del provider
+- `onDestroy` viene invocato in unregistration modulo e shutdown applicativo
+- l’ordine di destroy è inverso all’ordine di istanziazione per minimizzare problemi di teardown dipendenze
 
 ---
 
