@@ -5,3 +5,4 @@ export * from "./plugin";
 export * from "./token";
 export * from "./application";
 export * from "./logger";
+export * from "./errors";

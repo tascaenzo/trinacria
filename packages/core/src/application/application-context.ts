@@ -2,6 +2,7 @@ import type { Token } from "../token";
 import type { Provider } from "../di/provider-types";
 import type { ProviderKind } from "../di/provider-kind";
 import type { ModuleDefinition } from "../module/module-definition";
+import type { ModuleGraphSnapshot } from "../module";
 
 /**
  * Public runtime API exposed to plugins.
@@ -17,6 +18,26 @@ export interface ApplicationContext {
    * Returns all exported providers associated with a specific ProviderKind.
    */
   getProvidersByKind<T>(kind: ProviderKind<T>): Provider<T>[];
+
+  /**
+   * Returns true when a module with the same name is currently registered.
+   */
+  isModuleRegistered(module: ModuleDefinition): boolean;
+
+  /**
+   * Returns the list of registered module names.
+   */
+  listModules(): string[];
+
+  /**
+   * Returns true if a token is currently visible in the root container.
+   */
+  hasToken<T>(token: Token<T>): boolean;
+
+  /**
+   * Returns a runtime snapshot of the module/provider graph.
+   */
+  describeGraph(): ModuleGraphSnapshot;
 
   /**
    * Registers a module dynamically at runtime.
