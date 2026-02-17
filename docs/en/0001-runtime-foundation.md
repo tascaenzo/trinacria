@@ -288,6 +288,11 @@ All providers are instantiated asynchronously and deterministically.
 - `resolve(token)`
 - `getProvidersByKind(kind)`
 - dynamic `registerModule()`
+- dynamic `unregisterModule()`
+- `isModuleRegistered(module)`
+- `listModules()`
+- `hasToken(token)`
+- `describeGraph()`
 
 ---
 
@@ -309,7 +314,50 @@ You can add modules dynamically:
 await app.registerModule(AdminModule);
 ```
 
-Plugins are notified automatically.
+Runtime registration is transactional:
+
+1. module is added to internal runtime list
+2. module graph is built in the registry
+3. containers are initialized (eager)
+4. plugins are notified via `onModuleRegistered`
+
+If one plugin fails, Trinacria performs rollback:
+
+1. calls `onModuleUnregistered` on already-notified plugins (reverse order)
+2. unregisters the module from the registry (container/export/kind-index cleanup)
+3. removes the module from runtime list
+4. throws `ModuleRegistrationError` with registration + rollback details
+
+This keeps runtime state consistent even during partial plugin failures.
+
+---
+
+# 🔧 `unregisterModule()` Technical Details
+
+`unregisterModule(module)` executes:
+
+1. validation that no other module imports the target module
+2. module provider `onDestroy()` hooks (reverse creation order)
+3. exported token removal from root visibility
+4. provider-kind reference cleanup used by plugin discovery
+5. plugin notification through `onModuleUnregistered`
+
+If plugin unregistration hooks fail, cleanup remains valid and Trinacria raises `ModuleUnregistrationError`.
+
+---
+
+# 🔬 Provider Lifecycle Hooks
+
+Provider instances can expose optional hooks:
+
+- `onInit(): void | Promise<void>`
+- `onDestroy(): void | Promise<void>`
+
+Behavior:
+
+- `onInit` runs after provider instantiation
+- `onDestroy` runs during module unregistration and application shutdown
+- destroy order is reverse-instantiation order to minimize dependency tear-down issues
 
 ---
 
