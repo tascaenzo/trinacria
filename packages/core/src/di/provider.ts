@@ -11,7 +11,7 @@ import type { Token } from "../token";
 import type { ProviderKind } from "./provider-kind";
 
 /**
- * Crea un ClassProvider tipizzato.
+ * Creates a typed ClassProvider.
  */
 export function classProvider<T>(
   token: Token<T>,
@@ -28,7 +28,7 @@ export function classProvider<T>(
 }
 
 /**
- * Crea un FactoryProvider tipizzato.
+ * Creates a typed FactoryProvider.
  */
 export function factoryProvider<T>(
   token: Token<T>,
@@ -45,7 +45,7 @@ export function factoryProvider<T>(
 }
 
 /**
- * Crea un ValueProvider tipizzato.
+ * Creates a typed ValueProvider.
  */
 export function valueProvider<T>(
   token: Token<T>,

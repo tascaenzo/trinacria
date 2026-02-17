@@ -1,6 +1,10 @@
 import { HttpMiddleware } from "./middleware-definition";
 import { HttpContext } from "../server/http-context";
 
+/**
+ * Composes middleware stack using a Koa-style `next()` chain.
+ * Throws when `next()` is called multiple times in the same middleware.
+ */
 export function compose<T>(
   middlewares: HttpMiddleware<T>[],
   handler: (ctx: HttpContext) => T | Promise<T>,

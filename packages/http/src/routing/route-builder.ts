@@ -7,11 +7,18 @@ import type { HttpMiddleware } from "../middleware/middleware-definition";
 
 type HandlerInput<C> = RouteHandler | keyof C;
 
+/**
+ * Fluent builder used by controllers to declare route definitions.
+ * Handlers can be passed as bound functions or method names.
+ */
 export class RouteBuilder<C = any> {
   private readonly routes: RouteDefinition[] = [];
 
   constructor(private readonly controller: C) {}
 
+  /**
+   * Resolves handler input to a callable function bound to controller instance.
+   */
   private resolveHandler(handler: HandlerInput<C>): RouteHandler {
     if (typeof handler === "string") {
       const fn = (this.controller as Record<string, unknown>)[handler];

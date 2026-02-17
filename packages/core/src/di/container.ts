@@ -7,31 +7,35 @@ import {
 import type { ProviderKind } from "./provider-kind";
 import type { Provider } from "./provider-types";
 
+/**
+ * Hierarchical dependency injection container.
+ * A container can resolve locally registered providers and delegate missing tokens to its parent.
+ */
 export class Container {
   /**
-   * Provider registrati nel container corrente.
+   * Providers registered in the current container scope.
    */
   private readonly providers = new Map<symbol, Provider<any>>();
 
   /**
-   * Cache singleton (Promise per supportare async).
+   * Singleton cache. Values are stored as Promise to support async providers.
    */
   private readonly instances = new Map<symbol, Promise<unknown>>();
 
   /**
-   * Stack corrente per rilevare dipendenze circolari.
+   * Tracks tokens currently being resolved to detect circular dependencies.
    */
   private readonly resolving = new Set<symbol>();
 
   /**
-   * Stato di inizializzazione.
+   * Initialization state flags.
    */
   private initialized = false;
   private initializing = false;
   private initPromise: Promise<void> | null = null;
 
   /**
-   * Container padre (scope superiore).
+   * Parent container (upper scope fallback).
    */
   constructor(private readonly parent?: Container) {}
 
@@ -84,7 +88,7 @@ export class Container {
 
     this.initializing = true;
     this.initPromise = (async () => {
-      // Istanzia tutti i provider locali
+      // Eagerly instantiate every local provider in this scope.
       for (const provider of this.providers.values()) {
         await this.instantiate(provider);
       }
@@ -138,7 +142,7 @@ export class Container {
   private async instantiate<T>(provider: Provider<T>): Promise<T> {
     const key = provider.token.key;
 
-    // Se già istanziato
+    // Fast path: already instantiated (or already being instantiated).
     if (this.instances.has(key)) {
       return this.instances.get(key) as Promise<T>;
     }
@@ -159,7 +163,7 @@ export class Container {
           return await provider.useValue;
         }
 
-        // Risolvi dipendenze
+        // Resolve declared dependencies in order.
         const deps = await this.resolveDeps(provider.deps);
 
         // ClassProvider

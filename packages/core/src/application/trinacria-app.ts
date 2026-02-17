@@ -8,6 +8,10 @@ import type { ProviderKind } from "../di/provider-kind";
 import { ApplicationBuilder } from "./application-builder";
 import { CoreLog } from "../logger/core-logger";
 
+/**
+ * Main orchestrator for Trinacria runtime lifecycle.
+ * It coordinates plugin hooks, module registration, container bootstrap, and shutdown.
+ */
 export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
   private readonly registry = new ModuleRegistry();
   private readonly plugins: Plugin[] = [];
@@ -40,7 +44,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
       return;
     }
 
-    // runtime dinamico
+    // Runtime path: build and initialize the new module immediately.
     CoreLog.info(`[Trinacria] Module registered at runtime: ${module.name}`);
 
     this.registry.build(module);
@@ -54,7 +58,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
   async unregisterModule(module: ModuleDefinition): Promise<void> {
     CoreLog.warn(`[Trinacria] Module unregistered: ${module.name}`);
 
-    // TODO: implementare reale rimozione nel registry
+    // TODO: implement actual removal from the registry/container graph.
 
     for (const plugin of this.plugins) {
       await plugin.onModuleUnregistered?.(module, this);
@@ -86,23 +90,23 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
       `[Trinacria] Modules: ${this.modules.length}, Plugins: ${this.plugins.length}`,
     );
 
-    // 1️⃣ plugin onRegister
+    // 1) Let plugins run pre-build registration hooks.
     for (const plugin of this.plugins) {
       CoreLog.debug(`[Trinacria] Plugin onRegister: ${plugin.name}`);
       await plugin.onRegister?.(this);
     }
 
-    // 2️⃣ build moduli
+    // 2) Build module graphs and register exported providers.
     for (const module of this.modules) {
       CoreLog.debug(`[Trinacria] Building module: ${module.name}`);
       this.registry.build(module);
     }
 
-    // 3️⃣ init container eager
+    // 3) Eagerly initialize all containers/providers.
     CoreLog.info("[Trinacria] Initializing containers...");
     await this.registry.init();
 
-    // 4️⃣ plugin onInit
+    // 4) Let plugins run post-init hooks.
     for (const plugin of this.plugins) {
       CoreLog.debug(`[Trinacria] Plugin onInit: ${plugin.name}`);
       await plugin.onInit?.(this);
@@ -142,6 +146,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
   }
 
   private setupSignalHandlers() {
+    // Forward process termination signals to graceful shutdown.
     const handleSignal = async (signal: NodeJS.Signals) => {
       CoreLog.warn(
         `[Trinacria] Received ${signal}. Starting graceful shutdown...`,

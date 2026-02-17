@@ -1,14 +1,14 @@
 import type { ModuleDefinition } from "./module-definition";
 
 /**
- * Factory tipizzata per definire un modulo.
+ * Typed factory for declaring a module.
  *
- * Serve solo come helper per:
- * - Migliorare la type inference
- * - Rendere più coerente l'API con i provider
- * - Preparare il terreno per eventuali estensioni future
+ * It is only a declaration helper used to:
+ * - improve type inference
+ * - keep the API consistent with provider factories
+ * - keep room for future DSL extensions
  *
- * Non contiene logica runtime.
+ * It contains no runtime logic.
  */
 export function defineModule<T extends ModuleDefinition>(
   definition: T,

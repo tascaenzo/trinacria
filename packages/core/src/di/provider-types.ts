@@ -2,17 +2,17 @@ import type { Token } from "../token";
 import type { ProviderKind } from "./provider-kind";
 
 /**
- * Lista dichiarativa di dipendenze.
+ * Declarative dependency list for class/factory providers.
  */
 export type DependencyList = readonly Token[];
 
 /**
- * Tipo che rappresenta un valore sync o async.
+ * Utility type for values that may be sync or async.
  */
 export type MaybePromise<T> = T | Promise<T>;
 
 /**
- * Struttura base comune a tutti i provider.
+ * Common base shape shared by all provider types.
  */
 export interface BaseProvider<T = unknown> {
   readonly token: Token<T>;
@@ -20,7 +20,7 @@ export interface BaseProvider<T = unknown> {
 }
 
 /**
- * Provider basato su classe.
+ * Class-based provider.
  */
 export interface ClassProvider<T> extends BaseProvider<T> {
   readonly useClass: new (...args: any[]) => T;
@@ -28,7 +28,7 @@ export interface ClassProvider<T> extends BaseProvider<T> {
 }
 
 /**
- * Provider basato su factory.
+ * Factory-based provider.
  */
 export interface FactoryProvider<T> extends BaseProvider<T> {
   readonly useFactory: (...args: any[]) => MaybePromise<T>;
@@ -36,14 +36,14 @@ export interface FactoryProvider<T> extends BaseProvider<T> {
 }
 
 /**
- * Provider basato su valore statico.
+ * Static value provider.
  */
 export interface ValueProvider<T> extends BaseProvider<T> {
   readonly useValue: MaybePromise<T>;
 }
 
 /**
- * Unione completa dei provider supportati dal container.
+ * Union of all provider variants supported by the container.
  */
 export type Provider<T = unknown> =
   | ClassProvider<T>

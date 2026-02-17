@@ -17,6 +17,10 @@ interface RadixNode {
   route?: RouteDefinition;
 }
 
+/**
+ * Method-aware radix-tree router.
+ * Each HTTP method owns a separate tree for O(path segments) lookup.
+ */
 export class Router {
   private readonly trees = new Map<HttpMethod, RadixNode>();
 
@@ -36,7 +40,7 @@ export class Router {
     let current = root;
 
     for (const segment of segments) {
-      // Param segment (:id)
+      // Param segment (e.g. :id)
       if (segment.startsWith(":")) {
         if (!current.paramChild) {
           current.paramChild = this.createNode(segment);

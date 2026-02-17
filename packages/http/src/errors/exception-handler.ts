@@ -17,6 +17,12 @@ export type HttpExceptionHandler = (
   _ctx: HttpContext,
 ) => SerializedHttpError;
 
+/**
+ * Default error normalization:
+ * - preserves HttpException metadata
+ * - maps URI parsing errors to 400
+ * - hides unknown errors behind 500
+ */
 export const defaultExceptionHandler: HttpExceptionHandler = (error) => {
   if (error instanceof HttpException) {
     return serializeHttpException(error);

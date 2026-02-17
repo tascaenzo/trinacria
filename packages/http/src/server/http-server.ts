@@ -36,11 +36,15 @@ interface HttpServerOptions {
   exceptionHandler?: HttpExceptionHandler;
   responseSerializer?: HttpResponseSerializer;
   /**
-   * @deprecated Usa `exceptionHandler`.
+   * @deprecated Use `exceptionHandler`.
    */
   errorSerializer?: HttpServerErrorSerializer;
 }
 
+/**
+ * Thin HTTP server runtime built on Node's `http` module.
+ * It handles matching, middleware execution, body parsing, and response/error serialization.
+ */
 export class HttpServer {
   private server: http.Server;
   private logger = new ConsoleLogger("plugin:http");
@@ -87,10 +91,10 @@ export class HttpServer {
         resolve();
       });
 
-      // Chiude subito le keep-alive idle.
+      // Close idle keep-alive sockets immediately.
       this.server.closeIdleConnections?.();
 
-      // Fallback hard-stop se rimangono connessioni aperte.
+      // Hard-stop fallback if some connections are still open.
       setTimeout(() => {
         this.server.closeAllConnections?.();
       }, 1000).unref();
@@ -131,17 +135,14 @@ export class HttpServer {
 
       if (allowedMethods.length > 0) {
         this.writeErrorResponse(
-          this.exceptionHandler(
-            new MethodNotAllowedException(allowedMethods),
-            {
-              req,
-              res,
-              params: {},
-              query: {},
-              body: undefined,
-              state: {},
-            },
-          ),
+          this.exceptionHandler(new MethodNotAllowedException(allowedMethods), {
+            req,
+            res,
+            params: {},
+            query: {},
+            body: undefined,
+            state: {},
+          }),
           req,
           res,
         );
@@ -149,17 +150,14 @@ export class HttpServer {
       }
 
       this.writeErrorResponse(
-        this.exceptionHandler(
-          new NotFoundException(),
-          {
-            req,
-            res,
-            params: {},
-            query: {},
-            body: undefined,
-            state: {},
-          },
-        ),
+        this.exceptionHandler(new NotFoundException(), {
+          req,
+          res,
+          params: {},
+          query: {},
+          body: undefined,
+          state: {},
+        }),
         req,
         res,
       );
@@ -256,7 +254,9 @@ export class HttpServer {
 
       req.on("end", () => resolve(Buffer.concat(chunks)));
       req.on("aborted", () =>
-        reject(new BadRequestException("Request was aborted", { code: "ABORTED" })),
+        reject(
+          new BadRequestException("Request was aborted", { code: "ABORTED" }),
+        ),
       );
       req.on("error", (error) => reject(error));
     });

@@ -2,37 +2,36 @@ import type { Provider } from "../di/provider-types";
 import type { Token } from "../token";
 
 /**
- * Definizione dichiarativa di un modulo.
+ * Declarative module definition.
  *
- * Un modulo:
- * - Organizza provider
- * - Definisce import
- * - Definisce export
- * - Non contiene logica runtime
+ * A module:
+ * - organizes providers
+ * - declares imports
+ * - declares exports
+ * - contains no runtime behavior
  */
 export interface ModuleDefinition {
   /**
-   * Nome univoco del modulo.
-   * Usato solo per debug / errori.
+   * Unique module name.
+   * Used for diagnostics and error messages.
    */
   readonly name: string;
 
   /**
-   * Moduli importati.
-   * I loro export diventeranno visibili al modulo corrente.
+   * Imported modules.
+   * Their exported tokens become visible to the current module.
    */
   readonly imports?: readonly ModuleDefinition[];
 
   /**
-   * Provider locali al modulo.
-   * Sono visibili solo internamente,
-   * salvo quelli dichiarati in exports.
+   * Module-local providers.
+   * They are private unless explicitly re-exported.
    */
   readonly providers?: readonly Provider[];
 
   /**
-   * Token esportati verso il root container.
-   * Solo questi saranno accessibili ad altri moduli.
+   * Tokens exported to the root container.
+   * Only these tokens are accessible from other modules.
    */
   readonly exports?: readonly Token<any>[];
 }

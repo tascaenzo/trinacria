@@ -4,32 +4,32 @@ import type { ProviderKind } from "../di/provider-kind";
 import type { ModuleDefinition } from "../module/module-definition";
 
 /**
- * API pubblica runtime esposta ai plugin.
- * Non espone dettagli interni (registry, container).
+ * Public runtime API exposed to plugins.
+ * Internal details (registry/container) are intentionally hidden.
  */
 export interface ApplicationContext {
   /**
-   * Risolve un provider tramite token.
+   * Resolves a provider instance from its token.
    */
   resolve<T>(token: Token<T>): Promise<T>;
 
   /**
-   * Restituisce tutti i provider esportati compatibili con un ProviderKind.
+   * Returns all exported providers associated with a specific ProviderKind.
    */
   getProvidersByKind<T>(kind: ProviderKind<T>): Provider<T>[];
 
   /**
-   * Registra dinamicamente un modulo a runtime.
+   * Registers a module dynamically at runtime.
    */
   registerModule(module: ModuleDefinition): Promise<void>;
 
   /**
-   * Rimuove dinamicamente un modulo a runtime.
+   * Unregisters a module dynamically at runtime.
    */
   unregisterModule(module: ModuleDefinition): Promise<void>;
 
   /**
-   * Chiude l'applicazione, rilasciando tutte le risorse allocate.
+   * Shuts down the application and releases allocated resources.
    */
   shutdown(): Promise<void>;
 }

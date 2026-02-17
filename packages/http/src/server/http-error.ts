@@ -9,7 +9,7 @@ export interface HttpErrorOptions {
 }
 
 /**
- * @deprecated Usa HttpException / eccezioni predefinite da "../errors".
+ * @deprecated Use `HttpException` or built-in exceptions from `"../errors"`.
  */
 export class HttpError extends HttpException {
   constructor(status: number, message: string, options: HttpErrorOptions = {}) {

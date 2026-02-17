@@ -9,6 +9,9 @@ export interface HttpExceptionOptions {
   cause?: unknown;
 }
 
+/**
+ * Base HTTP exception carrying status, response payload, optional code/details, and headers.
+ */
 export class HttpException extends Error {
   readonly code?: string;
   readonly details?: unknown;

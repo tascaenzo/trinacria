@@ -2,29 +2,29 @@ import type { ApplicationContext } from "../application/application-context";
 import type { ModuleDefinition } from "../module/module-definition";
 
 /**
- * Contratto di un plugin Trinacria.
- * Definisce il lifecycle completo del plugin.
+ * Contract implemented by Trinacria plugins.
+ * It defines the full plugin lifecycle.
  */
 export interface Plugin {
   /**
-   * Nome plugin (debug / logging).
+   * Plugin name used for diagnostics/logging.
    */
   readonly name: string;
 
   /**
-   * Chiamato prima della build dei moduli.
-   * Permette al plugin di registrare provider o estensioni globali.
+   * Called before module graph build.
+   * Useful for registering global providers or runtime extensions.
    */
   onRegister?(app: ApplicationContext): Promise<void> | void;
 
   /**
-   * Chiamato dopo il bootstrap completo dell'applicazione.
-   * Tutti i provider sono già istanziati.
+   * Called after bootstrap is complete.
+   * At this point all providers have been instantiated.
    */
   onInit?(app: ApplicationContext): Promise<void> | void;
 
   /**
-   * Chiamato quando un modulo viene registrato a runtime.
+   * Called when a module is registered dynamically at runtime.
    */
   onModuleRegistered?(
     module: ModuleDefinition,
@@ -32,7 +32,7 @@ export interface Plugin {
   ): Promise<void> | void;
 
   /**
-   * Chiamato quando un modulo viene rimosso a runtime.
+   * Called when a module is unregistered dynamically at runtime.
    */
   onModuleUnregistered?(
     module: ModuleDefinition,
@@ -40,7 +40,7 @@ export interface Plugin {
   ): Promise<void> | void;
 
   /**
-   * Chiamato prima dello shutdown dell'applicazione.
+   * Called before application shutdown.
    */
   onDestroy?(app: ApplicationContext): Promise<void> | void;
 }

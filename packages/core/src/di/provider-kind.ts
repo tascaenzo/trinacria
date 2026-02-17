@@ -1,29 +1,29 @@
 /**
- * Brand interno per impedire la creazione manuale del tipo.
- * Non esportato.
+ * Internal brand used to prevent manual construction of the type.
+ * Not exported.
  */
 const PROVIDER_KIND_BRAND: unique symbol = Symbol("ProviderKind");
 
 /**
- * Identificatore tipizzato per categorizzare provider.
- * Non contiene comportamento.
- * Il core non interpreta il kind.
+ * Typed identifier used to categorize providers.
+ * It has no runtime behavior.
+ * The core stores it but does not interpret its semantics.
  */
 export type ProviderKind<T = unknown> = {
   readonly key: symbol;
   readonly description?: string;
 
   /**
-   * Phantom type per mantenere coerenza con il tipo del provider.
-   * Non esiste a runtime.
+   * Phantom type that keeps ProviderKind aligned with provider payload type.
+   * It does not exist at runtime.
    */
   readonly [PROVIDER_KIND_BRAND]: T;
 };
 
 /**
- * Crea un ProviderKind tipizzato.
+ * Creates a typed ProviderKind.
  *
- * @param description opzionale, utile per debug
+ * @param description optional label useful for debugging
  */
 export function createProviderKind<T>(description?: string): ProviderKind<T> {
   return {

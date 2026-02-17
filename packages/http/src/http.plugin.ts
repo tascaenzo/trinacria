@@ -24,11 +24,15 @@ export interface HttpPluginOptions {
   exceptionHandler?: HttpExceptionHandler;
   responseSerializer?: HttpResponseSerializer;
   /**
-   * @deprecated Usa `exceptionHandler`.
+   * @deprecated Use `exceptionHandler`.
    */
   errorSerializer?: HttpServerErrorSerializer;
 }
 
+/**
+ * Creates the Trinacria HTTP plugin.
+ * The plugin discovers HTTP controllers by ProviderKind and registers their routes.
+ */
 export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
   const {
     port = 3000,
@@ -46,6 +50,10 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
   let server: HttpServer | null = null;
   const registeredControllerTokens = new Set<symbol>();
 
+  /**
+   * Resolves controller providers and registers their routes once.
+   * A token guard prevents duplicate registration across runtime module updates.
+   */
   async function registerControllers(app: ApplicationContext): Promise<void> {
     if (!router) return;
 

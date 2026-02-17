@@ -1,39 +1,39 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 /**
- * Contesto di una richiesta HTTP.
+ * HTTP request context.
  *
- * Creato dal plugin per ogni request.
- * Passato a middleware e handler.
+ * Created by the plugin for each incoming request.
+ * Passed to middleware and route handlers.
  */
 export interface HttpContext {
   /**
-   * Request raw di Node.
+   * Raw Node.js request object.
    */
   req: IncomingMessage;
 
   /**
-   * Response raw di Node.
+   * Raw Node.js response object.
    */
   res: ServerResponse;
 
   /**
-   * Parametri estratti dal path (es: /users/:id).
+   * Route params extracted from path patterns (e.g. `/users/:id`).
    */
   params: Record<string, string>;
 
   /**
-   * Query string parsata.
+   * Parsed query-string values.
    */
   query: Record<string, string | string[]>;
 
   /**
-   * Body parsato (JSON nel primo step).
+   * Parsed request body.
    */
   body: unknown;
 
   /**
-   * Stato condiviso tra middleware e handler.
+   * Shared mutable state across middleware and handler pipeline.
    */
   state: Record<string, unknown>;
 }

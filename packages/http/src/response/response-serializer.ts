@@ -2,6 +2,9 @@ import { Readable } from "node:stream";
 import type { HttpContext } from "../server/http-context";
 import { HttpResponse, type HttpResponseHeaders } from "./http-response";
 
+/**
+ * Low-level body types accepted by the HTTP server writer.
+ */
 export type HttpResponseBody =
   | string
   | Buffer
@@ -20,6 +23,10 @@ export type HttpResponseSerializer = (
   ctx: HttpContext,
 ) => SerializedHttpResponse | Promise<SerializedHttpResponse>;
 
+/**
+ * Default serializer used when handlers return plain values.
+ * It infers body type and sets a default `content-type` when missing.
+ */
 export const defaultResponseSerializer: HttpResponseSerializer = (value) => {
   if (value instanceof HttpResponse) {
     return serializeByBodyType(value.body, value.status, value.headers);

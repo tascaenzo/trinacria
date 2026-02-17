@@ -2,6 +2,10 @@ import { BaseLogger } from "./logger";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
+/**
+ * Numeric priority map used to decide if a log level should be printed.
+ * Higher value means higher severity.
+ */
 const LEVEL_PRIORITY: Record<LogLevel, number> = {
   debug: 10,
   info: 20,
@@ -9,6 +13,12 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
   error: 40,
 };
 
+/**
+ * ANSI-console logger with:
+ * - global log-level filtering
+ * - optional per-instance default context
+ * - colored output when running in a TTY
+ */
 export class ConsoleLogger implements BaseLogger {
   private static globalLevel: LogLevel = "debug";
   private static useColors = process.stdout.isTTY;
@@ -19,6 +29,9 @@ export class ConsoleLogger implements BaseLogger {
   // CONFIG
   // --------------------------------------------------
 
+  /**
+   * Sets the minimum global level printed by every ConsoleLogger instance.
+   */
   static setLevel(level: LogLevel) {
     ConsoleLogger.globalLevel = level;
   }
@@ -31,6 +44,9 @@ export class ConsoleLogger implements BaseLogger {
     return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[ConsoleLogger.globalLevel];
   }
 
+  /**
+   * Generates a compact timestamp with millisecond precision.
+   */
   private getTimestamp(): string {
     const now = new Date();
     return (
@@ -108,21 +124,33 @@ export class ConsoleLogger implements BaseLogger {
   // PUBLIC API
   // --------------------------------------------------
 
+  /**
+   * Logs a debug message (if enabled by current global level).
+   */
   debug(message: string, context = this.context): void {
     if (!this.shouldLog("debug")) return;
     console.log(this.format("debug", message, context));
   }
 
+  /**
+   * Logs an informational message (if enabled by current global level).
+   */
   info(message: string, context = this.context): void {
     if (!this.shouldLog("info")) return;
     console.log(this.format("info", message, context));
   }
 
+  /**
+   * Logs a warning message (if enabled by current global level).
+   */
   warn(message: string, context = this.context): void {
     if (!this.shouldLog("warn")) return;
     console.warn(this.format("warn", message, context));
   }
 
+  /**
+   * Logs an error message and optionally prints stack/details for the attached error.
+   */
   error(message: string, error?: unknown, context = this.context): void {
     if (!this.shouldLog("error")) return;
 

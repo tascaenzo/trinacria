@@ -2,7 +2,7 @@ import { HttpMiddleware } from "../middleware/middleware-definition";
 import type { HttpContext } from "../server/http-context";
 
 /**
- * Metodi HTTP supportati nel primo step.
+ * HTTP methods currently supported by the router.
  */
 export const HTTP_METHODS = [
   "GET",
@@ -17,16 +17,16 @@ export const HTTP_METHODS = [
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 /**
- * Handler di una route.
+ * Route handler function.
  *
- * Può:
- * - Restituire un valore (verrà serializzato come JSON)
- * - Non restituire nulla e scrivere direttamente su res
+ * It can:
+ * - return a value (serialized into an HTTP response)
+ * - return `undefined` and write directly to `ctx.res`
  */
 export type RouteHandler = (ctx: HttpContext) => unknown | Promise<unknown>;
 
 /**
- * Definizione dichiarativa di una route.
+ * Declarative route definition.
  */
 export interface RouteDefinition {
   method: HttpMethod;

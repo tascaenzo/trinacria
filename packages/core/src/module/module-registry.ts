@@ -4,13 +4,17 @@ import type { Token } from "../token";
 import { Container } from "../di/container";
 import type { ProviderKind } from "../di";
 
+/**
+ * Builds module container graphs and manages exported-token visibility.
+ * Also maintains a ProviderKind index so plugins can discover providers by capability.
+ */
 export class ModuleRegistry {
   private readonly root: Container;
   private readonly moduleContainers = new Map<ModuleDefinition, Container>();
 
   /**
-   * Indice logico per la discovery dei ProviderKind.
-   * Non è un container DI.
+   * Logical index used for ProviderKind discovery.
+   * This is metadata lookup, not a DI container.
    */
   private readonly kindIndex = new Map<symbol, Provider<any>[]>();
 
@@ -31,13 +35,13 @@ export class ModuleRegistry {
   }
 
   /**
-   * Inizializza tutti i container (eager).
+   * Eagerly initializes root and module containers.
    */
   async init(): Promise<void> {
-    // 1️⃣ Init root
+    // 1) Initialize root container first.
     await this.root.init();
 
-    // 2️⃣ Init moduli
+    // 2) Initialize each module container.
     for (const container of this.moduleContainers.values()) {
       await container.init();
     }
@@ -46,7 +50,7 @@ export class ModuleRegistry {
   }
 
   /**
-   * Discovery provider per ProviderKind.
+   * Returns all providers registered under a given ProviderKind.
    */
   getProvidersByKind<T>(kind: ProviderKind<T>): Provider<T>[] {
     return (this.kindIndex.get(kind.key) ?? []) as Provider<T>[];
@@ -61,38 +65,38 @@ export class ModuleRegistry {
       return this.moduleContainers.get(module)!;
     }
 
-    // 1️⃣ Crea container modulo con parent = root
+    // 1) Create module container with root as parent scope.
     const moduleContainer = new Container(this.root);
     this.moduleContainers.set(module, moduleContainer);
 
-    // 2️⃣ Costruisci import prima
+    // 2) Build imported modules first.
     const importedModules = module.imports ?? [];
     for (const imported of importedModules) {
       this.buildModuleRecursive(imported);
     }
 
-    // 3️⃣ Registra provider locali
+    // 3) Register local module providers.
     const providers = module.providers ?? [];
     for (const provider of providers) {
       moduleContainer.register(provider);
 
-      // 🔹 Indicizzazione per ProviderKind
+      // Add provider to kind index for plugin discovery.
       if (provider.kind) {
         this.indexProviderByKind(provider);
       }
     }
 
-    // 4️⃣ Validazione visibilità
+    // 4) Validate dependency visibility boundaries.
     this.validateModuleDependencies(module, moduleContainer, importedModules);
 
-    // 5️⃣ Registra export nel root
+    // 5) Re-export selected tokens into the root container.
     const exports = module.exports ?? [];
     for (const exportedToken of exports) {
       const provider = this.findLocalProvider(moduleContainer, exportedToken);
 
       if (!provider) {
         throw new Error(
-          `Modulo "${module.name}" esporta token non registrato: ${describeToken(
+          `Module "${module.name}" exports an unregistered token: ${describeToken(
             exportedToken,
           )}`,
         );
@@ -100,9 +104,7 @@ export class ModuleRegistry {
 
       if (this.root.has(exportedToken)) {
         throw new Error(
-          `Token ${describeToken(
-            exportedToken,
-          )} già esportato da un altro modulo.`,
+          `Token ${describeToken(exportedToken)} is already exported by another module.`,
         );
       }
 
@@ -118,7 +120,7 @@ export class ModuleRegistry {
     const existing = this.kindIndex.get(key);
 
     if (existing) {
-      // Evita duplicazioni
+      // Avoid duplicate entries for the same token.
       if (!existing.some((p) => p.token.key === provider.token.key)) {
         existing.push(provider);
       }
@@ -134,12 +136,12 @@ export class ModuleRegistry {
   ): void {
     const visibleTokens = new Set<symbol>();
 
-    // Provider locali
+    // Local providers are always visible inside their own module.
     for (const provider of container.getProviders()) {
       visibleTokens.add(provider.token.key);
     }
 
-    // Export moduli importati
+    // Exports from imported modules are also visible.
     for (const importedModule of importedModules) {
       const exports = importedModule.exports ?? [];
       for (const token of exports) {
@@ -147,16 +149,16 @@ export class ModuleRegistry {
       }
     }
 
-    // Verifica deps
+    // Verify that each declared dependency is visible in module scope.
     for (const provider of container.getProviders()) {
       if (!("deps" in provider) || !provider.deps) continue;
 
       for (const dep of provider.deps) {
         if (!visibleTokens.has(dep.key)) {
           throw new Error(
-            `Nel modulo "${module.name}", il provider ${describeToken(
+            `In module "${module.name}", provider ${describeToken(
               provider.token,
-            )} usa token non visibile: ${describeToken(dep)}.`,
+            )} depends on non-visible token: ${describeToken(dep)}.`,
           );
         }
       }

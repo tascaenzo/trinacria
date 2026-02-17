@@ -1,5 +1,8 @@
 export type HttpResponseHeaders = Record<string, string>;
 
+/**
+ * Explicit HTTP response envelope returned by handlers when status/headers must be controlled.
+ */
 export class HttpResponse<T = unknown> {
   readonly status?: number;
   readonly headers?: HttpResponseHeaders;

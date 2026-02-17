@@ -4,28 +4,28 @@ import { Plugin } from "../plugin";
 import { ApplicationContext } from "./application-context";
 
 /**
- * Builder per la configurazione e l'avvio dell'applicazione.
- * Permette di registrare plugin, provider e moduli prima di avviare l'app.
+ * Builder interface used during application setup.
+ * It lets you register plugins, global providers, and modules before startup.
  */
 
 export interface ApplicationBuilder {
   /**
-   * Registrazione plugin Trinacria.
+   * Registers a Trinacria plugin.
    */
   use(plugin: Plugin): this;
 
   /**
-   * Registra un provaider globale priam di avviare l'app
+   * Registers a global provider before the application starts.
    */
   registerGlobalProvider(provider: Provider): void;
 
   /**
-   * Registra un modulo prima di avviare l'app.
+   * Registers a module before the application starts.
    */
   registerModule(module: ModuleDefinition): Promise<void>;
 
   /**
-   * Avvia l'applicazione, restituendo il contesto runtime.
+   * Starts the application and transitions it to runtime.
    */
   start(): Promise<void>;
 }
