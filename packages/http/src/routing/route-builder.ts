@@ -25,7 +25,37 @@ export class RouteBuilder<C = any> {
       return (fn as RouteHandler).bind(this.controller);
     }
 
+    const methodName = this.findControllerMethodName(handler);
+    if (methodName) {
+      const fn = (this.controller as Record<string, unknown>)[methodName];
+      return (fn as RouteHandler).bind(this.controller);
+    }
+
     return handler as RouteHandler;
+  }
+
+  private findControllerMethodName(handler: unknown): string | null {
+    if (typeof handler !== "function") {
+      return null;
+    }
+
+    let proto = Object.getPrototypeOf(this.controller);
+    while (proto && proto !== Object.prototype) {
+      const keys = Object.getOwnPropertyNames(proto);
+
+      for (const key of keys) {
+        if (key === "constructor") continue;
+
+        const descriptor = Object.getOwnPropertyDescriptor(proto, key);
+        if (descriptor?.value === handler) {
+          return key;
+        }
+      }
+
+      proto = Object.getPrototypeOf(proto);
+    }
+
+    return null;
   }
 
   private add(

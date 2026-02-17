@@ -8,46 +8,82 @@ import {
 
 import { Router } from "./routing/router";
 import { HTTP_CONTROLLER_KIND } from "./controller/kind";
-import { HttpServer } from "./server/http-server";
+import {
+  HttpServer,
+  type HttpExceptionHandler,
+  type HttpServerErrorSerializer,
+} from "./server/http-server";
 import { HttpMiddleware } from "./middleware/middleware-definition";
+import type { HttpResponseSerializer } from "./response";
 
 export interface HttpPluginOptions {
   port?: number;
   host?: string;
   middlewares?: HttpMiddleware[];
+  jsonBodyLimitBytes?: number;
+  exceptionHandler?: HttpExceptionHandler;
+  responseSerializer?: HttpResponseSerializer;
+  /**
+   * @deprecated Usa `exceptionHandler`.
+   */
+  errorSerializer?: HttpServerErrorSerializer;
 }
 
 export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
-  const { port = 3000, host = "0.0.0.0", middlewares = [] } = options;
+  const {
+    port = 3000,
+    host = "0.0.0.0",
+    middlewares = [],
+    jsonBodyLimitBytes,
+    exceptionHandler,
+    responseSerializer,
+    errorSerializer,
+  } = options;
 
   const logger = new ConsoleLogger("plugin:http");
 
   let router: Router | null = null;
   let server: HttpServer | null = null;
+  const registeredControllerTokens = new Set<symbol>();
+
+  async function registerControllers(app: ApplicationContext): Promise<void> {
+    if (!router) return;
+
+    const providers = app.getProvidersByKind(HTTP_CONTROLLER_KIND);
+
+    for (const provider of providers) {
+      if (registeredControllerTokens.has(provider.token.key)) {
+        continue;
+      }
+
+      const controller = await app.resolve(provider.token);
+      const routes = controller.routes();
+
+      for (const route of routes) {
+        logger.info(
+          `Registering route: [${route.method}] ${route.path} (${controller.constructor.name})`,
+        );
+
+        router.register(route);
+      }
+
+      registeredControllerTokens.add(provider.token.key);
+    }
+  }
 
   return definePlugin({
     name: "plugin:http",
 
     async onInit(app: ApplicationContext): Promise<void> {
       router = new Router();
-
-      const providers = app.getProvidersByKind(HTTP_CONTROLLER_KIND);
-
-      for (const provider of providers) {
-        const controller = await app.resolve(provider.token);
-        const routes = controller.routes();
-
-        for (const route of routes) {
-          logger.info(
-            `Registering route: [${route.method}] ${route.path} (${controller.constructor.name})`,
-          );
-
-          router.register(route);
-        }
-      }
+      await registerControllers(app);
 
       server = new HttpServer(router, {
         globalMiddlewares: middlewares,
+        jsonBodyLimitBytes,
+        exceptionHandler,
+        responseSerializer,
+        errorSerializer,
       });
 
       server.listen(port, host);
@@ -59,22 +95,7 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
       _module: ModuleDefinition,
       app: ApplicationContext,
     ): Promise<void> {
-      if (!router) return;
-
-      const providers = app.getProvidersByKind(HTTP_CONTROLLER_KIND);
-
-      for (const provider of providers) {
-        const controller = await app.resolve(provider.token);
-        const routes = controller.routes();
-
-        for (const route of routes) {
-          logger.info(
-            `Registering route (runtime): [${route.method}] ${route.path} (${controller.constructor.name})`,
-          );
-
-          router.register(route);
-        }
-      }
+      await registerControllers(app);
     },
 
     async onDestroy(): Promise<void> {
@@ -86,6 +107,7 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
 
       server = null;
       router = null;
+      registeredControllerTokens.clear();
 
       logger.info("HTTP server stopped");
     },

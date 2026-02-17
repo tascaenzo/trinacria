@@ -1,4 +1,8 @@
-import type { RouteDefinition, HttpMethod } from "./route-definition";
+import {
+  HTTP_METHODS,
+  type RouteDefinition,
+  type HttpMethod,
+} from "./route-definition";
 
 export interface RouteMatch {
   route: RouteDefinition;
@@ -17,9 +21,7 @@ export class Router {
   private readonly trees = new Map<HttpMethod, RadixNode>();
 
   constructor() {
-    // Inizializziamo una root per ogni metodo HTTP
-    const methods: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];
-    for (const method of methods) {
+    for (const method of HTTP_METHODS) {
       this.trees.set(method, this.createNode(""));
     }
   }
@@ -30,7 +32,7 @@ export class Router {
       throw new Error(`Unsupported HTTP method: ${route.method}`);
     }
 
-    const segments = this.splitPath(route.path);
+    const segments = this.splitRoutePath(route.path);
     let current = root;
 
     for (const segment of segments) {
@@ -63,38 +65,36 @@ export class Router {
     if (!root) return null;
 
     const { pathname, query } = this.parseUrl(url);
-    const segments = this.splitPath(pathname);
+    const segments = this.splitRequestPath(pathname);
+    const resolved = this.resolveInTree(root, segments);
 
-    let current = root;
-    const params: Record<string, string> = {};
-
-    for (const segment of segments) {
-      // Priorità segmento statico
-      if (current.children.has(segment)) {
-        current = current.children.get(segment)!;
-        continue;
-      }
-
-      // Fallback su parametro dinamico
-      if (current.paramChild) {
-        const paramName = current.paramChild.segment.slice(1);
-        params[paramName] = segment;
-        current = current.paramChild;
-        continue;
-      }
-
-      return null;
-    }
-
-    if (!current.route) {
+    if (!resolved?.route) {
       return null;
     }
 
     return {
-      route: current.route,
-      params,
+      route: resolved.route,
+      params: resolved.params,
       query,
     };
+  }
+
+  allowedMethods(url: string): HttpMethod[] {
+    const { pathname } = this.parseUrl(url);
+    const segments = this.splitRequestPath(pathname);
+    const methods: HttpMethod[] = [];
+
+    for (const method of HTTP_METHODS) {
+      const root = this.trees.get(method);
+      if (!root) continue;
+
+      const resolved = this.resolveInTree(root, segments);
+      if (resolved?.route) {
+        methods.push(method);
+      }
+    }
+
+    return methods;
   }
 
   private createNode(segment: string): RadixNode {
@@ -125,16 +125,53 @@ export class Router {
       }
     }
 
-    let pathname = parsed.pathname;
-
-    if (pathname.length > 1 && pathname.endsWith("/")) {
-      pathname = pathname.slice(0, -1);
-    }
+    const pathname = this.normalizePath(parsed.pathname);
 
     return { pathname, query };
   }
 
-  private splitPath(path: string): string[] {
-    return path.split("/").filter(Boolean);
+  private normalizePath(path: string): string {
+    if (path.length > 1 && path.endsWith("/")) {
+      return path.slice(0, -1);
+    }
+
+    return path;
+  }
+
+  private splitRoutePath(path: string): string[] {
+    return this.normalizePath(path).split("/").filter(Boolean);
+  }
+
+  private splitRequestPath(path: string): string[] {
+    return this.normalizePath(path)
+      .split("/")
+      .filter(Boolean)
+      .map((segment) => decodeURIComponent(segment));
+  }
+
+  private resolveInTree(
+    root: RadixNode,
+    segments: string[],
+  ): { route?: RouteDefinition; params: Record<string, string> } | null {
+    let current = root;
+    const params: Record<string, string> = {};
+
+    for (const segment of segments) {
+      if (current.children.has(segment)) {
+        current = current.children.get(segment)!;
+        continue;
+      }
+
+      if (current.paramChild) {
+        const paramName = current.paramChild.segment.slice(1);
+        params[paramName] = segment;
+        current = current.paramChild;
+        continue;
+      }
+
+      return null;
+    }
+
+    return { route: current.route, params };
   }
 }

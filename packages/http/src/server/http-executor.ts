@@ -4,13 +4,26 @@ import { compose } from "../middleware/compose";
 import { HttpMiddleware } from "../middleware/middleware-definition";
 
 export class HttpExecutor {
+  private readonly pipelineCache = new WeakMap<
+    RouteDefinition,
+    (ctx: HttpContext) => Promise<unknown>
+  >();
+
   constructor(private readonly globalMiddlewares: HttpMiddleware[] = []) {}
 
   createPipeline(route: RouteDefinition) {
-    return compose(
+    const existing = this.pipelineCache.get(route);
+    if (existing) {
+      return existing;
+    }
+
+    const pipeline = compose(
       [...this.globalMiddlewares, ...(route.middlewares ?? [])],
       route.handler,
     );
+
+    this.pipelineCache.set(route, pipeline);
+    return pipeline;
   }
 
   async execute(route: RouteDefinition, ctx: HttpContext) {

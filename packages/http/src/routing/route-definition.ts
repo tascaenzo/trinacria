@@ -4,14 +4,17 @@ import type { HttpContext } from "../server/http-context";
 /**
  * Metodi HTTP supportati nel primo step.
  */
-export type HttpMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE"
-  | "OPTIONS"
-  | "HEAD";
+export const HTTP_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "OPTIONS",
+  "HEAD",
+] as const;
+
+export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 /**
  * Handler di una route.
