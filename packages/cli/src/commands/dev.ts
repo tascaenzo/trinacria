@@ -8,6 +8,7 @@ const context = "TrinacriaCLI";
 const log = new ConsoleLogger(context);
 const RESTART_DEBOUNCE_MS = 100;
 const STOP_TIMEOUT_MS = 3000;
+const NON_RESTARTABLE_EXIT_CODES = new Set([78]);
 
 export async function dev(config: ResolvedConfig) {
   const entry = path.resolve(config.entry);
@@ -29,6 +30,14 @@ export async function dev(config: ResolvedConfig) {
     }
 
     if (code !== 0) {
+      if (code !== null && NON_RESTARTABLE_EXIT_CODES.has(code)) {
+        log.error(
+          `Application stopped with non-restartable exit code ${code}. Waiting for source changes...`,
+          context,
+        );
+        return;
+      }
+
       scheduleRestart(`App crashed (code ${code})`);
     }
   };
