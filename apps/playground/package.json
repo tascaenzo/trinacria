@@ -10,6 +10,7 @@
   "dependencies": {
     "@trinacria/core": "*",
     "@trinacria/cli": "*",
-    "@trinacria/http": "*"
+    "@trinacria/http": "*",
+    "@trinacria/schema": "*"
   }
 }

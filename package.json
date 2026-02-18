@@ -4,10 +4,11 @@
   "scripts": {
     "clean": "rm -rf packages/**/dist apps/**/dist",
     "build:core": "npm run build -w @trinacria/core",
+    "build:schema": "npm run build -w @trinacria/schema",
     "build:http": "npm run build -w @trinacria/http",
     "build:cli": "npm run build -w @trinacria/cli",
     "build:playground": "npm run build -w playground",
-    "build": "npm run build:core && npm run build:http && npm run build:cli && npm run build:playground",
+    "build": "npm run build:core && npm run build:schema && npm run build:http && npm run build:cli && npm run build:playground",
     "rebuild": "npm run clean && npm run build",
     "dev:playground": "npm run dev -w playground"
   },
