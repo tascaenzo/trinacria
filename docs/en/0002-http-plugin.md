@@ -6,7 +6,8 @@ It provides:
 
 - controller registration through `ProviderKind`
 - routing with static and parametric paths (`/users/:id`)
-- global and route-level middleware
+- middleware engine (`compose` + middleware contracts)
+- built-in middleware collection (security, CORS, request id/logging, timeout, rate limit)
 - request body parsing (JSON + raw fallback)
 - response serialization
 - HTTP exception handling
@@ -43,6 +44,7 @@ await app.start();
 - `host?: string` (default: `0.0.0.0`)
 - `middlewares?: HttpMiddleware[]` global middleware
 - `jsonBodyLimitBytes?: number` body limit (default: `1_048_576`)
+- `streamingBodyContentTypes?: string[]` content-types parsed as stream (`IncomingMessage`) instead of `Buffer` (default includes `multipart/form-data`, `application/octet-stream`)
 - `exceptionHandler?: HttpExceptionHandler` custom error serializer
 - `responseSerializer?: HttpResponseSerializer` custom response serializer
 - `errorSerializer?: HttpServerErrorSerializer` deprecated (use `exceptionHandler`)
@@ -113,6 +115,8 @@ Each handler/middleware receives:
 - `query`: query string (`Record<string, string | string[]>`)
 - `body`: parsed body
 - `state`: shared state for middleware/handlers
+- `signal`: request `AbortSignal` (aborts on client disconnect/timeout)
+- `abort(reason?)`: abort helper for cooperative cancellation
 
 ## Middleware
 
@@ -138,12 +142,138 @@ You can use middleware:
 - globally: `createHttpPlugin({ middlewares: [...] })`
 - per route: `.post("/users", "create", authMiddleware)`
 
+Middleware architecture:
+
+- `src/middleware`: middleware engine only (`HttpMiddleware` contract + composition)
+- `src/builtin-middlewares`: built-in middleware implementations exported by the package
+
+Built-in middleware:
+
+- `securityHeaders(...)`
+- `requestId(...)`
+- `requestLogger(...)`
+- `cors(...)`
+- `rateLimit(...)`
+- `requestTimeout(...)`
+
+`rateLimit(...)` options:
+
+- `windowMs?: number` (default `60_000`)
+- `max?: number` (default `100`)
+- `keyGenerator?: (ctx) => string`
+- `onLimitExceeded?: (ctx) => unknown`
+- `trustProxy?: boolean` (default `false`, enables `x-forwarded-for` usage)
+- `store?: RateLimitStore` (custom storage backend)
+
+Playground baseline example:
+
+```ts
+import {
+  cors,
+  createHttpPlugin,
+  createSecurityHeadersBuilder,
+  rateLimit,
+  requestId,
+  requestLogger,
+  requestTimeout,
+} from "@trinacria/http";
+
+const security = createSecurityHeadersBuilder().preset("development").build();
+
+app.use(
+  createHttpPlugin({
+    middlewares: [
+      requestId(),
+      requestLogger(),
+      cors({ origin: "*" }),
+      rateLimit({ windowMs: 60_000, max: 2000, trustProxy: true }),
+      requestTimeout({ timeoutMs: 15_000 }),
+      security,
+    ],
+  }),
+);
+```
+
+### Security headers (Helmet-like)
+
+`@trinacria/http` exposes `securityHeaders()` to apply secure default headers.
+
+```ts
+import { createHttpPlugin, securityHeaders } from "@trinacria/http";
+
+app.use(
+  createHttpPlugin({
+    middlewares: [
+      securityHeaders({
+        mode: "production",
+        contentSecurityPolicy: {
+          nonce: true,
+          reportTo: "csp-endpoint",
+        },
+        permissionsPolicy: {
+          camera: [],
+          microphone: [],
+          geolocation: [],
+        },
+        crossOriginEmbedderPolicy: "require-corp",
+      }),
+    ],
+  }),
+);
+```
+
+Preset + fluent builder:
+
+```ts
+import { createSecurityHeadersBuilder } from "@trinacria/http";
+
+const security = createSecurityHeadersBuilder()
+  .preset("production")
+  .contentSecurityPolicy({
+    nonce: true,
+    addStrictDynamicWhenNonce: true,
+  })
+  .build();
+```
+
+Defaults include headers like:
+
+- `content-security-policy`
+- `strict-transport-security`
+- `x-content-type-options`
+- `x-frame-options`
+- `referrer-policy`
+- `permissions-policy`
+
+Customization:
+
+- `headers`: override/disable single headers (`false` disables one)
+- `contentSecurityPolicy`: directives, smart merge by directive (or `overrideDirectives: true`), report-only mode, `report-uri`, `report-to`, nonce support (`ctx.state.cspNonce`), optional `'strict-dynamic'`, `reportToHeader`, or `false`
+- `contentSecurityPolicy.schemaValidation`: `"off" | "warn" | "strict"` for CSP schema checks
+- `strictTransportSecurity`: max age/subdomains/preload or `false` (sent only on HTTPS)
+- `permissionsPolicy`: string/object config or `false`
+- `permissionsPolicyValidation`: `"off" | "warn" | "strict"`
+- `crossOriginEmbedderPolicy`: `"require-corp"`, `"unsafe-none"` or `false`
+- `mode`: `"development" | "staging" | "production"` (HSTS defaults vary by env)
+- `trustProxy`: if `true`, HTTPS detection may use `x-forwarded-proto`
+- presets: `securityHeadersPreset("development" | "staging" | "production" | "enterprise")`
+- builder: `createSecurityHeadersBuilder()` for safer team-wide config composition
+
+### Production Requirements
+
+- Run behind HTTPS (TLS termination at edge/proxy is fine).
+- Set `trustProxy: true` only when `x-forwarded-proto` is set by a trusted reverse proxy.
+- Enable HSTS preload only when your full domain strategy is preload-ready.
+- If using CSP `report-to`, configure both directive (`reportTo`) and HTTP `Report-To` header (`reportToHeader`).
+- Start with report-only CSP in staged rollouts, then enforce.
+
 ## Body parsing
 
 Server behavior:
 
 - no body: `ctx.body = undefined`
 - `content-type: application/json`: JSON parse
+- content-type matching `streamingBodyContentTypes`: raw request stream (`IncomingMessage`)
 - other content types: `Buffer`
 - invalid JSON: `400 BadRequestException`
 - payload above limit: `413 PayloadTooLargeException`
@@ -186,7 +316,8 @@ You can customize error serialization using `exceptionHandler`.
 ## Plugin lifecycle
 
 - `onInit`: creates router/server, registers routes, starts listener
-- `onModuleRegistered`: registers controllers from modules added at runtime
+- `onModuleRegistered`: rebuilds routes including modules added at runtime
+- `onModuleUnregistered`: rebuilds routes removing unloaded module controllers
 - `onDestroy`: closes server and connections
 
 ## Operational notes

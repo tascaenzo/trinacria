@@ -6,7 +6,8 @@ Fornisce:
 
 - registrazione controller via `ProviderKind`
 - routing con path statici e parametrici (`/users/:id`)
-- middleware globali e per-route
+- motore middleware (`compose` + contratto middleware)
+- collezione middleware built-in (security, CORS, request id/logging, timeout, rate limit)
 - parsing body (JSON + raw fallback)
 - serializzazione risposta
 - gestione eccezioni HTTP
@@ -43,6 +44,7 @@ await app.start();
 - `host?: string` (default: `0.0.0.0`)
 - `middlewares?: HttpMiddleware[]` middleware globali
 - `jsonBodyLimitBytes?: number` limite body (default: `1_048_576`)
+- `streamingBodyContentTypes?: string[]` content-type da parsare come stream (`IncomingMessage`) invece di `Buffer` (default include `multipart/form-data`, `application/octet-stream`)
 - `exceptionHandler?: HttpExceptionHandler` serializer error custom
 - `responseSerializer?: HttpResponseSerializer` serializer risposta custom
 - `errorSerializer?: HttpServerErrorSerializer` deprecato (usa `exceptionHandler`)
@@ -113,6 +115,8 @@ Ogni handler/middleware riceve:
 - `query`: query string (`Record<string, string | string[]>`)
 - `body`: body parsato
 - `state`: stato condiviso middleware/handler
+- `signal`: `AbortSignal` della request (abort su disconnect client/timeout)
+- `abort(reason?)`: helper di abort cooperativo
 
 ## Middleware
 
@@ -140,12 +144,138 @@ Puoi usarlo:
 - globalmente: `createHttpPlugin({ middlewares: [...] })`
 - per route: `.post("/users", "create", authMiddleware)`
 
+Architettura middleware:
+
+- `src/middleware`: solo motore middleware (`HttpMiddleware` + composizione)
+- `src/builtin-middlewares`: implementazioni middleware built-in esportate dal package
+
+Middleware built-in disponibili:
+
+- `securityHeaders(...)`
+- `requestId(...)`
+- `requestLogger(...)`
+- `cors(...)`
+- `rateLimit(...)`
+- `requestTimeout(...)`
+
+Opzioni `rateLimit(...)`:
+
+- `windowMs?: number` (default `60_000`)
+- `max?: number` (default `100`)
+- `keyGenerator?: (ctx) => string`
+- `onLimitExceeded?: (ctx) => unknown`
+- `trustProxy?: boolean` (default `false`, abilita uso `x-forwarded-for`)
+- `store?: RateLimitStore` (backend storage custom)
+
+Esempio baseline del playground:
+
+```ts
+import {
+  cors,
+  createHttpPlugin,
+  createSecurityHeadersBuilder,
+  rateLimit,
+  requestId,
+  requestLogger,
+  requestTimeout,
+} from "@trinacria/http";
+
+const security = createSecurityHeadersBuilder().preset("development").build();
+
+app.use(
+  createHttpPlugin({
+    middlewares: [
+      requestId(),
+      requestLogger(),
+      cors({ origin: "*" }),
+      rateLimit({ windowMs: 60_000, max: 2000, trustProxy: true }),
+      requestTimeout({ timeoutMs: 15_000 }),
+      security,
+    ],
+  }),
+);
+```
+
+### Header di sicurezza (stile Helmet)
+
+`@trinacria/http` espone `securityHeaders()` per applicare header sicuri di default.
+
+```ts
+import { createHttpPlugin, securityHeaders } from "@trinacria/http";
+
+app.use(
+  createHttpPlugin({
+    middlewares: [
+      securityHeaders({
+        mode: "production",
+        contentSecurityPolicy: {
+          nonce: true,
+          reportTo: "csp-endpoint",
+        },
+        permissionsPolicy: {
+          camera: [],
+          microphone: [],
+          geolocation: [],
+        },
+        crossOriginEmbedderPolicy: "require-corp",
+      }),
+    ],
+  }),
+);
+```
+
+Preset + builder fluente:
+
+```ts
+import { createSecurityHeadersBuilder } from "@trinacria/http";
+
+const security = createSecurityHeadersBuilder()
+  .preset("production")
+  .contentSecurityPolicy({
+    nonce: true,
+    addStrictDynamicWhenNonce: true,
+  })
+  .build();
+```
+
+Default inclusi (tra gli altri):
+
+- `content-security-policy`
+- `strict-transport-security`
+- `x-content-type-options`
+- `x-frame-options`
+- `referrer-policy`
+- `permissions-policy`
+
+Personalizzazione:
+
+- `headers`: override/disabilita header singoli (`false` disabilita)
+- `contentSecurityPolicy`: direttive, merge intelligente per direttiva (oppure `overrideDirectives: true`), modalita report-only, `report-uri`, `report-to`, supporto nonce (`ctx.state.cspNonce`), `'strict-dynamic'` opzionale, `reportToHeader`, oppure `false`
+- `contentSecurityPolicy.schemaValidation`: `"off" | "warn" | "strict"` per validazione schema CSP
+- `strictTransportSecurity`: max-age/subdomains/preload oppure `false` (inviato solo su HTTPS)
+- `permissionsPolicy`: stringa/oggetto configurabile oppure `false`
+- `permissionsPolicyValidation`: `"off" | "warn" | "strict"`
+- `crossOriginEmbedderPolicy`: `"require-corp"`, `"unsafe-none"` oppure `false`
+- `mode`: `"development" | "staging" | "production"` (default HSTS diversi per ambiente)
+- `trustProxy`: se `true`, il rilevamento HTTPS puo usare `x-forwarded-proto`
+- preset: `securityHeadersPreset("development" | "staging" | "production" | "enterprise")`
+- builder: `createSecurityHeadersBuilder()` per comporre config in modo sicuro
+
+### Requisiti Production
+
+- Esegui il servizio dietro HTTPS (terminazione TLS su edge/proxy va bene).
+- Imposta `trustProxy: true` solo se `x-forwarded-proto` e inserito da un reverse proxy trusted.
+- Abilita preload HSTS solo quando la strategia dominio/subdomini e pronta per preload.
+- Se usi CSP `report-to`, configura sia la direttiva (`reportTo`) sia l'header HTTP `Report-To` (`reportToHeader`).
+- Parti da CSP report-only in rollout graduale, poi passa a enforcement.
+
 ## Body parsing
 
 Comportamento server:
 
 - nessun body: `ctx.body = undefined`
 - `content-type: application/json`: parse JSON
+- content-type che matchano `streamingBodyContentTypes`: stream raw request (`IncomingMessage`)
 - altri content-type: `Buffer`
 - JSON invalido: `400 BadRequestException`
 - payload oltre limite: `413 PayloadTooLargeException`
@@ -191,7 +321,8 @@ Puoi personalizzare la serializzazione errori con `exceptionHandler`.
 ## Lifecycle plugin
 
 - `onInit`: crea router/server, registra route e avvia listener
-- `onModuleRegistered`: registra controller di moduli aggiunti a runtime
+- `onModuleRegistered`: ricostruisce le route includendo moduli aggiunti a runtime
+- `onModuleUnregistered`: ricostruisce le route rimuovendo controller di moduli scaricati
 - `onDestroy`: chiude server e connessioni
 
 ## Note operative

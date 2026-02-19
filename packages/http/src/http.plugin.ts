@@ -21,6 +21,7 @@ export interface HttpPluginOptions {
   host?: string;
   middlewares?: HttpMiddleware[];
   jsonBodyLimitBytes?: number;
+  streamingBodyContentTypes?: string[];
   exceptionHandler?: HttpExceptionHandler;
   responseSerializer?: HttpResponseSerializer;
   /**
@@ -39,6 +40,7 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
     host = "0.0.0.0",
     middlewares = [],
     jsonBodyLimitBytes,
+    streamingBodyContentTypes,
     exceptionHandler,
     responseSerializer,
     errorSerializer,
@@ -79,16 +81,25 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
     }
   }
 
+  async function rebuildControllers(app: ApplicationContext): Promise<void> {
+    if (!router) return;
+
+    router.clear();
+    registeredControllerTokens.clear();
+    await registerControllers(app);
+  }
+
   return definePlugin({
     name: "plugin:http",
 
     async onInit(app: ApplicationContext): Promise<void> {
       router = new Router();
-      await registerControllers(app);
+      await rebuildControllers(app);
 
       server = new HttpServer(router, {
         globalMiddlewares: middlewares,
         jsonBodyLimitBytes,
+        streamingBodyContentTypes,
         exceptionHandler,
         responseSerializer,
         errorSerializer,
@@ -103,7 +114,14 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
       _module: ModuleDefinition,
       app: ApplicationContext,
     ): Promise<void> {
-      await registerControllers(app);
+      await rebuildControllers(app);
+    },
+
+    async onModuleUnregistered(
+      _module: ModuleDefinition,
+      app: ApplicationContext,
+    ): Promise<void> {
+      await rebuildControllers(app);
     },
 
     async onDestroy(): Promise<void> {

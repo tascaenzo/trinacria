@@ -23,6 +23,10 @@ import {
 } from "../response";
 
 const DEFAULT_JSON_BODY_LIMIT_BYTES = 1_048_576;
+const DEFAULT_STREAMING_BODY_CONTENT_TYPES = [
+  "multipart/form-data",
+  "application/octet-stream",
+];
 
 export type HttpServerErrorSerializer = (
   error: unknown,
@@ -33,6 +37,7 @@ export type { HttpExceptionHandler };
 interface HttpServerOptions {
   globalMiddlewares?: HttpMiddleware[];
   jsonBodyLimitBytes?: number;
+  streamingBodyContentTypes?: string[];
   exceptionHandler?: HttpExceptionHandler;
   responseSerializer?: HttpResponseSerializer;
   /**
@@ -50,6 +55,7 @@ export class HttpServer {
   private logger = new ConsoleLogger("plugin:http");
   private executor: HttpExecutor;
   private jsonBodyLimitBytes: number;
+  private streamingBodyContentTypes: string[];
   private exceptionHandler: HttpExceptionHandler;
   private responseSerializer: HttpResponseSerializer;
   private closePromise: Promise<void> | null = null;
@@ -61,6 +67,8 @@ export class HttpServer {
     this.executor = new HttpExecutor(options.globalMiddlewares ?? []);
     this.jsonBodyLimitBytes =
       options.jsonBodyLimitBytes ?? DEFAULT_JSON_BODY_LIMIT_BYTES;
+    this.streamingBodyContentTypes =
+      options.streamingBodyContentTypes ?? DEFAULT_STREAMING_BODY_CONTENT_TYPES;
     this.exceptionHandler =
       options.exceptionHandler ??
       options.errorSerializer ??
@@ -112,68 +120,78 @@ export class HttpServer {
     res: http.ServerResponse,
   ): Promise<void> {
     if (!req.url || !req.method) {
+      const controller = new AbortController();
+      const baseCtx: HttpContext = {
+        req,
+        res,
+        params: {},
+        query: {},
+        body: undefined,
+        signal: controller.signal,
+        abort: (reason?: unknown) => controller.abort(reason),
+        state: {},
+      };
+
       this.writeErrorResponse(
-        defaultExceptionHandler(new BadRequestException(), {
-          req,
-          res,
-          params: {},
-          query: {},
-          body: undefined,
-          state: {},
-        }),
+        defaultExceptionHandler(new BadRequestException(), baseCtx),
         req,
         res,
       );
       return;
     }
 
-    const method = req.method.toUpperCase() as HttpMethod;
-    const match = this.router.match(method, req.url);
+    const abortController = new AbortController();
+    req.once("aborted", () => abortController.abort("request-aborted"));
+    req.once("close", () => {
+      if (!res.writableEnded) {
+        abortController.abort("request-closed");
+      }
+    });
 
-    if (!match) {
-      const allowedMethods = this.router.allowedMethods(req.url);
+    let ctx: HttpContext = {
+      req,
+      res,
+      params: {},
+      query: {},
+      body: undefined,
+      signal: abortController.signal,
+      abort: (reason?: unknown) => abortController.abort(reason),
+      state: {},
+    };
 
-      if (allowedMethods.length > 0) {
-        this.writeErrorResponse(
-          this.exceptionHandler(new MethodNotAllowedException(allowedMethods), {
+    try {
+      const method = req.method.toUpperCase() as HttpMethod;
+      const match = this.router.match(method, req.url);
+
+      if (!match) {
+        const allowedMethods = this.router.allowedMethods(req.url);
+
+        if (allowedMethods.length > 0) {
+          this.writeErrorResponse(
+            this.exceptionHandler(
+              new MethodNotAllowedException(allowedMethods),
+              ctx,
+            ),
             req,
             res,
-            params: {},
-            query: {},
-            body: undefined,
-            state: {},
-          }),
+          );
+          return;
+        }
+
+        this.writeErrorResponse(
+          this.exceptionHandler(new NotFoundException(), ctx),
           req,
           res,
         );
         return;
       }
 
-      this.writeErrorResponse(
-        this.exceptionHandler(new NotFoundException(), {
-          req,
-          res,
-          params: {},
-          query: {},
-          body: undefined,
-          state: {},
-        }),
-        req,
-        res,
-      );
-      return;
-    }
+      ctx = {
+        ...ctx,
+        params: match.params,
+        query: match.query,
+      };
 
-    const ctx: HttpContext = {
-      req,
-      res,
-      params: match.params,
-      query: match.query,
-      body: undefined,
-      state: {},
-    };
-
-    try {
       ctx.body = await this.parseRequestBody(req);
       const result = await this.executor.execute(match.route, ctx);
 
@@ -197,14 +215,19 @@ export class HttpServer {
       return undefined;
     }
 
+    const contentType = this.getHeader(req.headers["content-type"]) ?? "";
+    const normalizedContentType = contentType.toLowerCase();
+
+    if (this.isStreamingContentType(normalizedContentType)) {
+      return req;
+    }
+
     const rawBody = await this.readRawBody(req);
     if (rawBody.length === 0) {
       return undefined;
     }
 
-    const contentType = this.getHeader(req.headers["content-type"]) ?? "";
-
-    if (contentType.toLowerCase().includes("application/json")) {
+    if (normalizedContentType.includes("application/json")) {
       try {
         return JSON.parse(rawBody.toString("utf8"));
       } catch {
@@ -215,6 +238,12 @@ export class HttpServer {
     }
 
     return rawBody;
+  }
+
+  private isStreamingContentType(contentType: string): boolean {
+    return this.streamingBodyContentTypes.some((candidate) =>
+      contentType.includes(candidate.toLowerCase()),
+    );
   }
 
   private hasRequestBody(req: http.IncomingMessage): boolean {

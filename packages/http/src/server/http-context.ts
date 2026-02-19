@@ -33,6 +33,17 @@ export interface HttpContext {
   body: unknown;
 
   /**
+   * AbortSignal tied to request lifecycle/timeouts.
+   * Handlers can pass it to downstream I/O for cooperative cancellation.
+   */
+  signal: AbortSignal;
+
+  /**
+   * Aborts current request pipeline.
+   */
+  abort(reason?: unknown): void;
+
+  /**
    * Shared mutable state across middleware and handler pipeline.
    */
   state: Record<string, unknown>;
