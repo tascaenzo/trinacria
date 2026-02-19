@@ -88,11 +88,14 @@ export class Container {
   async unregisterAndDestroy(token: Token<any>, force = false): Promise<void> {
     const key = token.key;
     const instancePromise = this.instances.get(key);
+    const provider = this.providers.get(key);
 
     if (instancePromise) {
       try {
         const instance = await instancePromise;
-        await this.runOnDestroy(instance);
+        if (provider?.lifecycle !== "external") {
+          await this.runOnDestroy(instance);
+        }
       } catch {
         // Keep unregister semantics deterministic even if destroy hook throws.
       }
@@ -118,6 +121,9 @@ export class Container {
     this.initPromise = (async () => {
       // Eagerly instantiate every local provider in this scope.
       for (const provider of this.providers.values()) {
+        if (provider.eager === false) {
+          continue;
+        }
         await this.instantiate(provider);
       }
 
@@ -139,6 +145,8 @@ export class Container {
     for (const key of keys) {
       const instancePromise = this.instances.get(key);
       if (!instancePromise) continue;
+      const provider = this.providers.get(key);
+      if (provider?.lifecycle === "external") continue;
 
       try {
         const instance = await instancePromise;
@@ -220,7 +228,9 @@ export class Container {
         // ValueProvider
         if (isValueProvider(provider)) {
           const value = await provider.useValue;
-          await this.runOnInit(value);
+          if (provider.lifecycle !== "external") {
+            await this.runOnInit(value);
+          }
           return value;
         }
 
@@ -230,14 +240,18 @@ export class Container {
         // ClassProvider
         if (isClassProvider(provider)) {
           const value = new provider.useClass(...deps);
-          await this.runOnInit(value);
+          if (provider.lifecycle !== "external") {
+            await this.runOnInit(value);
+          }
           return value;
         }
 
         // FactoryProvider
         if (isFactoryProvider(provider)) {
           const value = await provider.useFactory(...deps);
-          await this.runOnInit(value);
+          if (provider.lifecycle !== "external") {
+            await this.runOnInit(value);
+          }
           return value;
         }
 
@@ -245,7 +259,15 @@ export class Container {
       } finally {
         this.resolving.delete(key);
       }
-    })();
+    })().catch((error) => {
+      // Do not cache failed instantiations forever; allow a future retry.
+      this.instances.delete(key);
+      const orderIndex = this.creationOrder.indexOf(key);
+      if (orderIndex !== -1) {
+        this.creationOrder.splice(orderIndex, 1);
+      }
+      throw error;
+    });
 
     this.instances.set(key, instancePromise);
     this.creationOrder.push(key);

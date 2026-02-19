@@ -25,6 +25,28 @@ export interface ArrayOptions<T> {
  * Creates an array schema from an item schema.
  */
 export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
+  if (
+    options.minItems !== undefined &&
+    (!Number.isInteger(options.minItems) || options.minItems < 0)
+  ) {
+    throw new Error("array(): minItems must be a non-negative integer");
+  }
+
+  if (
+    options.maxItems !== undefined &&
+    (!Number.isInteger(options.maxItems) || options.maxItems < 0)
+  ) {
+    throw new Error("array(): maxItems must be a non-negative integer");
+  }
+
+  if (
+    options.minItems !== undefined &&
+    options.maxItems !== undefined &&
+    options.minItems > options.maxItems
+  ) {
+    throw new Error("array(): minItems cannot be greater than maxItems");
+  }
+
   const internalItem = asInternal(itemSchema);
   const minItems = Math.max(options.nonEmpty ? 1 : 0, options.minItems ?? 0);
 

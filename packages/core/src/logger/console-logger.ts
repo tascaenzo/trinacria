@@ -22,6 +22,7 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
 export class ConsoleLogger implements BaseLogger {
   private static globalLevel: LogLevel = "debug";
   private static useColors = process.stdout.isTTY;
+  private static locale: string | undefined;
 
   constructor(private readonly context?: string) {}
 
@@ -34,6 +35,14 @@ export class ConsoleLogger implements BaseLogger {
    */
   static setLevel(level: LogLevel) {
     ConsoleLogger.globalLevel = level;
+  }
+
+  /**
+   * Overrides timestamp locale formatting.
+   * If omitted, system locale is used.
+   */
+  static setLocale(locale?: string) {
+    ConsoleLogger.locale = locale;
   }
 
   // --------------------------------------------------
@@ -50,7 +59,7 @@ export class ConsoleLogger implements BaseLogger {
   private getTimestamp(): string {
     const now = new Date();
     return (
-      now.toLocaleTimeString("it-IT", {
+      now.toLocaleTimeString(ConsoleLogger.locale, {
         hour12: false,
         hour: "2-digit",
         minute: "2-digit",

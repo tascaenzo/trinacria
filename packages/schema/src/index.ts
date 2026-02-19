@@ -27,6 +27,7 @@ import {
   type ObjectOptions,
   type SchemaShape,
   type StringOptions,
+  type UnionOptions,
 } from "./builders";
 import type { Infer, Schema } from "./core";
 
@@ -75,6 +76,7 @@ export type {
   NumberOptions,
   StringOptions,
   SchemaShape,
+  UnionOptions,
 };
 
 export type InferObject<T extends Record<string, Schema<unknown>>> = {

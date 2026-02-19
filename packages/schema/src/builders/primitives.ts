@@ -111,6 +111,28 @@ export interface StringOptions {
  * Creates a string schema with optional normalization and constraints.
  */
 export function string(options: StringOptions = {}) {
+  if (
+    options.minLength !== undefined &&
+    (!Number.isInteger(options.minLength) || options.minLength < 0)
+  ) {
+    throw new Error("string(): minLength must be a non-negative integer");
+  }
+
+  if (
+    options.maxLength !== undefined &&
+    (!Number.isInteger(options.maxLength) || options.maxLength < 0)
+  ) {
+    throw new Error("string(): maxLength must be a non-negative integer");
+  }
+
+  if (
+    options.minLength !== undefined &&
+    options.maxLength !== undefined &&
+    options.minLength > options.maxLength
+  ) {
+    throw new Error("string(): minLength cannot be greater than maxLength");
+  }
+
   return createSchema(
     "string",
     (input, path) => {
@@ -209,8 +231,11 @@ export function string(options: StringOptions = {}) {
       }
 
       if (options.pattern !== undefined) {
-        options.pattern.lastIndex = 0;
-        if (!options.pattern.test(value)) {
+        const pattern = new RegExp(
+          options.pattern.source,
+          options.pattern.flags,
+        );
+        if (!pattern.test(value)) {
           throwValidation(
             path,
             "String does not match required pattern",
@@ -282,6 +307,28 @@ export function string(options: StringOptions = {}) {
  * Creates a number schema (with optional string coercion).
  */
 export function number(options: NumberOptions = {}) {
+  if (options.min !== undefined && !Number.isFinite(options.min)) {
+    throw new Error("number(): min must be a finite number");
+  }
+
+  if (options.max !== undefined && !Number.isFinite(options.max)) {
+    throw new Error("number(): max must be a finite number");
+  }
+
+  if (
+    options.min !== undefined &&
+    options.max !== undefined &&
+    options.min > options.max
+  ) {
+    throw new Error("number(): min cannot be greater than max");
+  }
+
+  if (options.multipleOf !== undefined) {
+    if (!Number.isFinite(options.multipleOf) || options.multipleOf <= 0) {
+      throw new Error("number(): multipleOf must be a finite number > 0");
+    }
+  }
+
   return createSchema(
     "number",
     (input, path) => {
