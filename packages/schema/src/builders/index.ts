@@ -23,4 +23,4 @@ export {
 } from "./object";
 export { optional, nullable, defaultValue } from "./modifiers";
 export { enumSchema } from "./enum";
-export { union } from "./union";
+export { union, type UnionOptions } from "./union";

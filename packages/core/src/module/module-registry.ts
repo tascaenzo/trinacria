@@ -1,5 +1,5 @@
 import type { ModuleDefinition } from "./module-definition";
-import type { Provider } from "../di/provider-types";
+import type { FactoryProvider, Provider } from "../di/provider-types";
 import type { Token } from "../token";
 import { Container } from "../di/container";
 import type { ProviderKind } from "../di";
@@ -94,9 +94,13 @@ export class ModuleRegistry {
       await this.root.unregisterAndDestroy(exportedToken, true);
     }
 
-    // Remove local providers from ProviderKind discovery index.
-    for (const provider of container.getProviders()) {
+    // Remove module providers from ProviderKind discovery index.
+    for (const provider of module.providers ?? []) {
       this.unindexProviderByKind(provider);
+    }
+
+    // Remove non-exported providers from the module container.
+    for (const provider of container.getProviders()) {
       container.unregister(provider.token, true);
     }
 
@@ -221,9 +225,9 @@ export class ModuleRegistry {
     }
 
     // 4) Validate dependency visibility boundaries.
-    this.validateModuleDependencies(module, moduleContainer, importedModules);
+    this.validateModuleDependencies(module, providers, importedModules);
 
-    // 5) Re-export selected tokens into the root container.
+    // 5) Re-export selected tokens into the root container via lazy aliases.
     const exports = module.exports ?? [];
     for (const exportedToken of exports) {
       const provider = this.findLocalProvider(moduleContainer, exportedToken);
@@ -242,8 +246,17 @@ export class ModuleRegistry {
         );
       }
 
+      const rootAliasProvider: FactoryProvider<any> = {
+        token: exportedToken,
+        kind: provider.kind,
+        deps: [],
+        useFactory: () => moduleContainer.resolve(exportedToken),
+        eager: false,
+        lifecycle: "external",
+      };
+
       // Root container can already be initialized when modules are added at runtime.
-      this.root.register(provider, true);
+      this.root.register(rootAliasProvider, true);
     }
 
     return moduleContainer;
@@ -295,13 +308,13 @@ export class ModuleRegistry {
 
   private validateModuleDependencies(
     module: ModuleDefinition,
-    container: Container,
+    moduleProviders: readonly Provider[],
     importedModules: readonly ModuleDefinition[],
   ): void {
     const visibleTokens = new Set<symbol>();
 
     // Local providers are always visible inside their own module.
-    for (const provider of container.getProviders()) {
+    for (const provider of moduleProviders) {
       visibleTokens.add(provider.token.key);
     }
 
@@ -319,7 +332,7 @@ export class ModuleRegistry {
     }
 
     // Verify that each declared dependency is visible in module scope.
-    for (const provider of container.getProviders()) {
+    for (const provider of moduleProviders) {
       if (!("deps" in provider) || !provider.deps) continue;
 
       for (const dep of provider.deps) {

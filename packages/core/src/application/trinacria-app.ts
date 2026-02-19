@@ -25,6 +25,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
   private readonly modules: ModuleDefinition[] = [];
 
   private started = false;
+  private startupState: "idle" | "starting" | "started" | "failed" = "idle";
 
   // --------------------------------------------------
   // CONFIGURATION PHASE
@@ -78,17 +79,26 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
   async unregisterModule(module: ModuleDefinition): Promise<void> {
     CoreLog.warn(`[Trinacria] Module unregistered: ${module.name}`);
 
+    const existingModule = this.modules.find((item) => item.name === module.name);
+    if (!existingModule) {
+      return;
+    }
+
     if (!this.started) {
-      const index = this.modules.findIndex((item) => item.name === module.name);
+      const index = this.modules.findIndex(
+        (item) => item.name === existingModule.name,
+      );
       if (index !== -1) {
         this.modules.splice(index, 1);
       }
       return;
     }
 
-    await this.registry.unregister(module);
+    await this.registry.unregister(existingModule);
 
-    const index = this.modules.findIndex((item) => item.name === module.name);
+    const index = this.modules.findIndex(
+      (item) => item.name === existingModule.name,
+    );
     if (index !== -1) {
       this.modules.splice(index, 1);
     }
@@ -105,7 +115,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
     if (hookErrors.length > 0) {
       const details = hookErrors.map((error) => toErrorMessage(error)).join("; ");
       throw new ModuleUnregistrationError(
-        `Module "${module.name}" was unregistered but one or more plugin hooks failed: ${details}`,
+        `Module "${existingModule.name}" was unregistered but one or more plugin hooks failed: ${details}`,
       );
     }
   }
@@ -130,6 +140,16 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
 
   async start(): Promise<void> {
     if (this.started) return;
+    if (this.startupState === "starting") {
+      throw new ApplicationStateError("Application is already starting.");
+    }
+    if (this.startupState === "failed") {
+      throw new ApplicationStateError(
+        "Application startup previously failed. Create a new app instance before retrying start().",
+      );
+    }
+
+    this.startupState = "starting";
 
     CoreLog.info("[Trinacria] Starting application...");
 
@@ -137,32 +157,39 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
       `[Trinacria] Modules: ${this.modules.length}, Plugins: ${this.plugins.length}`,
     );
 
-    // 1) Let plugins run pre-build registration hooks.
-    for (const plugin of this.plugins) {
-      CoreLog.debug(`[Trinacria] Plugin onRegister: ${plugin.name}`);
-      await plugin.onRegister?.(this);
+    try {
+      // 1) Let plugins run pre-build registration hooks.
+      for (const plugin of this.plugins) {
+        CoreLog.debug(`[Trinacria] Plugin onRegister: ${plugin.name}`);
+        await plugin.onRegister?.(this);
+      }
+
+      // 2) Build module graphs and register exported providers.
+      for (const module of this.modules) {
+        CoreLog.debug(`[Trinacria] Building module: ${module.name}`);
+        this.registry.build(module);
+      }
+
+      // 3) Eagerly initialize all containers/providers.
+      CoreLog.info("[Trinacria] Initializing containers...");
+      await this.registry.init();
+
+      // 4) Let plugins run post-init hooks.
+      for (const plugin of this.plugins) {
+        CoreLog.debug(`[Trinacria] Plugin onInit: ${plugin.name}`);
+        await plugin.onInit?.(this);
+      }
+
+      this.started = true;
+      this.startupState = "started";
+      this.setupSignalHandlers();
+
+      CoreLog.info("[Trinacria] Application started successfully.");
+    } catch (error) {
+      this.started = false;
+      this.startupState = "failed";
+      throw error;
     }
-
-    // 2) Build module graphs and register exported providers.
-    for (const module of this.modules) {
-      CoreLog.debug(`[Trinacria] Building module: ${module.name}`);
-      this.registry.build(module);
-    }
-
-    // 3) Eagerly initialize all containers/providers.
-    CoreLog.info("[Trinacria] Initializing containers...");
-    await this.registry.init();
-
-    // 4) Let plugins run post-init hooks.
-    for (const plugin of this.plugins) {
-      CoreLog.debug(`[Trinacria] Plugin onInit: ${plugin.name}`);
-      await plugin.onInit?.(this);
-    }
-
-    this.started = true;
-    this.setupSignalHandlers();
-
-    CoreLog.info("[Trinacria] Application started successfully.");
   }
 
   async shutdown(): Promise<void> {
@@ -170,14 +197,32 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
 
     CoreLog.info("[Trinacria] Shutting down application...");
 
+    const shutdownErrors: unknown[] = [];
+
     for (const plugin of this.plugins) {
       CoreLog.debug(`[Trinacria] Plugin onDestroy: ${plugin.name}`);
-      await plugin.onDestroy?.(this);
+      try {
+        await plugin.onDestroy?.(this);
+      } catch (error) {
+        shutdownErrors.push(error);
+      }
     }
 
-    await this.registry.destroy();
+    try {
+      await this.registry.destroy();
+    } catch (error) {
+      shutdownErrors.push(error);
+    }
 
     this.started = false;
+    this.startupState = "idle";
+
+    if (shutdownErrors.length > 0) {
+      throw new AggregateError(
+        shutdownErrors,
+        "One or more errors occurred during application shutdown.",
+      );
+    }
 
     CoreLog.info("[Trinacria] Application shutdown complete.");
   }

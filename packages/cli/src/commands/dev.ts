@@ -9,6 +9,7 @@ const log = new ConsoleLogger(context);
 const RESTART_DEBOUNCE_MS = 100;
 const STOP_TIMEOUT_MS = 3000;
 const NON_RESTARTABLE_EXIT_CODES = new Set([78]);
+let tsxCliEntryCache: string | null = null;
 
 export async function dev(config: ResolvedConfig) {
   const entry = path.resolve(config.entry);
@@ -45,6 +46,15 @@ export async function dev(config: ResolvedConfig) {
   const createTrackedChild = () => {
     const next = startApp(entry);
     next.on("exit", handleChildExit);
+    next.on("error", (err) => {
+      if (!stopping) {
+        scheduleRestart(
+          `App process failed to start: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    });
     return next;
   };
 
@@ -110,9 +120,26 @@ export async function dev(config: ResolvedConfig) {
 }
 
 function startApp(entry: string): ChildProcess {
-  return spawn(process.platform === "win32" ? "tsx.cmd" : "tsx", [entry], {
+  return spawn(process.execPath, [resolveTsxCliPath(), entry], {
     stdio: "inherit",
   });
+}
+
+function resolveTsxCliPath(): string {
+  if (tsxCliEntryCache) {
+    return tsxCliEntryCache;
+  }
+
+  try {
+    tsxCliEntryCache = require.resolve("tsx/cli");
+    return tsxCliEntryCache;
+  } catch (error) {
+    throw new Error(
+      `Unable to resolve tsx CLI entry. Ensure \"tsx\" is installed. ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 function stopChild(child: ChildProcess): Promise<void> {

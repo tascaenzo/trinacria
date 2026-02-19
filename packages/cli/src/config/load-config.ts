@@ -6,13 +6,20 @@ import type { ResolvedConfig, TrinacriaConfig } from "./config.contract";
 
 export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
   const configFlagIndex = args.indexOf("--config");
+  const hasExplicitConfig = configFlagIndex !== -1;
 
   let configPath: string | null;
 
-  if (configFlagIndex !== -1 && args[configFlagIndex + 1]) {
+  if (hasExplicitConfig && args[configFlagIndex + 1]) {
     configPath = path.resolve(args[configFlagIndex + 1]);
+  } else if (hasExplicitConfig) {
+    throw new Error("Missing value for --config <path>.");
   } else {
     configPath = resolveDefaultConfigPath();
+  }
+
+  if (hasExplicitConfig && configPath && !fs.existsSync(configPath)) {
+    throw new Error(`Config file not found: ${configPath}`);
   }
 
   if (!configPath || !fs.existsSync(configPath)) {
@@ -40,9 +47,11 @@ export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
       };
     }
 
-    console.error("Failed to load config file:", configPath);
-    console.error(err);
-    process.exit(1);
+    throw new Error(
+      `Failed to load config file "${configPath}": ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
   }
 }
 
