@@ -389,3 +389,14 @@ Do not use Trinacria if:
 > Trinacria is a modular DI engine designed to remain small, explicit, and extensible — while letting domain and infrastructure live outside the core.
 
 ---
+
+# 📚 Documentation
+
+Full documentation is available in `docs/` with language-specific sections:
+
+- English: [`docs/en/README.md`](./docs/en/README.md)
+- Italian: [`docs/it/README.md`](./docs/it/README.md)
+
+Recommended starting point:
+
+- [`docs/en/0000-getting-started.md`](./docs/en/0000-getting-started.md)

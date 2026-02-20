@@ -4,10 +4,15 @@ Questa sezione raccoglie la documentazione ufficiale in italiano.
 
 ## Indice
 
+- [0000 - Getting Started (Da zero a prima API)](./0000-getting-started.md)
 - [0001 - Runtime Foundation (Core Framework)](./0001-runtime-foundation.md)
 - [0002 - Plugin HTTP](./0002-http-plugin.md)
 - [0003 - CLI](./0003-cli.md)
 - [0004 - Schema System](./0004-schema.md)
+
+## Link Rapidi (Official IT)
+
+- [Riferimento Middleware HTTP Built-in + Ricette](./0002-http-plugin.md)
 
 ## Ambito
 

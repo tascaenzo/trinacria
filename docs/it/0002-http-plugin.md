@@ -161,7 +161,7 @@ Middleware built-in disponibili:
 Opzioni `rateLimit(...)`:
 
 - `windowMs?: number` (default `60_000`)
-- `max?: number` (default `100`)
+- `max?: number` (default `120`)
 - `keyGenerator?: (ctx) => string`
 - `onLimitExceeded?: (ctx) => unknown`
 - `trustProxy?: boolean` (default `false`, abilita uso `x-forwarded-for`)
@@ -195,6 +195,185 @@ app.use(
   }),
 );
 ```
+
+### Riferimento middleware built-in
+
+#### `requestId(options?)`
+
+Opzioni:
+
+- `headerName?: string` (default: `"x-request-id"`)
+- `stateKey?: string` (default: `"requestId"`)
+- `generator?: () => string` (default: `crypto.randomUUID`)
+
+Esempio minimo:
+
+```ts
+requestId();
+```
+
+Esempio custom header/state:
+
+```ts
+requestId({
+  headerName: "x-correlation-id",
+  stateKey: "correlationId",
+});
+```
+
+#### `requestLogger(options?)`
+
+Opzioni:
+
+- `context?: string` (default: `"http:request"`)
+- `includeUserAgent?: boolean` (default: `false`)
+
+Esempio minimo:
+
+```ts
+requestLogger();
+```
+
+Esempio produzione:
+
+```ts
+requestLogger({
+  context: "api:access",
+  includeUserAgent: true,
+});
+```
+
+#### `cors(options?)`
+
+Opzioni:
+
+- `origin?: "*" | string | RegExp | Array<string | RegExp>` (default: `"*"`)
+- `methods?: string[]` (default: `GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS`)
+- `allowedHeaders?: string[]` (default: `access-control-request-headers` della request)
+- `exposedHeaders?: string[]`
+- `credentials?: boolean` (default: `false`)
+- `maxAge?: number`
+- `optionsSuccessStatus?: number` (default: `204`)
+
+Esempio minimo:
+
+```ts
+cors({ origin: "*" });
+```
+
+Esempio produzione:
+
+```ts
+cors({
+  origin: [/\.mycompany\.com$/],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  maxAge: 600,
+});
+```
+
+#### `rateLimit(options?)`
+
+Opzioni:
+
+- `windowMs?: number` (default: `60_000`)
+- `max?: number` (default: `120`)
+- `trustProxy?: boolean` (default: `false`)
+- `keyGenerator?: (ctx) => string`
+- `store?: RateLimitStore` (backend storage custom)
+
+Esempio minimo:
+
+```ts
+rateLimit({ windowMs: 60_000, max: 120 });
+```
+
+Esempio produzione dietro proxy trusted:
+
+```ts
+rateLimit({
+  windowMs: 60_000,
+  max: 240,
+  trustProxy: true,
+});
+```
+
+#### `requestTimeout(options)`
+
+Opzioni:
+
+- `timeoutMs: number` (obbligatorio, deve essere `> 0`)
+- `errorMessage?: string` (default: `"Request timeout"`)
+
+Esempio minimo:
+
+```ts
+requestTimeout({ timeoutMs: 15_000 });
+```
+
+Esempio timeout stretto API:
+
+```ts
+requestTimeout({
+  timeoutMs: 8_000,
+  errorMessage: "Gateway timeout",
+});
+```
+
+### Recipe middleware copy-paste
+
+#### API pubblica baseline
+
+```ts
+middlewares: [
+  requestId(),
+  requestLogger(),
+  cors({ origin: "*" }),
+  rateLimit({ windowMs: 60_000, max: 300 }),
+  requestTimeout({ timeoutMs: 15_000 }),
+  createSecurityHeadersBuilder().preset("development").build(),
+]
+```
+
+#### API dietro reverse proxy (production)
+
+```ts
+middlewares: [
+  requestId(),
+  requestLogger({ includeUserAgent: true }),
+  cors({ origin: [/\.mycompany\.com$/], credentials: true, maxAge: 600 }),
+  rateLimit({ windowMs: 60_000, max: 240, trustProxy: true }),
+  requestTimeout({ timeoutMs: 12_000 }),
+  createSecurityHeadersBuilder()
+    .preset("production")
+    .trustProxy(true)
+    .build(),
+]
+```
+
+#### API protetta (endpoint auth-heavy)
+
+```ts
+middlewares: [
+  requestId({ headerName: "x-correlation-id", stateKey: "correlationId" }),
+  requestLogger({ context: "api:secure", includeUserAgent: true }),
+  cors({ origin: "https://app.example.com", credentials: true }),
+  rateLimit({ windowMs: 60_000, max: 120, trustProxy: true }),
+  requestTimeout({ timeoutMs: 8_000 }),
+  createSecurityHeadersBuilder().preset("production").build(),
+]
+```
+
+### Default vs raccomandazioni production
+
+| Middleware | Default sicuro | Raccomandazione production |
+| --- | --- | --- |
+| `requestId` | `x-request-id` generato | Mantieni request id e propagalo in log/tracing |
+| `requestLogger` | access log base | Abilita `includeUserAgent: true`, usa context esplicito |
+| `cors` | permissivo (`origin: "*"`) | Restringi origin, abilita credentials solo se necessario |
+| `rateLimit` | `60s`, `120 req`, no trust proxy | Taratura per classi endpoint, `trustProxy: true` solo dietro proxy trusted |
+| `requestTimeout` | nessun default se non configurato | Imposta sempre timeout esplicito (`8-15s` tipico API) |
+| `securityHeaders` | usa preset ambiente | preset `production` + rollout CSP + config proxy trusted |
 
 ### Header di sicurezza (stile Helmet)
 
