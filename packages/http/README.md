@@ -37,6 +37,7 @@ packages/http/
 - rebuilds routes on runtime module register/unregister
 - exposes config for host/port/body parsing/middleware stack
 - can generate OpenAPI documents from route metadata through `openApi` options (disabled by default)
+- automatically exposes OpenAPI JSON endpoint when `openApi.enabled=true` (default path: `/openapi.json`, configurable with `openApi.jsonPath`)
 
 ### `src/controller/`
 
@@ -50,6 +51,7 @@ packages/http/
 - static/parametric matching
 - allowed-method discovery for `405`
 - route-level docs metadata (`docs`) for OpenAPI request/response/security details
+  - includes `docs.excludeFromOpenApi` to keep specific routes out of generated docs
 
 ### `src/middleware/`
 

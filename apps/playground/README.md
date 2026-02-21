@@ -31,6 +31,8 @@ The playground follows framework principles:
   - app bootstrap, HTTP plugin config, global middleware setup, module registration.
 - `src/global-service/`
   - global infrastructure services (env config + Prisma provider/token).
+- `src/global-controller/`
+  - global HTTP controllers for cross-cutting routes (e.g. Swagger docs UI).
 - `src/modules/auth/`
   - login/refresh/logout/me, JWT guards, CSRF, cookie utilities.
 - `src/modules/users/`
@@ -44,6 +46,7 @@ Currently registered globally in `src/main.ts`:
 
 - `APP_CONFIG`
 - `PRISMA_SERVICE`
+- `SWAGGER_DOCS_CONTROLLER` (only when `OPENAPI_ENABLED=true`)
 
 This is the recommended convention for cross-cutting infrastructure (config, db, logger, metrics).
 
@@ -107,6 +110,8 @@ Relevant fields:
 - `NODE_ENV` (`development|staging|production`)
 - `TRUST_PROXY`
 - `OPENAPI_ENABLED` (`true|false`, default `false`)
+- `SWAGGER_DOCS_USERNAME` (optional, requires `SWAGGER_DOCS_PASSWORD`)
+- `SWAGGER_DOCS_PASSWORD` (optional, requires `SWAGGER_DOCS_USERNAME`)
 - `CORS_ALLOWED_ORIGINS`
 - `JWT_SECRET`
 - `JWT_ACCESS_TOKEN_TTL_SECONDS`
@@ -117,6 +122,8 @@ In production, config applies stricter validation (e.g. `JWT_SECRET` is required
 
 ## Main Endpoints
 
+- `GET /openapi.json` (available when `OPENAPI_ENABLED=true`)
+- `GET /docs` (available when `OPENAPI_ENABLED=true`)
 - `POST /auth/login`
 - `POST /auth/refresh`
 - `POST /auth/logout`
@@ -127,6 +134,24 @@ In production, config applies stricter validation (e.g. `JWT_SECRET` is required
 - `PUT /users/:id`
 - `PATCH /users/:id`
 - `DELETE /users/:id`
+
+## OpenAPI and Docs
+
+- The OpenAPI JSON is generated directly by `@trinacria/http` when `openApi.enabled=true` in `createHttpPlugin(...)`.
+- In this app, `OPENAPI_ENABLED=true` enables:
+  - generated spec endpoint: `GET /openapi.json`
+  - Swagger UI endpoint: `GET /docs`
+- `/docs` is intentionally excluded from the generated OpenAPI spec.
+
+### Protecting `/docs` with Basic Auth
+
+Set both environment variables together:
+
+- `SWAGGER_DOCS_USERNAME`
+- `SWAGGER_DOCS_PASSWORD`
+
+If both are configured, `/docs` requires HTTP Basic authentication.
+If only one is configured, startup fails with config validation error.
 
 ## Conventions For Contributors
 

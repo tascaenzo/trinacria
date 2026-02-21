@@ -53,15 +53,19 @@ await app.start();
 ### Opzioni `openApi`
 
 - `enabled?: boolean` (default: `false`)
+- `jsonPath?: string` (default: `"/openapi.json"`)
 - `title: string`
 - `version: string`
 - `description?: string`
 - `transformDocument?: (document) => document`
 - `onDocumentGenerated?: (document) => void`
 
+Quando `openApi.enabled` è `true`, il plugin espone automaticamente l'endpoint JSON OpenAPI generato (default: `GET /openapi.json`).
+
 ## Controller
 
 Per essere scoperto dal plugin, un controller deve essere registrato con `httpProvider(...)`.
+Puoi farlo dai provider di modulo oppure dai provider globali per route cross-cutting.
 
 ```ts
 import { createToken } from "@trinacria/core";
@@ -117,6 +121,9 @@ Firma:
 - una stringa con il nome del metodo del controller (`"listUsers"`)
 
 `docs` supporta metadati OpenAPI a livello route (summary, requestBody, responses, security, tags), quindi i modelli input/output restano definiti accanto alla route.
+Puoi impostare `docs.excludeFromOpenApi = true` per escludere una route dalla specifica generata.
+
+Caso tipico: esporre route di utilità/documentazione (es. `/docs`) nell'app ma fuori dal JSON OpenAPI.
 
 ## `HttpContext`
 

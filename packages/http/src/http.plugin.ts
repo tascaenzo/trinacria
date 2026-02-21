@@ -15,6 +15,7 @@ import {
 } from "./server/http-server";
 import { HttpMiddleware } from "./middleware/middleware-definition";
 import type { HttpResponseSerializer } from "./response";
+import type { RouteDefinition } from "./routing";
 import {
   buildOpenApiDocument,
   type OpenApiDocument,
@@ -23,6 +24,7 @@ import {
 
 export interface HttpPluginOpenApiOptions {
   enabled?: boolean;
+  jsonPath?: string;
   title: string;
   version: string;
   description?: string;
@@ -71,7 +73,9 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
 
   let router: Router | null = null;
   let server: HttpServer | null = null;
+  let currentOpenApiDocument: OpenApiDocument | undefined;
   const registeredControllerTokens = new Set<symbol>();
+  const openApiJsonPath = openApi?.jsonPath ?? "/openapi.json";
 
   /**
    * Resolves controller providers and registers their routes once.
@@ -116,7 +120,9 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
       const document = openApi.transformDocument
         ? openApi.transformDocument(baseDocument)
         : baseDocument;
+      currentOpenApiDocument = document;
       openApi.onDocumentGenerated?.(document);
+      registerOpenApiRoute();
     }
 
     onRoutesRebuilt?.(routeEntries);
@@ -128,6 +134,29 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
     router.clear();
     registeredControllerTokens.clear();
     await registerControllers(app);
+  }
+
+  function registerOpenApiRoute(): void {
+    if (!router || !openApi?.enabled) {
+      return;
+    }
+
+    const route: RouteDefinition = {
+      method: "GET",
+      path: openApiJsonPath,
+      handler: () => {
+        if (!currentOpenApiDocument) {
+          return {
+            statusCode: 503,
+            message: "OpenAPI document is not ready yet.",
+            error: "Service Unavailable",
+          };
+        }
+        return currentOpenApiDocument;
+      },
+    };
+
+    router.register(route);
   }
 
   return definePlugin({
@@ -149,6 +178,9 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
       server.listen(port, host);
 
       logger.info(`HTTP server started on http://${host}:${port}`);
+      if (openApi?.enabled) {
+        logger.info(`OpenAPI JSON exposed at http://${host}:${port}${openApiJsonPath}`);
+      }
     },
 
     async onModuleRegistered(
@@ -174,6 +206,7 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
 
       server = null;
       router = null;
+      currentOpenApiDocument = undefined;
       registeredControllerTokens.clear();
 
       logger.info("HTTP server stopped");
