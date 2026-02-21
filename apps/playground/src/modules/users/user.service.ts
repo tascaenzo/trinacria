@@ -54,6 +54,10 @@ export class UserService {
   }
 
   async create(input: CreateUserDto): Promise<PublicUserRecord> {
+    /**
+     * Playground user creation is admin-like and does not receive a plaintext
+     * password input, so we initialize with a random hash.
+     */
     const passwordHash = await argon2.hash(crypto.randomUUID());
 
     return this.prisma.user.create({

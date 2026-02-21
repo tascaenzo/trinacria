@@ -1,14 +1,11 @@
-import {
-  TrinacriaApp,
-  classProvider,
-  valueProvider,
-} from "@trinacria/core";
+import { TrinacriaApp, classProvider, valueProvider } from "@trinacria/core";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/users/user.module";
 import {
   cors,
   createHttpPlugin,
   createSecurityHeadersBuilder,
+  type OpenApiDocument,
   rateLimit,
   requestId,
   requestLogger,
@@ -21,6 +18,7 @@ import {
   type RuntimeEnv,
   loadAppConfig,
 } from "./global-service/app-config.service";
+import { registerGlobalControllers } from "./global-controller/register-global-controllers";
 import { PrismaService } from "./global-service/prisma.service";
 import { PRISMA_SERVICE } from "./global-service/prisma.service";
 
@@ -36,8 +34,13 @@ async function bootstrap() {
   const corsOrigins =
     config.CORS_ALLOWED_ORIGINS.length > 0 ? config.CORS_ALLOWED_ORIGINS : "*";
 
+  /**
+   * Global providers are available across modules without importing a dedicated
+   * module. Playground keeps infra primitives (config/db) in global scope.
+   */
   app.registerGlobalProvider(valueProvider(APP_CONFIG, config));
   app.registerGlobalProvider(classProvider(PRISMA_SERVICE, PrismaService));
+  registerGlobalControllers(app, config);
 
   app.use(
     createHttpPlugin({
@@ -59,6 +62,20 @@ async function bootstrap() {
         requestTimeout({ timeoutMs: 15_000 }),
         securityHeadersMiddleware,
       ],
+      /**
+       * The core HTTP plugin generates only the OpenAPI JSON.
+       * UI clients (Swagger/Scalar/etc.) are optional app-level concerns.
+       */
+      openApi: config.OPENAPI_ENABLED
+        ? {
+            enabled: true,
+            title: "Trinacria Playground API",
+            version: "1.0.0",
+            description:
+              "Playground API used to test Trinacria modules, middleware, auth, and database integration.",
+            transformDocument: withSecuritySchemes,
+          }
+        : undefined,
     }),
   );
 
@@ -91,4 +108,41 @@ function resolveSecurityPreset(nodeEnv: RuntimeEnv): SecurityHeadersPreset {
   }
 
   return "development";
+}
+
+/**
+ * Adds security scheme definitions shared by route docs.
+ * Route-level docs still decide which scheme is required.
+ */
+function withSecuritySchemes(document: OpenApiDocument): OpenApiDocument {
+  const components = (document.components ?? {}) as Record<string, unknown>;
+  const existingSecuritySchemes = (components.securitySchemes ?? {}) as Record<
+    string,
+    unknown
+  >;
+
+  return {
+    ...document,
+    components: {
+      ...components,
+      securitySchemes: {
+        ...existingSecuritySchemes,
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+        accessTokenCookie: {
+          type: "apiKey",
+          in: "cookie",
+          name: "trinacria_access_token",
+        },
+        csrfHeader: {
+          type: "apiKey",
+          in: "header",
+          name: "x-csrf-token",
+        },
+      },
+    },
+  };
 }

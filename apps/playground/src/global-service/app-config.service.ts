@@ -18,6 +18,8 @@ export const appConfigSchema = s.object({
   DATABASE_URL: s.string(),
 
   OPENAPI_ENABLED: s.boolean({ coerce: true }).default(false),
+  SWAGGER_DOCS_USERNAME: s.string().optional(),
+  SWAGGER_DOCS_PASSWORD: s.string().optional(),
 
   TRUST_PROXY: s.boolean({ coerce: true }).default(false),
 
@@ -47,6 +49,10 @@ export interface AppConfig
 
 export const APP_CONFIG = createToken<AppConfig>("APP_CONFIG");
 
+/**
+ * Loads env from process + .env files, validates with schema and applies
+ * minimal runtime guards for cross-field constraints.
+ */
 export function loadAppConfig(env: unknown = process.env): AppConfig {
   const envSource = asProcessEnv(env);
   const nodeEnv = normalizeNodeEnv(envSource.NODE_ENV);
@@ -81,6 +87,14 @@ export function loadAppConfig(env: unknown = process.env): AppConfig {
     );
   }
 
+  const hasSwaggerUser = Boolean(parsed.SWAGGER_DOCS_USERNAME);
+  const hasSwaggerPassword = Boolean(parsed.SWAGGER_DOCS_PASSWORD);
+  if (hasSwaggerUser !== hasSwaggerPassword) {
+    throw new Error(
+      "Invalid environment configuration: SWAGGER_DOCS_USERNAME and SWAGGER_DOCS_PASSWORD must be set together",
+    );
+  }
+
   return {
     ...parsed,
     JWT_SECRET: parsed.JWT_SECRET ?? DEVELOPMENT_JWT_SECRET,
@@ -108,12 +122,14 @@ function normalizeNodeEnv(value: string | undefined): RuntimeEnv {
 }
 
 function loadEnv(nodeEnv: RuntimeEnv): NodeJS.ProcessEnv {
+  // `.env.<mode>` overrides `.env` values.
   const base = loadEnvFile(".env");
   const mode = loadEnvFile(`.env.${nodeEnv}`);
   return { ...base, ...mode };
 }
 
 function loadEnvFile(fileName: string): NodeJS.ProcessEnv {
+  // Support both workspace root and app-root execution contexts.
   const candidates = [
     path.resolve(process.cwd(), fileName),
     path.resolve(process.cwd(), "apps/playground", fileName),

@@ -41,7 +41,9 @@ export class AuthGuardFactory {
       ctx.state.auth = claims;
 
       if (!isSafeHttpMethod(ctx.req.method)) {
-        const cookieToken = readCsrfTokenFromCookieHeader(ctx.req.headers.cookie);
+        const cookieToken = readCsrfTokenFromCookieHeader(
+          ctx.req.headers.cookie,
+        );
         const headerValue = readHeaderValue(
           ctx.req.headers[CSRF_TOKEN_HEADER_NAME],
         );
