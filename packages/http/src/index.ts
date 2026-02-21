@@ -9,3 +9,4 @@ export * from "./response";
 export * from "./controller";
 export * from "./middleware";
 export * from "./builtin-middlewares";
+export * from "./auth";
