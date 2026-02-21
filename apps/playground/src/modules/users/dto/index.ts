@@ -6,3 +6,8 @@ export {
   UpdateUserDtoSchema,
   type UpdateUserDto,
 } from "./update-user.dto";
+export {
+  PublicUserDtoSchema,
+  PublicUserListDtoSchema,
+  type PublicUserDto,
+} from "./public-user.dto";

@@ -29,6 +29,12 @@ export const defaultExceptionHandler: HttpExceptionHandler = (error) => {
     return serializeHttpException(error);
   }
 
+  if (isValidationErrorLike(error)) {
+    return serializeHttpException(
+      new BadRequestException(formatValidationErrorMessage(error)),
+    );
+  }
+
   if (error instanceof URIError) {
     return serializeHttpException(new BadRequestException("Malformed URL"));
   }
@@ -64,4 +70,37 @@ function serializeHttpException(exception: HttpException): SerializedHttpError {
       details: exception.details,
     },
   };
+}
+
+interface ValidationIssueLike {
+  path?: Array<string | number>;
+  message?: string;
+}
+
+interface ValidationErrorLike {
+  name: string;
+  issues: ValidationIssueLike[];
+}
+
+function isValidationErrorLike(error: unknown): error is ValidationErrorLike {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as Partial<ValidationErrorLike>;
+  return candidate.name === "ValidationError" && Array.isArray(candidate.issues);
+}
+
+function formatValidationErrorMessage(error: ValidationErrorLike): string {
+  const firstIssue = error.issues[0];
+  if (!firstIssue) {
+    return "Validation failed";
+  }
+
+  const path =
+    Array.isArray(firstIssue.path) && firstIssue.path.length > 0
+      ? firstIssue.path.map(String).join(".")
+      : "";
+  const message = firstIssue.message ?? "Invalid value";
+  return path ? `Invalid "${path}": ${message}` : message;
 }
