@@ -9,18 +9,14 @@ import {
   type AppConfig,
 } from "../../global-service/app-config.service";
 import { PRISMA_SERVICE } from "../../global-service/prisma.service";
-import { AuthConfig } from "./auth.config";
-import { AuthController } from "./auth.controller";
-import { AuthGuardFactory } from "./auth-guard.factory";
-import { AuthService } from "./auth.service";
+import { AUTH_CONFIG, AuthConfig } from "./auth.config";
+import { AUTH_CONTROLLER, AuthController } from "./auth.controller";
 import {
-  AUTH_CONFIG,
-  AUTH_CONTROLLER,
   AUTH_GUARD_FACTORY,
-  AUTH_SERVICE,
-  JWT_SIGNER,
-} from "./auth.tokens";
-import { Hs256JwtSigner } from "./jwt";
+  AuthGuardFactory,
+} from "./auth-guard.factory";
+import { AUTH_SERVICE, AuthService } from "./auth.service";
+import { Hs256JwtSigner, JWT_SIGNER } from "./jwt";
 
 export const AuthModule = defineModule({
   name: "AuthModule",

@@ -1,5 +1,6 @@
 import * as argon2 from "argon2";
 import type { Prisma } from "@prisma/client";
+import { createToken } from "@trinacria/core";
 import { UnauthorizedException } from "@trinacria/http";
 import { PrismaService } from "../../global-service/prisma.service";
 import { AuthLoginResult, AuthRefreshResult } from "./auth.types";
@@ -23,6 +24,8 @@ const publicAuthUserSelect = {
 type PublicAuthUserRecord = Prisma.UserGetPayload<{
   select: typeof publicAuthUserSelect;
 }>;
+
+export const AUTH_SERVICE = createToken<AuthService>("AUTH_SERVICE");
 
 export class AuthService {
   constructor(
@@ -98,6 +101,10 @@ export class AuthService {
       throw new UnauthorizedException("Refresh session not found");
     }
 
+    /**
+     * Rotate session identifier and CSRF token on refresh to reduce replay
+     * window if an old refresh token leaks.
+     */
     const rotatedSession = await this.prisma.authSession.update({
       where: { sid: currentSession.sid },
       data: {
