@@ -1,97 +1,108 @@
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import * as argon2 from "argon2";
+import type { Prisma } from "@prisma/client";
+import { PrismaService } from "../../global-service/prisma.service";
+import { CreateUserDto, UpdateUserDto } from "./dto";
 
-interface CreateUserInput {
-  name: string;
-  email: string;
-}
+const publicUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.UserSelect;
 
-interface UpdateUserInput {
-  name?: string;
-  email?: string;
-}
-
-const seedUsers: User[] = [
-  {
-    id: "1",
-    name: "Mario Rossi",
-    email: "mario@test.com",
-    createdAt: "2026-01-01T10:00:00.000Z",
-    updatedAt: "2026-01-01T10:00:00.000Z",
-  },
-  {
-    id: "2",
-    name: "Luigi Verdi",
-    email: "luigi@test.com",
-    createdAt: "2026-01-01T10:00:00.000Z",
-    updatedAt: "2026-01-01T10:00:00.000Z",
-  },
-];
+type PublicUserRecord = Prisma.UserGetPayload<{
+  select: typeof publicUserSelect;
+}>;
 
 export class UserService {
-  private readonly users = new Map<string, User>(
-    seedUsers.map((user) => [user.id, user]),
-  );
+  constructor(private readonly prisma: PrismaService) {}
 
-  list(): User[] {
-    return Array.from(this.users.values());
+  async list(): Promise<PublicUserRecord[]> {
+    return this.prisma.user.findMany({
+      select: publicUserSelect,
+      orderBy: { createdAt: "asc" },
+    });
   }
 
-  findById(id: string): User | undefined {
-    return this.users.get(id);
+  async findById(id: string): Promise<PublicUserRecord | undefined> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: publicUserSelect,
+    });
+
+    return user ?? undefined;
   }
 
-  existsByEmail(email: string, excludeId?: string): boolean {
-    for (const user of this.users.values()) {
-      if (excludeId && user.id === excludeId) continue;
+  async existsByEmail(email: string, excludeId?: string): Promise<boolean> {
+    const existing = await this.prisma.user.findFirst({
+      where: {
+        email: email.trim().toLowerCase(),
+        ...(excludeId
+          ? {
+              id: {
+                not: excludeId,
+              },
+            }
+          : {}),
+      },
+      select: { id: true },
+    });
 
-      if (user.email.toLowerCase() === email.toLowerCase()) {
-        return true;
-      }
+    return Boolean(existing);
+  }
+
+  async create(input: CreateUserDto): Promise<PublicUserRecord> {
+    const passwordHash = await argon2.hash(crypto.randomUUID());
+
+    return this.prisma.user.create({
+      select: publicUserSelect,
+      data: {
+        name: input.name,
+        email: input.email.toLowerCase(),
+        role: "user",
+        passwordHash,
+      },
+    });
+  }
+
+  async update(
+    id: string,
+    input: UpdateUserDto,
+  ): Promise<PublicUserRecord | undefined> {
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return undefined;
     }
 
-    return false;
+    return this.prisma.user.update({
+      select: publicUserSelect,
+      where: { id },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.email !== undefined
+          ? { email: input.email.toLowerCase() }
+          : {}),
+      },
+    });
   }
 
-  create(input: CreateUserInput): User {
-    const now = new Date().toISOString();
-    const user: User = {
-      id: crypto.randomUUID(),
-      name: input.name,
-      email: input.email.toLowerCase(),
-      createdAt: now,
-      updatedAt: now,
-    };
+  async delete(id: string): Promise<PublicUserRecord | undefined> {
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: publicUserSelect,
+    });
 
-    this.users.set(user.id, user);
-    return user;
-  }
+    if (!existing) {
+      return undefined;
+    }
 
-  update(id: string, input: UpdateUserInput): User | undefined {
-    const existing = this.users.get(id);
-    if (!existing) return undefined;
-
-    const updated: User = {
-      ...existing,
-      name: input.name ?? existing.name,
-      email: input.email?.toLowerCase() ?? existing.email,
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.users.set(id, updated);
-    return updated;
-  }
-
-  delete(id: string): User | undefined {
-    const existing = this.users.get(id);
-    if (!existing) return undefined;
-
-    this.users.delete(id);
+    await this.prisma.user.delete({ where: { id } });
     return existing;
   }
 }

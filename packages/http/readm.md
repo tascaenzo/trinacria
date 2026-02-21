@@ -37,6 +37,16 @@ Plugin orchestration:
 Plugin options also include:
 
 - `streamingBodyContentTypes?: string[]` to keep selected request bodies as stream (`IncomingMessage`) instead of buffering
+- `openApi?: { ... }` to generate OpenAPI JSON from registered routes (disabled by default)
+
+`openApi` options:
+
+- `enabled?: boolean` (default: `false`)
+- `title: string`
+- `version: string`
+- `description?: string`
+- `transformDocument?: (document) => document`
+- `onDocumentGenerated?: (document) => void`
 
 ### `src/controller/`
 
@@ -49,6 +59,13 @@ Plugin options also include:
 - `route-builder.ts`: DSL used by controllers to define routes
 - `route-definition.ts`: route and HTTP method types
 - `router.ts`: static/parametric route matching + allowed methods (`405 Allow`), with `clear()` for runtime rebuilds
+
+Route builder supports:
+
+- `.get(path, handler, ...middlewares)`
+- `.get(path, handler, { middlewares, docs })`
+
+`docs` enables per-route OpenAPI metadata (summary, requestBody, responses, tags, security).
 
 ### `src/middleware/`
 

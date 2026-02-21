@@ -48,6 +48,16 @@ await app.start();
 - `exceptionHandler?: HttpExceptionHandler` serializer error custom
 - `responseSerializer?: HttpResponseSerializer` serializer risposta custom
 - `errorSerializer?: HttpServerErrorSerializer` deprecato (usa `exceptionHandler`)
+- `openApi?: { ... }` opzioni generazione OpenAPI (disabilitata di default)
+
+### Opzioni `openApi`
+
+- `enabled?: boolean` (default: `false`)
+- `title: string`
+- `version: string`
+- `description?: string`
+- `transformDocument?: (document) => document`
+- `onDocumentGenerated?: (document) => void`
 
 ## Controller
 
@@ -98,12 +108,15 @@ Firma:
 
 ```ts
 .get(path, handlerOrMethodName, ...middlewares)
+.get(path, handlerOrMethodName, { middlewares, docs })
 ```
 
 `handlerOrMethodName` può essere:
 
 - una funzione `(ctx) => ...`
 - una stringa con il nome del metodo del controller (`"listUsers"`)
+
+`docs` supporta metadati OpenAPI a livello route (summary, requestBody, responses, security, tags), quindi i modelli input/output restano definiti accanto alla route.
 
 ## `HttpContext`
 

@@ -15,6 +15,20 @@ import {
 } from "./server/http-server";
 import { HttpMiddleware } from "./middleware/middleware-definition";
 import type { HttpResponseSerializer } from "./response";
+import {
+  buildOpenApiDocument,
+  type OpenApiDocument,
+  type OpenApiRouteEntry,
+} from "./openapi";
+
+export interface HttpPluginOpenApiOptions {
+  enabled?: boolean;
+  title: string;
+  version: string;
+  description?: string;
+  transformDocument?: (document: OpenApiDocument) => OpenApiDocument;
+  onDocumentGenerated?: (document: OpenApiDocument) => void;
+}
 
 export interface HttpPluginOptions {
   port?: number;
@@ -28,6 +42,11 @@ export interface HttpPluginOptions {
    * @deprecated Use `exceptionHandler`.
    */
   errorSerializer?: HttpServerErrorSerializer;
+  /**
+   * @deprecated Use `openApi.onDocumentGenerated`.
+   */
+  onRoutesRebuilt?: (routes: OpenApiRouteEntry[]) => void;
+  openApi?: HttpPluginOpenApiOptions;
 }
 
 /**
@@ -44,6 +63,8 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
     exceptionHandler,
     responseSerializer,
     errorSerializer,
+    onRoutesRebuilt,
+    openApi,
   } = options;
 
   const logger = new ConsoleLogger("plugin:http");
@@ -58,6 +79,7 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
    */
   async function registerControllers(app: ApplicationContext): Promise<void> {
     if (!router) return;
+    const routeEntries: OpenApiRouteEntry[] = [];
 
     const providers = app.getProvidersByKind(HTTP_CONTROLLER_KIND);
 
@@ -75,10 +97,29 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
         );
 
         router.register(route);
+        routeEntries.push({
+          route,
+          controllerName: controller.constructor.name,
+        });
       }
 
       registeredControllerTokens.add(provider.token.key);
     }
+
+    if (openApi?.enabled) {
+      const baseDocument = buildOpenApiDocument({
+        title: openApi.title,
+        version: openApi.version,
+        description: openApi.description,
+        routes: routeEntries,
+      });
+      const document = openApi.transformDocument
+        ? openApi.transformDocument(baseDocument)
+        : baseDocument;
+      openApi.onDocumentGenerated?.(document);
+    }
+
+    onRoutesRebuilt?.(routeEntries);
   }
 
   async function rebuildControllers(app: ApplicationContext): Promise<void> {

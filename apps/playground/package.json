@@ -5,12 +5,24 @@
   "scripts": {
     "start": "trinacria start",
     "build": "trinacria build",
-    "dev": "trinacria dev"
+    "dev": "trinacria dev",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate:dev": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma migrate dev --schema prisma/schema.prisma",
+    "prisma:push": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma db push --schema prisma/schema.prisma",
+    "prisma:studio": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma studio --schema prisma/schema.prisma",
+    "prisma:seed": "prisma db seed --schema prisma/schema.prisma"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@trinacria/core": "*",
+    "@prisma/client": "^6.19.2",
     "@trinacria/cli": "*",
+    "@trinacria/core": "*",
     "@trinacria/http": "*",
-    "@trinacria/schema": "*"
+    "@trinacria/schema": "*",
+    "argon2": "^0.44.0",
+    "jose": "^6.1.3",
+    "prisma": "^6.19.2"
   }
 }

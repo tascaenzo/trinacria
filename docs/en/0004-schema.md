@@ -59,7 +59,7 @@ Main DSL:
 
 - `s.string(options?)`
 - `s.number(options?)`
-- `s.boolean()`
+- `s.boolean(options?)`
 - `s.date(options?)`
 - `s.dateString(options?)`
 - `s.dateTimeString(options?)`
@@ -122,6 +122,19 @@ Examples:
 const Port = s.number({ coerce: true, int: true, min: 1, max: 65535 });
 const Price = s.number({ min: 0, multipleOf: 0.01 });
 const Delta = s.number({ negative: true });
+```
+
+### Boolean options
+
+All options currently supported by `s.boolean(...)`:
+
+- `coerce?: boolean` (`"true"`, `"false"`, `"1"`, `"0"`, `1`, `0`)
+
+Examples:
+
+```ts
+const OpenApiEnabled = s.boolean({ coerce: true }).default(false);
+const TrustProxy = s.boolean({ coerce: true }).default(false);
 ```
 
 ### Date options
@@ -250,6 +263,8 @@ const EnvSchema = s.object(
     PORT: s
       .number({ coerce: true, int: true, min: 1, max: 65535 })
       .default(3000),
+    OPENAPI_ENABLED: s.boolean({ coerce: true }).default(false),
+    TRUST_PROXY: s.boolean({ coerce: true }).default(false),
   },
   { strict: false },
 );

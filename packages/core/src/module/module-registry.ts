@@ -126,8 +126,12 @@ export class ModuleRegistry {
     // 1) Initialize root container first.
     await this.root.init();
 
-    // 2) Initialize each module container.
-    for (const container of this.moduleContainers.values()) {
+    // 2) Initialize module containers in import-first order.
+    const initializationOrder = this.computeModuleInitializationOrder();
+    for (const module of initializationOrder) {
+      const container = this.moduleContainers.get(module);
+      if (!container) continue;
+
       await container.init();
     }
 
@@ -352,6 +356,44 @@ export class ModuleRegistry {
     token: Token<any>,
   ): Provider<any> | undefined {
     return container.getProviders().find((p) => p.token.key === token.key);
+  }
+
+  /**
+   * Returns modules sorted so that imported modules are initialized first.
+   */
+  private computeModuleInitializationOrder(): ModuleDefinition[] {
+    const order: ModuleDefinition[] = [];
+    const visited = new Set<ModuleDefinition>();
+    const visiting = new Set<ModuleDefinition>();
+
+    const visit = (module: ModuleDefinition): void => {
+      if (visited.has(module)) {
+        return;
+      }
+
+      if (visiting.has(module)) {
+        // Cycles are tolerated by current registry semantics.
+        return;
+      }
+
+      visiting.add(module);
+
+      for (const imported of module.imports ?? []) {
+        if (this.moduleContainers.has(imported)) {
+          visit(imported);
+        }
+      }
+
+      visiting.delete(module);
+      visited.add(module);
+      order.push(module);
+    };
+
+    for (const module of this.moduleContainers.keys()) {
+      visit(module);
+    }
+
+    return order;
   }
 
   // --------------------------------------------------

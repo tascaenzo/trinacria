@@ -3,6 +3,7 @@ export {
   number,
   boolean,
   literal,
+  type BooleanOptions,
   type NumberOptions,
   type StringOptions,
 } from "./primitives";

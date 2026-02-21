@@ -107,6 +107,14 @@ export interface StringOptions {
   uppercase?: boolean;
 }
 
+export interface BooleanOptions {
+  /**
+   * Converts common boolean-like strings ("true"/"false"/"1"/"0")
+   * and numbers (1/0) before validation.
+   */
+  coerce?: boolean;
+}
+
 /**
  * Creates a string schema with optional normalization and constraints.
  */
@@ -399,15 +407,34 @@ export function number(options: NumberOptions = {}) {
 /**
  * Creates a boolean schema.
  */
-export function boolean() {
+export function boolean(options: BooleanOptions = {}) {
   return createSchema(
     "boolean",
     (input, path) => {
-      if (typeof input !== "boolean") {
+      let value = input;
+
+      if (options.coerce) {
+        if (typeof value === "string") {
+          const normalized = value.trim().toLowerCase();
+          if (normalized === "true" || normalized === "1") {
+            value = true;
+          } else if (normalized === "false" || normalized === "0") {
+            value = false;
+          }
+        } else if (typeof value === "number") {
+          if (value === 1) {
+            value = true;
+          } else if (value === 0) {
+            value = false;
+          }
+        }
+      }
+
+      if (typeof value !== "boolean") {
         throwValidation(path, "Expected boolean", "invalid_type");
       }
 
-      return input;
+      return value;
     },
     () => ({ type: "boolean" }),
   );

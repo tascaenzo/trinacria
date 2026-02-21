@@ -6,6 +6,7 @@
 
 - parse/validate unknown input with typed schemas
 - normalize/coerce values when configured
+- support coercion for number/date/date-string/date-time and boolean-like env values
 - provide `safeParse` non-throwing API
 - emit OpenAPI-compatible schema objects
 

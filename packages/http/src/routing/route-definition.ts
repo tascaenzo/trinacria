@@ -25,6 +25,35 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
  */
 export type RouteHandler = (ctx: HttpContext) => unknown | Promise<unknown>;
 
+export interface RouteOpenApiRequestBody {
+  required?: boolean;
+  description?: string;
+  contentType?: string;
+  schema?: Record<string, unknown>;
+}
+
+export interface RouteOpenApiResponse {
+  description: string;
+  contentType?: string;
+  schema?: Record<string, unknown>;
+}
+
+export interface RouteOpenApiDocs {
+  summary?: string;
+  description?: string;
+  operationId?: string;
+  tags?: string[];
+  deprecated?: boolean;
+  security?: Array<Record<string, string[]>>;
+  requestBody?: RouteOpenApiRequestBody;
+  responses?: Record<number, RouteOpenApiResponse>;
+}
+
+export interface RouteOptions {
+  middlewares?: HttpMiddleware[];
+  docs?: RouteOpenApiDocs;
+}
+
 /**
  * Declarative route definition.
  */
@@ -33,4 +62,6 @@ export interface RouteDefinition {
   path: string;
   handler: RouteHandler;
   middlewares?: HttpMiddleware[];
+  handlerName?: string;
+  docs?: RouteOpenApiDocs;
 }

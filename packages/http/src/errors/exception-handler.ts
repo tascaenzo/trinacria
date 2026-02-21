@@ -1,5 +1,6 @@
 import { STATUS_CODES } from "node:http";
 import type { HttpContext } from "../server/http-context";
+import type { HttpHeaderValue } from "../response/http-response";
 import { HttpException } from "./http-exception";
 import {
   BadRequestException,
@@ -8,7 +9,7 @@ import {
 
 export interface SerializedHttpError {
   status: number;
-  headers?: Record<string, string>;
+  headers?: Record<string, HttpHeaderValue>;
   body: unknown;
 }
 

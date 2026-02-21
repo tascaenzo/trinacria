@@ -48,6 +48,16 @@ await app.start();
 - `exceptionHandler?: HttpExceptionHandler` custom error serializer
 - `responseSerializer?: HttpResponseSerializer` custom response serializer
 - `errorSerializer?: HttpServerErrorSerializer` deprecated (use `exceptionHandler`)
+- `openApi?: { ... }` OpenAPI generation options (disabled by default)
+
+### `openApi` options
+
+- `enabled?: boolean` (default: `false`)
+- `title: string`
+- `version: string`
+- `description?: string`
+- `transformDocument?: (document) => document`
+- `onDocumentGenerated?: (document) => void`
 
 ## Controllers
 
@@ -98,12 +108,15 @@ Signature:
 
 ```ts
 .get(path, handlerOrMethodName, ...middlewares)
+.get(path, handlerOrMethodName, { middlewares, docs })
 ```
 
 `handlerOrMethodName` can be:
 
 - a function `(ctx) => ...`
 - a string with the controller method name (`"listUsers"`)
+
+`docs` supports route-level OpenAPI metadata (summary, requestBody, responses, security, tags), so request/response models can be declared next to each route.
 
 ## `HttpContext`
 

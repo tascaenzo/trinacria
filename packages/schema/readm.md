@@ -6,6 +6,7 @@ This package provides Trinacria's lightweight runtime schema system for validati
 
 - validate unknown input with typed schemas
 - parse and normalize values in a controlled way
+- support coercion for number/date/date-string/date-time and boolean-like env values
 - expose static type inference (`Infer<TSchema>`)
 - generate OpenAPI-compatible schema objects
 
@@ -50,7 +51,7 @@ Concrete schema builders:
 
 - `primitives.ts`
   - `string`, `number`, `boolean`, `literal`
-  - normalization/coercion and constraints (length, range, protocol, uuid, regex, etc.)
+  - normalization/coercion and constraints (length, range, protocol, uuid, regex, boolean-like values, etc.)
 - `object.ts`
   - shaped object schemas with required/optional semantics
   - strict mode (`additionalProperties: false` behavior)

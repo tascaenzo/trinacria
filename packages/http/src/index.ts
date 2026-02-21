@@ -2,6 +2,7 @@
 export * from "./http.plugin";
 
 export * from "./routing";
+export * from "./openapi";
 export * from "./server";
 export * from "./errors";
 export * from "./response";

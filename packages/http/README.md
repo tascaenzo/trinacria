@@ -36,6 +36,7 @@ packages/http/
 - creates router + server on init
 - rebuilds routes on runtime module register/unregister
 - exposes config for host/port/body parsing/middleware stack
+- can generate OpenAPI documents from route metadata through `openApi` options (disabled by default)
 
 ### `src/controller/`
 
@@ -48,6 +49,7 @@ packages/http/
 - route builder DSL (`.get()`, `.post()`, ...)
 - static/parametric matching
 - allowed-method discovery for `405`
+- route-level docs metadata (`docs`) for OpenAPI request/response/security details
 
 ### `src/middleware/`
 
