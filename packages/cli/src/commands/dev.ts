@@ -13,6 +13,8 @@ let tsxCliEntryCache: string | null = null;
 
 export async function dev(config: ResolvedConfig) {
   const entry = path.resolve(config.entry);
+  const crashLoopWindowMs = config.crashLoopWindowMs;
+  const maxConsecutiveCrashRestarts = config.maxConsecutiveCrashRestarts;
 
   log.info("Starting in dev mode", context);
 
@@ -23,6 +25,8 @@ export async function dev(config: ResolvedConfig) {
   let restarting = false;
   let pendingRestart = false;
   let stopping = false;
+  let crashCount = 0;
+  let crashWindowStartedAt = 0;
   let restartTimeout: NodeJS.Timeout | null = null;
 
   const handleChildExit = (code: number | null) => {
@@ -34,6 +38,16 @@ export async function dev(config: ResolvedConfig) {
       if (code !== null && NON_RESTARTABLE_EXIT_CODES.has(code)) {
         log.error(
           `Application stopped with non-restartable exit code ${code}. Waiting for source changes...`,
+          context,
+        );
+        return;
+      }
+
+      if (isCrashLoop()) {
+        log.error(
+          `Application crashed ${maxConsecutiveCrashRestarts} times in ${Math.floor(
+            crashLoopWindowMs / 1000,
+          )}s. Waiting for source changes...`,
           context,
         );
         return;
@@ -94,6 +108,8 @@ export async function dev(config: ResolvedConfig) {
   };
 
   watcher.on("all", () => {
+    crashCount = 0;
+    crashWindowStartedAt = 0;
     scheduleRestart("Source changed");
   });
 
@@ -117,6 +133,22 @@ export async function dev(config: ResolvedConfig) {
   process.once("SIGTERM", () => {
     void cleanup("SIGTERM");
   });
+
+  function isCrashLoop(): boolean {
+    const now = Date.now();
+
+    if (
+      crashWindowStartedAt === 0 ||
+      now - crashWindowStartedAt > crashLoopWindowMs
+    ) {
+      crashWindowStartedAt = now;
+      crashCount = 1;
+      return false;
+    }
+
+    crashCount += 1;
+    return crashCount >= maxConsecutiveCrashRestarts;
+  }
 }
 
 function startApp(entry: string): ChildProcess {

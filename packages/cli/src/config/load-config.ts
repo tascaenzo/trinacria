@@ -23,7 +23,7 @@ export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
   }
 
   if (!configPath || !fs.existsSync(configPath)) {
-    return defaultConfig;
+    return normalizeConfig(defaultConfig);
   }
 
   try {
@@ -31,20 +31,20 @@ export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
     const required = require(configPath);
     const userConfig: TrinacriaConfig = required.default ?? required;
 
-    return {
+    return normalizeConfig({
       ...defaultConfig,
       ...userConfig,
-    };
+    });
   } catch (err: any) {
     // 🔵 Se è errore ESM → fallback a dynamic import
     if (err.code === "ERR_REQUIRE_ESM") {
       const module = await import(pathToFileURL(configPath).href);
       const userConfig: TrinacriaConfig = module.default ?? module;
 
-      return {
+      return normalizeConfig({
         ...defaultConfig,
         ...userConfig,
-      };
+      });
     }
 
     throw new Error(
@@ -53,6 +53,24 @@ export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
       }`,
     );
   }
+}
+
+function normalizeConfig(config: ResolvedConfig): ResolvedConfig {
+  const crashLoopWindowMs = Number(config.crashLoopWindowMs);
+  const maxConsecutiveCrashRestarts = Number(config.maxConsecutiveCrashRestarts);
+
+  return {
+    ...config,
+    crashLoopWindowMs:
+      Number.isFinite(crashLoopWindowMs) && crashLoopWindowMs > 0
+        ? Math.floor(crashLoopWindowMs)
+        : defaultConfig.crashLoopWindowMs,
+    maxConsecutiveCrashRestarts:
+      Number.isFinite(maxConsecutiveCrashRestarts) &&
+      maxConsecutiveCrashRestarts >= 1
+        ? Math.floor(maxConsecutiveCrashRestarts)
+        : defaultConfig.maxConsecutiveCrashRestarts,
+  };
 }
 
 function resolveDefaultConfigPath(): string | null {

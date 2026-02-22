@@ -1,25 +1,29 @@
+import { createToken } from "@trinacria/core";
 import {
-  BadRequestException,
   HttpController,
   HttpContext,
-  HttpMiddleware,
   UnauthorizedException,
-  rateLimit,
   response,
 } from "@trinacria/http";
-import { ValidationError, toOpenApi, type Schema } from "@trinacria/schema";
 import { AuthConfig } from "./auth.config";
 import { AuthGuardFactory } from "./auth-guard.factory";
 import {
+  createCookieSecurityOptions,
   readRefreshTokenFromCookieHeader,
   serializeAccessTokenCookie,
   serializeAuthCookieClears,
   serializeCsrfTokenCookie,
   serializeRefreshTokenCookie,
 } from "./auth.cookie";
+import {
+  createAuthMutationRateLimitMiddleware,
+  createLoginRateLimitMiddleware,
+} from "./auth.middleware";
 import { AuthService } from "./auth.service";
 import { JwtClaims } from "./jwt";
-import { LoginDto, LoginDtoSchema } from "./dto";
+import { AuthResultDtoSchema, LoginDtoSchema } from "./dto";
+
+export const AUTH_CONTROLLER = createToken<AuthController>("AUTH_CONTROLLER");
 
 export class AuthController extends HttpController {
   constructor(
@@ -31,8 +35,10 @@ export class AuthController extends HttpController {
   }
 
   routes() {
-    const loginRateLimit = this.createLoginRateLimitMiddleware();
-    const authMutationRateLimit = this.createAuthMutationRateLimitMiddleware();
+    const loginRateLimit = createLoginRateLimitMiddleware(this.authConfig);
+    const authMutationRateLimit = createAuthMutationRateLimitMiddleware(
+      this.authConfig,
+    );
     const csrfMiddleware = this.guardFactory.requireCsrf();
 
     return this.router()
@@ -43,12 +49,12 @@ export class AuthController extends HttpController {
           summary: "Authenticate user",
           requestBody: {
             required: true,
-            schema: toOpenApi(LoginDtoSchema),
+            schema: LoginDtoSchema.toOpenApi(),
           },
           responses: {
             200: {
               description: "Authenticated session payload",
-              schema: authResultSchema(),
+              schema: AuthResultDtoSchema.toOpenApi(),
             },
           },
         },
@@ -62,7 +68,7 @@ export class AuthController extends HttpController {
           responses: {
             200: {
               description: "Refreshed session payload",
-              schema: authResultSchema(),
+              schema: AuthResultDtoSchema.toOpenApi(),
             },
           },
         },
@@ -89,7 +95,7 @@ export class AuthController extends HttpController {
         },
       })
       .get("/auth/me", this.me, {
-        middlewares: [this.guardFactory.requireAuth()],
+        middlewares: [this.guardFactory.requireProtectedRoute()],
         docs: {
           tags: ["Auth"],
           summary: "Current authenticated token claims",
@@ -108,7 +114,15 @@ export class AuthController extends HttpController {
                   iat: { type: "number" },
                   exp: { type: "number" },
                 },
-                required: ["sub", "sid", "tokenType", "email", "role", "iat", "exp"],
+                required: [
+                  "sub",
+                  "sid",
+                  "tokenType",
+                  "email",
+                  "role",
+                  "iat",
+                  "exp",
+                ],
                 additionalProperties: false,
               },
             },
@@ -119,8 +133,15 @@ export class AuthController extends HttpController {
   }
 
   async login(ctx: HttpContext) {
-    const payload = parseDto(LoginDtoSchema, ctx.body);
-    const authResult = await this.authService.login(payload.email, payload.password);
+    const payload = LoginDtoSchema.parse(ctx.body);
+    const authResult = await this.authService.login(
+      payload.email,
+      payload.password,
+    );
+    const cookieSecurity = createCookieSecurityOptions(
+      this.authConfig.secureCookies,
+      this.authConfig.cookieDomain,
+    );
 
     return response(
       {
@@ -136,17 +157,17 @@ export class AuthController extends HttpController {
             serializeAccessTokenCookie(
               authResult.accessToken,
               authResult.accessExpiresIn,
-              cookieOptions(this.authConfig),
+              cookieSecurity,
             ),
             serializeRefreshTokenCookie(
               authResult.refreshToken,
               authResult.refreshExpiresIn,
-              cookieOptions(this.authConfig),
+              cookieSecurity,
             ),
             serializeCsrfTokenCookie(
               authResult.csrfToken,
               authResult.refreshExpiresIn,
-              cookieOptions(this.authConfig),
+              cookieSecurity,
             ),
           ],
         },
@@ -155,12 +176,18 @@ export class AuthController extends HttpController {
   }
 
   async refresh(ctx: HttpContext) {
-    const refreshToken = readRefreshTokenFromCookieHeader(ctx.req.headers.cookie);
+    const refreshToken = readRefreshTokenFromCookieHeader(
+      ctx.req.headers.cookie,
+    );
     if (!refreshToken) {
       throw new UnauthorizedException("Missing refresh token");
     }
 
     const refreshed = await this.authService.refresh(refreshToken);
+    const cookieSecurity = createCookieSecurityOptions(
+      this.authConfig.secureCookies,
+      this.authConfig.cookieDomain,
+    );
 
     return response(
       {
@@ -176,17 +203,17 @@ export class AuthController extends HttpController {
             serializeAccessTokenCookie(
               refreshed.accessToken,
               refreshed.accessExpiresIn,
-              cookieOptions(this.authConfig),
+              cookieSecurity,
             ),
             serializeRefreshTokenCookie(
               refreshed.refreshToken,
               refreshed.refreshExpiresIn,
-              cookieOptions(this.authConfig),
+              cookieSecurity,
             ),
             serializeCsrfTokenCookie(
               refreshed.csrfToken,
               refreshed.refreshExpiresIn,
-              cookieOptions(this.authConfig),
+              cookieSecurity,
             ),
           ],
         },
@@ -195,14 +222,20 @@ export class AuthController extends HttpController {
   }
 
   async logout(ctx: HttpContext) {
-    const refreshToken = readRefreshTokenFromCookieHeader(ctx.req.headers.cookie);
+    const refreshToken = readRefreshTokenFromCookieHeader(
+      ctx.req.headers.cookie,
+    );
     await this.authService.logout(refreshToken);
+    const cookieSecurity = createCookieSecurityOptions(
+      this.authConfig.secureCookies,
+      this.authConfig.cookieDomain,
+    );
 
     return response(
       { loggedOut: true },
       {
         headers: {
-          "set-cookie": serializeAuthCookieClears(cookieOptions(this.authConfig)),
+          "set-cookie": serializeAuthCookieClears(cookieSecurity),
         },
       },
     );
@@ -224,103 +257,4 @@ export class AuthController extends HttpController {
       exp: auth.exp,
     };
   }
-
-  private createLoginRateLimitMiddleware(): HttpMiddleware {
-    return rateLimit({
-      trustProxy: this.authConfig.trustProxy,
-      windowMs: 60_000,
-      max: 10,
-      keyGenerator: (ctx) => {
-        const body = asRecord(ctx.body);
-        const email = typeof body?.email === "string" ? body.email.toLowerCase() : "unknown";
-        const ip = resolveClientAddress(ctx, this.authConfig.trustProxy);
-        return `auth:login:${ip}:${email}`;
-      },
-    });
-  }
-
-  private createAuthMutationRateLimitMiddleware(): HttpMiddleware {
-    return rateLimit({
-      trustProxy: this.authConfig.trustProxy,
-      windowMs: 60_000,
-      max: 30,
-      keyGenerator: (ctx) => {
-        const ip = resolveClientAddress(ctx, this.authConfig.trustProxy);
-        return `auth:mutation:${ip}`;
-      },
-    });
-  }
-}
-
-function authResultSchema() {
-  return {
-    type: "object",
-    properties: {
-      accessToken: { type: "string" },
-      csrfToken: { type: "string" },
-      tokenType: { type: "string", enum: ["Bearer"] },
-      expiresIn: { type: "number" },
-      user: {
-        type: "object",
-        properties: {
-          id: { type: "string" },
-          name: { type: "string" },
-          email: { type: "string", format: "email" },
-          role: { type: "string" },
-        },
-        required: ["id", "name", "email", "role"],
-        additionalProperties: false,
-      },
-    },
-    required: ["accessToken", "csrfToken", "tokenType", "expiresIn", "user"],
-    additionalProperties: false,
-  };
-}
-
-function cookieOptions(config: AuthConfig) {
-  return {
-    secure: config.secureCookies,
-    domain: config.cookieDomain,
-  };
-}
-
-function parseDto<T>(schema: Schema<T>, body: unknown): T {
-  try {
-    return schema.parse(body);
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      const firstIssue = error.issues[0];
-      const path = firstIssue.path.map(String).join(".");
-      const message = path
-        ? `Invalid "${path}": ${firstIssue.message}`
-        : firstIssue.message;
-
-      throw new BadRequestException(message);
-    }
-
-    throw error;
-  }
-}
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-
-  return value as Record<string, unknown>;
-}
-
-function resolveClientAddress(ctx: HttpContext, trustProxy: boolean): string {
-  if (trustProxy) {
-    const forwardedFor = ctx.req.headers["x-forwarded-for"];
-    const fromHeader = Array.isArray(forwardedFor)
-      ? forwardedFor[0]
-      : forwardedFor;
-    const client = fromHeader?.split(",")[0]?.trim();
-    if (client) {
-      return client;
-    }
-  }
-
-  return ctx.req.socket.remoteAddress || "unknown";
 }

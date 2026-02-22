@@ -56,6 +56,9 @@ export class ModuleRegistry {
   registerGlobalProvider(provider: Provider): void {
     this.root.register(provider);
     this.globalTokens.add(provider.token.key);
+    if (provider.kind) {
+      this.indexProviderByKind(provider);
+    }
   }
 
   build(rootModule: ModuleDefinition): void {

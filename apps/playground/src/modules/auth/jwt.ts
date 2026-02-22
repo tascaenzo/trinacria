@@ -1,3 +1,5 @@
+import { createToken } from "@trinacria/core";
+
 export interface JwtClaims {
   sub: string;
   tokenType: "access" | "refresh";
@@ -15,6 +17,8 @@ export interface JwtSigner {
   ): Promise<string>;
   verify(token: string): Promise<JwtClaims>;
 }
+
+export const JWT_SIGNER = createToken<JwtSigner>("JWT_SIGNER");
 
 export class JwtVerificationError extends Error {
   constructor(message = "Invalid or expired token") {

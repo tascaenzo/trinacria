@@ -1,3 +1,5 @@
+import { readCookieValue } from "@trinacria/http";
+
 export const ACCESS_TOKEN_COOKIE_NAME = "trinacria_access_token";
 export const REFRESH_TOKEN_COOKIE_NAME = "trinacria_refresh_token";
 export const CSRF_TOKEN_COOKIE_NAME = "trinacria_csrf_token";
@@ -6,6 +8,13 @@ export const CSRF_TOKEN_HEADER_NAME = "x-csrf-token";
 export interface CookieSecurityOptions {
   secure: boolean;
   domain?: string;
+}
+
+export function createCookieSecurityOptions(
+  secure: boolean,
+  domain?: string,
+): CookieSecurityOptions {
+  return { secure, domain };
 }
 
 export function serializeAccessTokenCookie(
@@ -65,19 +74,19 @@ export function serializeAuthCookieClears(
 export function readAccessTokenFromCookieHeader(
   cookieHeader: string | string[] | undefined,
 ): string | undefined {
-  return readCookie(cookieHeader, ACCESS_TOKEN_COOKIE_NAME);
+  return readCookieValue(cookieHeader, ACCESS_TOKEN_COOKIE_NAME);
 }
 
 export function readRefreshTokenFromCookieHeader(
   cookieHeader: string | string[] | undefined,
 ): string | undefined {
-  return readCookie(cookieHeader, REFRESH_TOKEN_COOKIE_NAME);
+  return readCookieValue(cookieHeader, REFRESH_TOKEN_COOKIE_NAME);
 }
 
 export function readCsrfTokenFromCookieHeader(
   cookieHeader: string | string[] | undefined,
 ): string | undefined {
-  return readCookie(cookieHeader, CSRF_TOKEN_COOKIE_NAME);
+  return readCookieValue(cookieHeader, CSRF_TOKEN_COOKIE_NAME);
 }
 
 function serializeCookie(
@@ -133,34 +142,4 @@ function clearCookie(
   }
 
   return attributes.join("; ");
-}
-
-function readCookie(
-  cookieHeader: string | string[] | undefined,
-  targetName: string,
-): string | undefined {
-  if (typeof cookieHeader !== "string" || cookieHeader.length === 0) {
-    return undefined;
-  }
-
-  const cookies = cookieHeader.split(";");
-  for (const item of cookies) {
-    const [rawName, ...valueParts] = item.trim().split("=");
-    if (!rawName || valueParts.length === 0 || rawName !== targetName) {
-      continue;
-    }
-
-    const rawValue = valueParts.join("=");
-    if (!rawValue) {
-      return undefined;
-    }
-
-    try {
-      return decodeURIComponent(rawValue);
-    } catch {
-      return rawValue;
-    }
-  }
-
-  return undefined;
 }

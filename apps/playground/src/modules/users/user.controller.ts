@@ -1,14 +1,17 @@
 import {
-  BadRequestException,
   ConflictException,
   HttpController,
   HttpContext,
   NotFoundException,
   response,
 } from "@trinacria/http";
-import { toOpenApi, type Schema, ValidationError } from "@trinacria/schema";
 import { AuthGuardFactory } from "../auth/auth-guard.factory";
-import { CreateUserDtoSchema, UpdateUserDtoSchema } from "./dto";
+import {
+  CreateUserDtoSchema,
+  PublicUserDtoSchema,
+  PublicUserListDtoSchema,
+  UpdateUserDtoSchema,
+} from "./dto";
 import { UserService } from "./user.service";
 
 export class UserController extends HttpController {
@@ -20,8 +23,7 @@ export class UserController extends HttpController {
   }
 
   routes() {
-    const authMiddleware = this.authGuardFactory.requireAuth();
-    const csrfMiddleware = this.authGuardFactory.requireCsrf();
+    const protectedRoute = this.authGuardFactory.requireProtectedRoute();
 
     return this.router()
       .get("/users", this.listUsers, {
@@ -31,10 +33,7 @@ export class UserController extends HttpController {
           responses: {
             200: {
               description: "Users list",
-              schema: {
-                type: "array",
-                items: userSchema(),
-              },
+              schema: PublicUserListDtoSchema.toOpenApi(),
             },
           },
         },
@@ -46,7 +45,7 @@ export class UserController extends HttpController {
           responses: {
             200: {
               description: "User",
-              schema: userSchema(),
+              schema: PublicUserDtoSchema.toOpenApi(),
             },
             404: {
               description: "User not found",
@@ -55,7 +54,7 @@ export class UserController extends HttpController {
         },
       })
       .post("/users", this.createUser, {
-        middlewares: [authMiddleware, csrfMiddleware],
+        middlewares: [protectedRoute],
         docs: {
           tags: ["Users"],
           summary: "Create user",
@@ -66,18 +65,18 @@ export class UserController extends HttpController {
           ],
           requestBody: {
             required: true,
-            schema: toOpenApi(CreateUserDtoSchema),
+            schema: CreateUserDtoSchema.toOpenApi(),
           },
           responses: {
             201: {
               description: "Created user",
-              schema: userSchema(),
+              schema: PublicUserDtoSchema.toOpenApi(),
             },
           },
         },
       })
       .put("/users/:id", this.replaceUser, {
-        middlewares: [authMiddleware, csrfMiddleware],
+        middlewares: [protectedRoute],
         docs: {
           tags: ["Users"],
           summary: "Replace user",
@@ -88,18 +87,18 @@ export class UserController extends HttpController {
           ],
           requestBody: {
             required: true,
-            schema: toOpenApi(CreateUserDtoSchema),
+            schema: CreateUserDtoSchema.toOpenApi(),
           },
           responses: {
             200: {
               description: "Updated user",
-              schema: userSchema(),
+              schema: PublicUserDtoSchema.toOpenApi(),
             },
           },
         },
       })
       .patch("/users/:id", this.updateUser, {
-        middlewares: [authMiddleware, csrfMiddleware],
+        middlewares: [protectedRoute],
         docs: {
           tags: ["Users"],
           summary: "Patch user",
@@ -110,18 +109,18 @@ export class UserController extends HttpController {
           ],
           requestBody: {
             required: true,
-            schema: toOpenApi(UpdateUserDtoSchema),
+            schema: UpdateUserDtoSchema.toOpenApi(),
           },
           responses: {
             200: {
               description: "Updated user",
-              schema: userSchema(),
+              schema: PublicUserDtoSchema.toOpenApi(),
             },
           },
         },
       })
       .delete("/users/:id", this.deleteUser, {
-        middlewares: [authMiddleware, csrfMiddleware],
+        middlewares: [protectedRoute],
         docs: {
           tags: ["Users"],
           summary: "Delete user",
@@ -154,7 +153,7 @@ export class UserController extends HttpController {
   }
 
   async createUser(ctx: HttpContext) {
-    const payload = parseDto(CreateUserDtoSchema, ctx.body);
+    const payload = CreateUserDtoSchema.parse(ctx.body);
 
     if (await this.users.existsByEmail(payload.email)) {
       throw new ConflictException("Email already in use");
@@ -171,7 +170,7 @@ export class UserController extends HttpController {
   }
 
   async replaceUser(ctx: HttpContext) {
-    const payload = parseDto(CreateUserDtoSchema, ctx.body);
+    const payload = CreateUserDtoSchema.parse(ctx.body);
     const existing = await this.users.findById(ctx.params.id);
 
     if (!existing) {
@@ -186,7 +185,7 @@ export class UserController extends HttpController {
   }
 
   async updateUser(ctx: HttpContext) {
-    const payload = parseDto(UpdateUserDtoSchema, ctx.body);
+    const payload = UpdateUserDtoSchema.parse(ctx.body);
     const existing = await this.users.findById(ctx.params.id);
 
     if (!existing) {
@@ -211,38 +210,5 @@ export class UserController extends HttpController {
     }
 
     return response(undefined, { status: 204 });
-  }
-}
-
-function userSchema() {
-  return {
-    type: "object",
-    properties: {
-      id: { type: "string" },
-      name: { type: "string" },
-      email: { type: "string", format: "email" },
-      role: { type: "string" },
-      createdAt: { type: "string", format: "date-time" },
-      updatedAt: { type: "string", format: "date-time" },
-    },
-    required: ["id", "name", "email", "role", "createdAt", "updatedAt"],
-    additionalProperties: false,
-  };
-}
-
-function parseDto<T>(schema: Schema<T>, body: unknown): T {
-  try {
-    return schema.parse(body);
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      const firstIssue = error.issues[0];
-      const path = firstIssue.path.map(String).join(".");
-      const message = path
-        ? `Invalid "${path}": ${firstIssue.message}`
-        : firstIssue.message;
-      throw new BadRequestException(message);
-    }
-
-    throw error;
   }
 }

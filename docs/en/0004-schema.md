@@ -259,15 +259,34 @@ const CreateUserSchema = s.object(
 ```ts
 const EnvSchema = s.object(
   {
+    ENV: s.enum(["development", "staging", "production"]).default("development"),
     HOST: s.string({ trim: true, minLength: 1 }).default("0.0.0.0"),
     PORT: s
       .number({ coerce: true, int: true, min: 1, max: 65535 })
       .default(3000),
     OPENAPI_ENABLED: s.boolean({ coerce: true }).default(false),
-    TRUST_PROXY: s.boolean({ coerce: true }).default(false),
+    CORS_ALLOWED_ORIGINS: s.array(s.string(), { coerce: true }).default([]),
   },
   { strict: false },
 );
+```
+
+Validation errors can be formatted consistently:
+
+```ts
+import { formatValidationError, ValidationError } from "@trinacria/schema";
+
+try {
+  EnvSchema.parse(process.env);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error(
+      formatValidationError(error, {
+        prefix: "Invalid environment configuration:",
+      }),
+    );
+  }
+}
 ```
 
 ### 3) Event payload validation

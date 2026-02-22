@@ -2,7 +2,7 @@ import { classProvider, defineModule } from "@trinacria/core";
 import { httpProvider } from "@trinacria/http";
 import { PRISMA_SERVICE } from "../../global-service/prisma.service";
 import { AuthModule } from "../auth/auth.module";
-import { AUTH_GUARD_FACTORY } from "../auth/auth.tokens";
+import { AUTH_GUARD_FACTORY } from "../auth/auth-guard.factory";
 import { UserService } from "./user.service";
 import { UserController } from "./user.controller";
 import { USER_CONTROLLER, USER_SERVICE } from "./user.tokens";

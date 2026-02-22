@@ -3,6 +3,8 @@ export interface ResolvedConfig {
   outDir: string;
   watchDir: string;
   env: "development" | "production" | string;
+  crashLoopWindowMs: number;
+  maxConsecutiveCrashRestarts: number;
 }
 
 export type TrinacriaConfig = Partial<ResolvedConfig>;

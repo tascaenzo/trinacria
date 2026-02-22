@@ -71,6 +71,9 @@ packages/cli/
   2. fallback to `trinacria.config.js|cjs|mjs`
   3. defaults
 - explicit `--config` with invalid path fails fast
+- dev crash-loop controls:
+  - `crashLoopWindowMs` (default: `15000`)
+  - `maxConsecutiveCrashRestarts` (default: `3`)
 
 ## Runtime flow
 

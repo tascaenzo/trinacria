@@ -1,5 +1,7 @@
 export {
   ValidationError,
+  formatValidationError,
+  type FormatValidationErrorOptions,
   type ValidationIssue,
   type Path,
   validationIssue,

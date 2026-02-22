@@ -30,6 +30,10 @@ export function buildOpenApiDocument(
 
   for (const entry of options.routes) {
     const route = entry.route;
+    if (route.docs?.excludeFromOpenApi) {
+      continue;
+    }
+
     const openApiPath = route.path.replace(/:([A-Za-z0-9_]+)/g, "{$1}");
     const method = route.method.toLowerCase();
     const docs = route.docs;

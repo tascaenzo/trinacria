@@ -39,6 +39,7 @@ export interface RouteOpenApiResponse {
 }
 
 export interface RouteOpenApiDocs {
+  excludeFromOpenApi?: boolean;
   summary?: string;
   description?: string;
   operationId?: string;
