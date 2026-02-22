@@ -1,9 +1,9 @@
 import { TrinacriaApp } from "@trinacria/core";
 import { httpProvider } from "@trinacria/http";
 import {
-  APP_CONFIG,
-  type AppConfig,
-} from "../global-service/app-config.service";
+  CONFIG_SERVICE,
+  ConfigService,
+} from "../global-service/config.service";
 import {
   SWAGGER_DOCS_CONTROLLER,
   SwaggerDocsController,
@@ -11,12 +11,12 @@ import {
 
 export function registerGlobalControllers(
   app: TrinacriaApp,
-  config: AppConfig,
+  config: ConfigService,
 ): void {
-  if (config.OPENAPI_ENABLED) {
+  if (config.get("OPENAPI_ENABLED")) {
     app.registerGlobalProvider(
       httpProvider(SWAGGER_DOCS_CONTROLLER, SwaggerDocsController, [
-        APP_CONFIG,
+        CONFIG_SERVICE,
       ]),
     );
   }

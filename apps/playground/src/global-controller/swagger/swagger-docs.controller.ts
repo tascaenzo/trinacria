@@ -2,14 +2,14 @@ import { createToken } from "@trinacria/core";
 import { HttpContext, HttpController, response } from "@trinacria/http";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { AppConfig } from "../../global-service/app-config.service";
+import type { ConfigService } from "../../global-service/config.service";
 
 export const SWAGGER_DOCS_CONTROLLER = createToken<SwaggerDocsController>(
   "SWAGGER_DOCS_CONTROLLER",
 );
 
 export class SwaggerDocsController extends HttpController {
-  constructor(private readonly config: AppConfig) {
+  constructor(private readonly config: ConfigService) {
     super();
   }
 
@@ -52,8 +52,8 @@ export class SwaggerDocsController extends HttpController {
    * Basic auth is optional and enabled only when both credentials are set.
    */
   private isAuthorized(authorizationHeader: string | undefined): boolean {
-    const username = this.config.SWAGGER_DOCS_USERNAME;
-    const password = this.config.SWAGGER_DOCS_PASSWORD;
+    const username = this.config.get("SWAGGER_DOCS_USERNAME");
+    const password = this.config.get("SWAGGER_DOCS_PASSWORD");
 
     if (!username && !password) {
       return true;

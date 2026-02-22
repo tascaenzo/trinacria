@@ -9,7 +9,7 @@ It is not a final business application: it is a sandbox used to verify runtime b
 ## What It Includes Today
 
 - Trinacria bootstrap with the HTTP plugin (`@trinacria/http`).
-- Runtime config validated from env (`src/global-service/app-config.service.ts`).
+- Runtime config validated from env (`src/global-service/config.service.ts`).
 - Global infrastructure providers (config + Prisma).
 - `auth` module with JWT (`jose`), HttpOnly cookies, refresh token flow, CSRF middleware.
 - `users` module with protected CRUD endpoints.
@@ -30,7 +30,7 @@ The playground follows framework principles:
 - `src/main.ts`
   - app bootstrap, HTTP plugin config, global middleware setup, module registration.
 - `src/global-service/`
-  - global infrastructure services (env config + Prisma provider/token).
+  - global infrastructure services (`ConfigService` + Prisma provider/token).
 - `src/global-controller/`
   - global HTTP controllers for cross-cutting routes (e.g. Swagger docs UI).
 - `src/modules/auth/`
@@ -44,7 +44,7 @@ The playground follows framework principles:
 
 Currently registered globally in `src/main.ts`:
 
-- `APP_CONFIG`
+- `CONFIG_SERVICE`
 - `PRISMA_SERVICE`
 - `SWAGGER_DOCS_CONTROLLER` (only when `OPENAPI_ENABLED=true`)
 
@@ -104,21 +104,20 @@ Local file: `.env.development`.
 
 Relevant fields:
 
+- `ENV` (`development|staging|production`)
 - `HOST`
 - `PORT`
 - `DATABASE_URL` (e.g. `file:./dev.db`)
-- `NODE_ENV` (`development|staging|production`)
-- `TRUST_PROXY`
 - `OPENAPI_ENABLED` (`true|false`, default `false`)
 - `SWAGGER_DOCS_USERNAME` (optional, requires `SWAGGER_DOCS_PASSWORD`)
 - `SWAGGER_DOCS_PASSWORD` (optional, requires `SWAGGER_DOCS_USERNAME`)
-- `CORS_ALLOWED_ORIGINS`
-- `JWT_SECRET`
+- `CORS_ALLOWED_ORIGINS` (CSV string in `.env`, parsed as `string[]`)
+- `SECRET_KEY`
 - `JWT_ACCESS_TOKEN_TTL_SECONDS`
 - `JWT_REFRESH_TOKEN_TTL_SECONDS`
 - `AUTH_COOKIE_DOMAIN`
 
-In production, config applies stricter validation (e.g. `JWT_SECRET` is required and must be strong).
+In production, config applies stricter validation and startup fails with explicit key-level error messages when env values are invalid.
 
 ## Main Endpoints
 

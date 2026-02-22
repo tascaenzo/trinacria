@@ -206,7 +206,7 @@ app.use(
       requestId(),
       requestLogger(),
       cors({ origin: "*" }),
-      rateLimit({ windowMs: 60_000, max: 2000, trustProxy: true }),
+      rateLimit({ windowMs: 60_000, max: 2000, trustProxy: false }),
       requestTimeout({ timeoutMs: 15_000 }),
       security,
     ],

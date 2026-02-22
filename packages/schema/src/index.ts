@@ -1,4 +1,10 @@
-export { ValidationError, type ValidationIssue, type Path } from "./errors";
+export {
+  ValidationError,
+  formatValidationError,
+  type FormatValidationErrorOptions,
+  type ValidationIssue,
+  type Path,
+} from "./errors";
 export type { Schema, ParseResult, ParseOk, ParseFail, Infer } from "./core";
 export type { OpenApiSchemaObject } from "./openapi";
 export { toOpenApi } from "./openapi";

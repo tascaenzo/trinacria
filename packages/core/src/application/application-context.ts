@@ -15,6 +15,12 @@ export interface ApplicationContext {
   resolve<T>(token: Token<T>): Promise<T>;
 
   /**
+   * Registers a global provider before application start.
+   * Primarily used by plugins during `onRegister`.
+   */
+  registerGlobalProvider(provider: Provider): void;
+
+  /**
    * Returns all exported providers associated with a specific ProviderKind.
    */
   getProvidersByKind<T>(kind: ProviderKind<T>): Provider<T>[];

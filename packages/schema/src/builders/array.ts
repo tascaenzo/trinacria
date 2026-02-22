@@ -19,6 +19,11 @@ export interface ArrayOptions<T> {
    * If a function is provided, uniqueness is checked on the selector result.
    */
   unique?: boolean | ((item: T) => unknown);
+  /**
+   * Coerces a string input into an array by splitting on a separator.
+   * Useful for env vars like "a,b,c".
+   */
+  coerce?: boolean | { separator?: string };
 }
 
 /**
@@ -49,15 +54,27 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
 
   const internalItem = asInternal(itemSchema);
   const minItems = Math.max(options.nonEmpty ? 1 : 0, options.minItems ?? 0);
+  const coerceSeparator =
+    typeof options.coerce === "object" && options.coerce.separator
+      ? options.coerce.separator
+      : ",";
 
   return createSchema(
     "array",
     (input, path) => {
-      if (!Array.isArray(input)) {
+      const normalizedInput =
+        options.coerce && typeof input === "string"
+          ? input
+              .split(coerceSeparator)
+              .map((value) => value.trim())
+              .filter(Boolean)
+          : input;
+
+      if (!Array.isArray(normalizedInput)) {
         throwValidation(path, "Expected array", "invalid_type");
       }
 
-      if (input.length < minItems) {
+      if (normalizedInput.length < minItems) {
         throwValidation(
           path,
           `Array must contain at least ${minItems} items`,
@@ -65,7 +82,10 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
         );
       }
 
-      if (options.maxItems !== undefined && input.length > options.maxItems) {
+      if (
+        options.maxItems !== undefined &&
+        normalizedInput.length > options.maxItems
+      ) {
         throwValidation(
           path,
           `Array must contain at most ${options.maxItems} items`,
@@ -73,7 +93,7 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
         );
       }
 
-      const parsed = input.map((value, index) =>
+      const parsed = normalizedInput.map((value, index) =>
         internalItem.parseAtPath(value, [...path, index]),
       );
 
