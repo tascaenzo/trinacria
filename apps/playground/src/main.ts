@@ -18,6 +18,7 @@ import {
   requestTimeout,
 } from "@trinacria/http";
 import { createCronPlugin } from "@trinacria/cron";
+import { createEventsPlugin } from "@trinacria/events";
 import { CONFIG_SERVICE, ConfigService } from "./global-service/config.service";
 import { registerGlobalControllers } from "./global-controller/register-global-controllers";
 import { PrismaService } from "./global-service/prisma.service";
@@ -29,6 +30,7 @@ async function bootstrap() {
   const configService = new ConfigService();
   const config = configService.getAll();
   const cronLogger = new ConsoleLogger("playground:cron");
+  const eventsLogger = new ConsoleLogger("playground:events");
   const securityHeadersMiddleware = createSecurityHeadersBuilder()
     .preset(config.ENV)
     .trustProxy(false)
@@ -85,7 +87,10 @@ async function bootstrap() {
     app.use(
       createCronPlugin({
         cronTickMs: config.CRON_TICK_MS,
-        lockRenewIntervalMs: Math.max(1_000, Math.floor(config.CRON_LOCK_TTL_MS / 3)),
+        lockRenewIntervalMs: Math.max(
+          1_000,
+          Math.floor(config.CRON_LOCK_TTL_MS / 3),
+        ),
         retry: {
           maxAttempts: 3,
           backoffMs: 500,
@@ -136,6 +141,16 @@ async function bootstrap() {
       }),
     );
   }
+
+  app.use(
+    createEventsPlugin({
+      source: "playground-api",
+      dispatchLocalOnEmit: true,
+      onListenerError: (error, envelope) => {
+        eventsLogger.error(`Event listener error: ${envelope.name}`, error);
+      },
+    }),
+  );
 
   await app.registerModule(AuthModule);
   await app.registerModule(UserModule);
