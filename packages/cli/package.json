@@ -7,7 +7,9 @@
     "trinacria": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/index.js"
+    "build": "tsc && chmod +x dist/index.js",
+    "test": "tsx --test test/**/*.test.ts",
+    "test:coverage": "tsx --test --experimental-test-coverage --test-coverage-include=src/**/*.ts test/**/*.test.ts"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
