@@ -1,4 +1,6 @@
 import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 function run(command, options = {}) {
   execSync(command, {
@@ -11,13 +13,12 @@ function read(command) {
   return execSync(command, { encoding: "utf8" }).trim();
 }
 
-const WORKSPACES = [
-  { prefix: "packages/core/", name: "@trinacria/core", test: true },
-  { prefix: "packages/schema/", name: "@trinacria/schema", test: true },
-  { prefix: "packages/http/", name: "@trinacria/http", test: true },
-  { prefix: "packages/cli/", name: "@trinacria/cli", test: true },
-  { prefix: "apps/playground/", name: "playground", test: false },
-];
+const rootPackage = JSON.parse(fs.readFileSync("package.json", "utf8"));
+const workspacePatterns = Array.isArray(rootPackage.workspaces)
+  ? rootPackage.workspaces
+  : [];
+
+const WORKSPACES = discoverWorkspaces(workspacePatterns);
 
 const GLOBAL_FILES = new Set([
   "package.json",
@@ -46,8 +47,8 @@ for (const file of stagedFiles) {
 }
 
 const lintTargets = runAll
-  ? WORKSPACES.map((w) => w.name)
-  : WORKSPACES.filter((w) => touched.has(w.name)).map((w) => w.name);
+  ? WORKSPACES.filter((w) => w.build).map((w) => w.name)
+  : WORKSPACES.filter((w) => w.build && touched.has(w.name)).map((w) => w.name);
 
 const testTargets = runAll
   ? WORKSPACES.filter((w) => w.test).map((w) => w.name)
@@ -70,3 +71,43 @@ if (testTargets.length > 0) {
 }
 
 console.log("[pre-commit] Checks passed.");
+
+function discoverWorkspaces(patterns) {
+  const workspaces = [];
+
+  for (const pattern of patterns) {
+    if (!pattern.endsWith("/*")) {
+      continue;
+    }
+
+    const baseDir = pattern.slice(0, -2);
+    if (!fs.existsSync(baseDir)) {
+      continue;
+    }
+
+    const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const workspaceDir = path.join(baseDir, entry.name);
+      const packageJsonPath = path.join(workspaceDir, "package.json");
+      if (!fs.existsSync(packageJsonPath)) {
+        continue;
+      }
+
+      const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      const scripts = pkg.scripts ?? {};
+
+      workspaces.push({
+        name: pkg.name,
+        prefix: `${workspaceDir.replace(/\\/g, "/")}/`,
+        build: typeof scripts.build === "string",
+        test: typeof scripts.test === "string",
+      });
+    }
+  }
+
+  return workspaces;
+}

@@ -442,3 +442,25 @@ Full documentation is available in `docs/` with language-specific sections:
 Recommended starting point:
 
 - [`docs/en/0000-getting-started.md`](./docs/en/0000-getting-started.md)
+
+---
+
+# 📦 Release & Versioning
+
+This monorepo uses [Changesets](https://github.com/changesets/changesets) with **independent** package versioning.
+
+Useful commands:
+
+```bash
+npm run changeset
+npm run changeset:status
+npm run version-packages
+npm run release
+```
+
+Detailed policy:
+
+- EN: [`docs/en/1000-repository-versioning-policy.md`](./docs/en/1000-repository-versioning-policy.md)
+- EN: [`docs/en/1001-repository-release-scripts-workflows.md`](./docs/en/1001-repository-release-scripts-workflows.md)
+- IT: [`docs/it/1000-repository-policy-versioning.md`](./docs/it/1000-repository-policy-versioning.md)
+- IT: [`docs/it/1001-repository-release-scripts-workflow.md`](./docs/it/1001-repository-release-scripts-workflow.md)
