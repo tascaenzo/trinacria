@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
+import { Readable } from "node:stream";
 import { Router } from "../src/routing/router";
 import { HttpServer } from "../src/server/http-server";
 import type { RouteDefinition } from "../src/routing/route-definition";
@@ -15,14 +16,10 @@ function withSilencedOutput<T>(run: () => Promise<T> | T): Promise<T> {
   const originalLog = console.log;
   const originalWarn = console.warn;
   const originalError = console.error;
-  const originalStdoutWrite = process.stdout.write.bind(process.stdout);
-  const originalStderrWrite = process.stderr.write.bind(process.stderr);
 
   console.log = () => {};
   console.warn = () => {};
   console.error = () => {};
-  (process.stdout as any).write = () => true;
-  (process.stderr as any).write = () => true;
 
   return Promise.resolve()
     .then(() => run())
@@ -30,8 +27,6 @@ function withSilencedOutput<T>(run: () => Promise<T> | T): Promise<T> {
       console.log = originalLog;
       console.warn = originalWarn;
       console.error = originalError;
-      (process.stdout as any).write = originalStdoutWrite;
-      (process.stderr as any).write = originalStderrWrite;
     });
 }
 
@@ -220,4 +215,133 @@ test("http server enforces payload limit and close is idempotent", async () => {
       await Promise.all([server.close(), server.close()]);
     }
   });
+});
+
+test("http server handles HEAD requests without response body", async () => {
+  await withSilencedOutput(() =>
+    withServer(
+      [
+        {
+          method: "GET",
+          path: "/head-ok",
+          handler: () => ({ hello: "world" }),
+        },
+      ],
+      async (port) => {
+        const ok = await requestOnce(port, {
+          method: "HEAD",
+          path: "/head-ok",
+        });
+        assert.equal(ok.status, 405);
+        assert.equal(ok.body, "");
+
+        const missing = await requestOnce(port, {
+          method: "HEAD",
+          path: "/missing-head",
+        });
+        assert.equal(missing.status, 404);
+        assert.equal(missing.body, "");
+      },
+    ),
+  );
+});
+
+test("http server supports streaming response bodies", async () => {
+  await withSilencedOutput(() =>
+    withServer(
+      [
+        {
+          method: "GET",
+          path: "/stream",
+          handler: () => Readable.from(["a", "b"]),
+        },
+      ],
+      async (port) => {
+        const result = await requestOnce(port, { path: "/stream" });
+        assert.equal(result.status, 200);
+        assert.equal(result.body, "ab");
+      },
+    ),
+  );
+});
+
+test("http server uses custom response serializer", async () => {
+  await withSilencedOutput(() =>
+    withServer(
+      [
+        {
+          method: "GET",
+          path: "/custom-serializer",
+          handler: () => "ignored",
+        },
+      ],
+      async (port) => {
+        const result = await requestOnce(port, { path: "/custom-serializer" });
+        assert.equal(result.status, 202);
+        assert.equal(result.body, "custom");
+      },
+      {
+        responseSerializer: () => ({
+          status: 202,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+          body: "custom",
+        }),
+      },
+    ),
+  );
+});
+
+test("http server uses custom exception handler output", async () => {
+  await withSilencedOutput(() =>
+    withServer(
+      [
+        {
+          method: "GET",
+          path: "/custom-error",
+          handler: () => {
+            throw new Error("boom");
+          },
+        },
+      ],
+      async (port) => {
+        const result = await requestOnce(port, { path: "/custom-error" });
+        assert.equal(result.status, 555);
+        assert.equal(result.body, '{"custom":true}');
+      },
+      {
+        exceptionHandler: () => ({
+          status: 555,
+          body: { custom: true },
+        }),
+      },
+    ),
+  );
+});
+
+test("http server parses chunked JSON bodies via transfer-encoding", async () => {
+  await withSilencedOutput(() =>
+    withServer(
+      [
+        {
+          method: "POST",
+          path: "/chunked",
+          handler: (ctx) => ctx.body,
+        },
+      ],
+      async (port) => {
+        const result = await requestOnce(port, {
+          method: "POST",
+          path: "/chunked",
+          headers: {
+            "content-type": "application/json",
+            "transfer-encoding": "chunked",
+          },
+          body: '{"chunked":true}',
+        });
+
+        assert.equal(result.status, 200);
+        assert.equal(result.body, '{"chunked":true}');
+      },
+    ),
+  );
 });

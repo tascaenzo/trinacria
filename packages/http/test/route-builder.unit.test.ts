@@ -54,3 +54,25 @@ test("route builder throws when handler name is missing on controller", () => {
     /not a function on controller/,
   );
 });
+
+test("route builder accepts middleware list args", () => {
+  const controller = new DemoController();
+  const mw1 = async (_ctx: any, next: () => Promise<unknown>) => next();
+  const mw2 = async (_ctx: any, next: () => Promise<unknown>) => next();
+
+  const routes = new RouteBuilder(controller)
+    .get("/with-mw-list", "byName", mw1, mw2)
+    .build();
+
+  assert.equal(routes[0].middlewares?.length, 2);
+  assert.equal(routes[0].docs, undefined);
+});
+
+test("route builder keeps handlerName undefined for external anonymous handler", () => {
+  const controller = new DemoController();
+  const routes = new RouteBuilder(controller)
+    .get("/anon", () => "x")
+    .build();
+
+  assert.equal(routes[0].handlerName, undefined);
+});
