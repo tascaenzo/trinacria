@@ -1,5 +1,9 @@
 # 🏛 Trinacria Core
 
+<p align="center">
+  <img src="./docs/assets/logo.png" alt="Logo Trinacria" width="220" />
+</p>
+
 > A modular, async-first Dependency Injection engine designed for extensibility.
 
 Trinacria Core is not an HTTP framework.
@@ -44,6 +48,7 @@ npm run precommit:check
 ```
 
 The pre-commit hook runs:
+
 - `build` on touched workspaces
 - `test` on touched test-enabled workspaces (`core`, `schema`, `http`, `cli`)
 

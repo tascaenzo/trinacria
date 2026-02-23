@@ -1,5 +1,9 @@
 # Trinacria Documentation (English)
 
+<p align="center">
+  <img src="../assets/logo.png" alt="Logo Trinacria" width="220" />
+</p>
+
 This section contains the official documentation in English.
 
 ## Index
