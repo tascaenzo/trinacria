@@ -175,7 +175,7 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
         errorSerializer,
       });
 
-      server.listen(port, host);
+      await server.listen(port, host);
 
       logger.info(`HTTP server started on http://${host}:${port}`);
       if (openApi?.enabled) {

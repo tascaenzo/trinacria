@@ -109,3 +109,10 @@ Reusable implementations shipped by the package:
 - keep middleware engine (`src/middleware`) framework-agnostic
 - keep built-ins in `src/builtin-middlewares`
 - preserve case-insensitive header behavior and proxy trust semantics
+
+## Tests
+
+```bash
+npm run test -w @trinacria/http
+npm run test:coverage -w @trinacria/http
+```

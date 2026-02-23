@@ -151,7 +151,12 @@ export class ModuleRegistry {
   async destroy(): Promise<void> {
     const errors: unknown[] = [];
 
-    for (const container of this.moduleContainers.values()) {
+    const destructionOrder = this.computeModuleInitializationOrder().reverse();
+
+    for (const module of destructionOrder) {
+      const container = this.moduleContainers.get(module);
+      if (!container) continue;
+
       try {
         await container.destroy();
       } catch (error) {

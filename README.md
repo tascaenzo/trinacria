@@ -12,6 +12,43 @@ Trinacria provides a strongly typed, modular, plugin-driven engine that allows y
 
 ---
 
+# ✅ Quality Gates
+
+## Run tests
+
+```bash
+npm run test -w @trinacria/core
+npm run test -w @trinacria/schema
+npm run test -w @trinacria/http
+npm run test -w @trinacria/cli
+```
+
+## Run coverage
+
+```bash
+npm run coverage:all
+```
+
+## Pre-commit hook (build + test on staged workspaces)
+
+Install once:
+
+```bash
+npm run hooks:install
+```
+
+Manual dry-run (without committing):
+
+```bash
+npm run precommit:check
+```
+
+The pre-commit hook runs:
+- `build` on touched workspaces
+- `test` on touched test-enabled workspaces (`core`, `schema`, `http`, `cli`)
+
+---
+
 # 🎯 Why Trinacria Exists
 
 Modern backend frameworks often mix:
