@@ -81,6 +81,9 @@ function discoverWorkspaces(patterns) {
     }
 
     const baseDir = pattern.slice(0, -2);
+    if (baseDir !== "packages") {
+      continue;
+    }
     if (!fs.existsSync(baseDir)) {
       continue;
     }
