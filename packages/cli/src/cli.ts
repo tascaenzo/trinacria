@@ -7,7 +7,7 @@ import { ConsoleLogger } from "@trinacria/core";
 const context = "TrinacriaCLI";
 const log = new ConsoleLogger(context);
 
-function printHelp() {
+export function printHelp() {
   console.log(`
 Trinacria CLI
 
@@ -22,40 +22,65 @@ Options:
 `);
 }
 
-export async function main() {
-  const args = process.argv.slice(2);
+interface CliDeps {
+  loadConfig: typeof loadConfig;
+  dev: typeof dev;
+  build: typeof build;
+  start: typeof start;
+  printHelp: () => void;
+  exit: (code: number) => void;
+  logError: (message: string, error?: unknown) => void;
+}
 
+const defaultDeps: CliDeps = {
+  loadConfig,
+  dev,
+  build,
+  start,
+  printHelp,
+  exit: (code) => process.exit(code),
+  logError: (message, error) =>
+    log.error(message, error as Error | undefined, context),
+};
+
+export async function runCli(args: string[], deps: CliDeps = defaultDeps) {
   const command = args[0];
 
   if (!command || command === "--help") {
-    printHelp();
-    process.exit(0);
+    deps.printHelp();
+    deps.exit(0);
+    return;
   }
 
   try {
-    // Carica config una sola volta
-    const config = await loadConfig(args);
+    const config = await deps.loadConfig(args);
 
     switch (command) {
       case "dev":
-        await dev(config);
+        await deps.dev(config);
         break;
 
       case "build":
-        await build(config);
+        await deps.build(config);
         break;
 
       case "start":
-        await start(config);
+        await deps.start(config);
         break;
 
       default:
-        log.error(`Unknown command: ${command}`, undefined, context);
-        printHelp();
-        process.exit(1);
+        deps.logError(`Unknown command: ${command}`);
+        deps.printHelp();
+        deps.exit(1);
+        return;
     }
   } catch (err) {
-    log.error("CLI execution failed", err as Error, context);
-    process.exit(1);
+    deps.logError("CLI execution failed", err);
+    deps.exit(1);
+    return;
   }
+}
+
+export async function main() {
+  await runCli(process.argv.slice(2));
 }

@@ -26,6 +26,13 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
 
   private started = false;
   private startupState: "idle" | "starting" | "started" | "failed" = "idle";
+  private signalHandlersRegistered = false;
+  private readonly onSigterm = () => {
+    void this.handleSignal("SIGTERM");
+  };
+  private readonly onSigint = () => {
+    void this.handleSignal("SIGINT");
+  };
 
   // --------------------------------------------------
   // CONFIGURATION PHASE
@@ -106,7 +113,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
     const hookErrors: unknown[] = [];
     for (const plugin of this.plugins) {
       try {
-        await plugin.onModuleUnregistered?.(module, this);
+        await plugin.onModuleUnregistered?.(existingModule, this);
       } catch (error) {
         hookErrors.push(error);
       }
@@ -214,6 +221,7 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
       shutdownErrors.push(error);
     }
 
+    this.teardownSignalHandlers();
     this.started = false;
     this.startupState = "idle";
 
@@ -305,23 +313,37 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
   }
 
   private setupSignalHandlers() {
-    // Forward process termination signals to graceful shutdown.
-    const handleSignal = async (signal: NodeJS.Signals) => {
-      CoreLog.warn(
-        `[Trinacria] Received ${signal}. Starting graceful shutdown...`,
-      );
+    if (this.signalHandlersRegistered) {
+      return;
+    }
 
-      try {
-        await this.shutdown();
-        process.exit(0);
-      } catch (err) {
-        CoreLog.error("[Trinacria] Error during shutdown", err);
-        process.exit(1);
-      }
-    };
+    process.once("SIGTERM", this.onSigterm);
+    process.once("SIGINT", this.onSigint);
+    this.signalHandlersRegistered = true;
+  }
 
-    process.once("SIGTERM", () => handleSignal("SIGTERM"));
-    process.once("SIGINT", () => handleSignal("SIGINT"));
+  private teardownSignalHandlers() {
+    if (!this.signalHandlersRegistered) {
+      return;
+    }
+
+    process.off("SIGTERM", this.onSigterm);
+    process.off("SIGINT", this.onSigint);
+    this.signalHandlersRegistered = false;
+  }
+
+  private async handleSignal(signal: NodeJS.Signals): Promise<void> {
+    CoreLog.warn(
+      `[Trinacria] Received ${signal}. Starting graceful shutdown...`,
+    );
+
+    try {
+      await this.shutdown();
+      process.exit(0);
+    } catch (err) {
+      CoreLog.error("[Trinacria] Error during shutdown", err);
+      process.exit(1);
+    }
   }
 }
 

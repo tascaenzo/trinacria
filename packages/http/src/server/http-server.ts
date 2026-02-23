@@ -79,9 +79,23 @@ export class HttpServer {
     this.server = http.createServer(this.handleRequest.bind(this));
   }
 
-  listen(port: number, host: string = "0.0.0.0"): void {
-    this.server.listen(port, host);
-    this.logger.info(`[HttpServer] Listening on http://${host}:${port}`);
+  listen(port: number, host: string = "0.0.0.0"): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const onError = (error: Error) => {
+        this.server.off("listening", onListening);
+        reject(error);
+      };
+
+      const onListening = () => {
+        this.server.off("error", onError);
+        this.logger.info(`[HttpServer] Listening on http://${host}:${port}`);
+        resolve();
+      };
+
+      this.server.once("error", onError);
+      this.server.once("listening", onListening);
+      this.server.listen(port, host);
+    });
   }
 
   async close(): Promise<void> {

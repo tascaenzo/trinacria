@@ -10,7 +10,12 @@
     "build:playground": "npm run build -w playground",
     "build": "npm run build:core && npm run build:schema && npm run build:http && npm run build:cli && npm run build:playground",
     "rebuild": "npm run clean && npm run build",
-    "dev:playground": "npm run dev -w playground"
+    "dev:playground": "npm run dev -w playground",
+    "coverage:core": "npm run test:coverage -w @trinacria/core",
+    "coverage:schema": "npm run test:coverage -w @trinacria/schema",
+    "coverage:all": "npm run test:coverage --workspaces --if-present",
+    "precommit:check": "node scripts/pre-commit.mjs",
+    "hooks:install": "git config core.hooksPath .githooks && chmod +x .githooks/pre-commit"
   },
   "workspaces": [
     "packages/*",

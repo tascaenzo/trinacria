@@ -134,3 +134,10 @@ function replaceSourceExtension(filePath: string): string {
   if (filePath.endsWith(".ts")) return filePath.slice(0, -3) + ".js";
   return filePath;
 }
+
+export const __startTestUtils = {
+  resolveBuiltEntryPath,
+  resolveCommonRootDir,
+  commonDirectory,
+  replaceSourceExtension,
+};
