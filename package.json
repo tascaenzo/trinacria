@@ -16,6 +16,10 @@
     "coverage:core": "npm run test:coverage -w @trinacria/core",
     "coverage:schema": "npm run test:coverage -w @trinacria/schema",
     "coverage:all": "npm run test:coverage --workspaces --if-present",
+    "changeset": "changeset",
+    "changeset:status": "changeset status",
+    "version-packages": "changeset version",
+    "release": "changeset publish",
     "precommit:check": "node scripts/pre-commit.mjs",
     "hooks:install": "git config core.hooksPath .githooks && chmod +x .githooks/pre-commit"
   },
@@ -24,6 +28,7 @@
     "apps/*"
   ],
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "@types/node": "^25.2.3",
     "typescript": "^5.9.3"
   }

@@ -15,12 +15,15 @@ This section contains the official documentation in English.
 - [0004 - Schema System](./0004-schema.md)
 - [0005 - Cron Plugin](./0005-cron.md)
 - [0006 - Events Plugin](./0006-events-plugin.md)
+- [1000 - Repository Versioning Policy](./1000-repository-versioning-policy.md)
+- [1001 - Repository Release Scripts and Workflows](./1001-repository-release-scripts-workflows.md)
 
 ## Quick Links (Official EN)
 
 - [HTTP Built-in Middleware Reference + Recipes](./0002-http-plugin.md)
 - [Cron Plugin Guide + Lock Hooks](./0005-cron.md)
 - [Events Plugin Guide (Internal Bus + Redis/RabbitMQ)](./0006-events-plugin.md)
+- [Repository Versioning and Release Guide](./1001-repository-release-scripts-workflows.md)
 
 ## Scope
 
