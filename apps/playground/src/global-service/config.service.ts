@@ -23,6 +23,15 @@ export const configSchema = s.object({
   CORS_ALLOWED_ORIGINS: s.array(s.string(), { coerce: true }).default([]),
   AUTH_COOKIE_DOMAIN: s.string().optional(),
 
+  // Playground cron plugin configuration
+  CRON_ENABLED: s.boolean({ coerce: true }).default(true),
+  CRON_TICK_MS: s
+    .number({ coerce: true, int: true, min: 100, max: 60_000 })
+    .default(1_000),
+  CRON_LOCK_TTL_MS: s
+    .number({ coerce: true, int: true, min: 1_000, max: 300_000 })
+    .default(30_000),
+
   // Secret key for signing JWTs or other secrets (use a secure key in production)
   SECRET_KEY: s.string(),
   JWT_ACCESS_TOKEN_TTL_SECONDS: s
