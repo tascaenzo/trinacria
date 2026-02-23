@@ -30,3 +30,13 @@ model AuthSession {
   @@index([userId])
   @@index([expiresAt])
 }
+
+model CronLock {
+  jobName   String   @id
+  lockToken String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}

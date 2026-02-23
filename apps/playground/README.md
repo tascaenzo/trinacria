@@ -13,6 +13,7 @@ It is not a final business application: it is a sandbox used to verify runtime b
 - Global infrastructure providers (config + Prisma).
 - `auth` module with JWT (`jose`), HttpOnly cookies, refresh token flow, CSRF middleware.
 - `users` module with protected CRUD endpoints.
+- `cron` module with scheduled jobs demo (`runOnInit`, overlap guard, per-job lock hook, error hook).
 - Prisma + SQLite for local testing.
 
 ## Applied Architecture Philosophy
@@ -37,6 +38,8 @@ The playground follows framework principles:
   - login/refresh/logout/me, JWT guards, CSRF, cookie utilities.
 - `src/modules/users/`
   - user endpoints and domain service.
+- `src/modules/cron/`
+  - cron job providers used to validate scheduler behavior in the playground.
 - `prisma/schema.prisma`
   - SQLite schema (`User`, `AuthSession`).
 
@@ -116,6 +119,9 @@ Relevant fields:
 - `JWT_ACCESS_TOKEN_TTL_SECONDS`
 - `JWT_REFRESH_TOKEN_TTL_SECONDS`
 - `AUTH_COOKIE_DOMAIN`
+- `CRON_ENABLED` (`true|false`, default `true`)
+- `CRON_TICK_MS` (default `1000`)
+- `CRON_LOCK_TTL_MS` (default `30000`)
 
 In production, config applies stricter validation and startup fails with explicit key-level error messages when env values are invalid.
 
@@ -133,6 +139,28 @@ In production, config applies stricter validation and startup fails with explici
 - `PUT /users/:id`
 - `PATCH /users/:id`
 - `DELETE /users/:id`
+
+## Cron Scenarios In Playground
+
+When `CRON_ENABLED=true`, the app registers `@trinacria/cron` with per-job lock hooks and loads `CronModule`.
+The module includes four reference jobs:
+
+- `playground:users-snapshot`
+  - runs on startup (`runOnInit`) and then every 60s
+  - logs current user count from Prisma
+- `playground:overlap-guard-demo`
+  - runs every 5s but takes ~8s
+  - demonstrates skip-on-overlap with `allowConcurrent: false`
+- `playground:unstable-task`
+  - runs every 20s
+  - fails every third run to demonstrate `onError` handling
+- `playground:lock-cleanup`
+  - runs every 120s
+  - removes expired rows from `CronLock`
+
+The lock hook is backed by Prisma on SQLite (`CronLock` table), so each job run attempts to acquire a DB lock before executing.
+The same lock is renewed periodically during execution (`lockRenewIntervalMs`) and released at the end.
+Playground also enables a default retry policy (`maxAttempts=3`, exponential backoff + jitter).
 
 ## OpenAPI and Docs
 

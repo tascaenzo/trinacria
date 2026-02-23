@@ -12,12 +12,10 @@
     "prisma:studio": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma studio --schema prisma/schema.prisma",
     "prisma:seed": "prisma db seed --schema prisma/schema.prisma"
   },
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
   "dependencies": {
     "@prisma/client": "^6.19.2",
     "@trinacria/cli": "*",
+    "@trinacria/cron": "*",
     "@trinacria/core": "*",
     "@trinacria/http": "*",
     "@trinacria/schema": "*",
