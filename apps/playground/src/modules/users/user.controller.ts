@@ -5,6 +5,7 @@ import {
   NotFoundException,
   response,
 } from "@trinacria/http";
+import type { EventBus } from "@trinacria/events";
 import { AuthGuardFactory } from "../auth/auth-guard.factory";
 import {
   CreateUserDtoSchema,
@@ -18,6 +19,7 @@ export class UserController extends HttpController {
   constructor(
     private readonly users: UserService,
     private readonly authGuardFactory: AuthGuardFactory,
+    private readonly eventBus: EventBus,
   ) {
     super();
   }
@@ -160,6 +162,11 @@ export class UserController extends HttpController {
     }
 
     const created = await this.users.create(payload);
+    await this.eventBus.emit("users.created", {
+      id: created.id,
+      email: created.email,
+      createdAt: created.createdAt,
+    });
 
     return response(created, {
       status: 201,
@@ -181,7 +188,13 @@ export class UserController extends HttpController {
       throw new ConflictException("Email already in use");
     }
 
-    return this.users.update(existing.id, payload)!;
+    const updated = await this.users.update(existing.id, payload);
+    await this.eventBus.emit("users.updated", {
+      id: updated!.id,
+      email: updated!.email,
+      updatedAt: updated!.updatedAt,
+    });
+    return updated!;
   }
 
   async updateUser(ctx: HttpContext) {
@@ -199,7 +212,13 @@ export class UserController extends HttpController {
       throw new ConflictException("Email already in use");
     }
 
-    return this.users.update(existing.id, payload)!;
+    const updated = await this.users.update(existing.id, payload);
+    await this.eventBus.emit("users.updated", {
+      id: updated!.id,
+      email: updated!.email,
+      updatedAt: updated!.updatedAt,
+    });
+    return updated!;
   }
 
   async deleteUser(ctx: HttpContext) {
@@ -208,6 +227,12 @@ export class UserController extends HttpController {
     if (!deleted) {
       throw new NotFoundException("User not found");
     }
+
+    await this.eventBus.emit("users.deleted", {
+      id: deleted.id,
+      email: deleted.email,
+      deletedAt: new Date().toISOString(),
+    });
 
     return response(undefined, { status: 204 });
   }

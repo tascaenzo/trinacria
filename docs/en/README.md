@@ -14,16 +14,19 @@ This section contains the official documentation in English.
 - [0003 - CLI](./0003-cli.md)
 - [0004 - Schema System](./0004-schema.md)
 - [0005 - Cron Plugin](./0005-cron.md)
+- [0006 - Events Plugin](./0006-events-plugin.md)
 
 ## Quick Links (Official EN)
 
 - [HTTP Built-in Middleware Reference + Recipes](./0002-http-plugin.md)
 - [Cron Plugin Guide + Lock Hooks](./0005-cron.md)
+- [Events Plugin Guide (Internal Bus + Redis/RabbitMQ)](./0006-events-plugin.md)
 
 ## Scope
 
 - `@trinacria/core`: modular DI engine, application lifecycle, modules, plugins.
 - `@trinacria/http`: HTTP plugin (routing, middleware, controllers, error handling).
 - `@trinacria/cron`: scheduling plugin (interval/cron jobs, lock hooks, runtime rebuild).
+- `@trinacria/events`: event bus plugin (in-process bus, Redis/RabbitMQ transports, production hooks).
 - `@trinacria/cli`: development/runtime tooling (`dev`, `build`, `start`).
 - `@trinacria/schema`: declarative schema DSL (validation, parsing, OpenAPI, type inference).

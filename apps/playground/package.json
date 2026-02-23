@@ -17,6 +17,7 @@
     "@trinacria/cli": "*",
     "@trinacria/cron": "*",
     "@trinacria/core": "*",
+    "@trinacria/events": "*",
     "@trinacria/http": "*",
     "@trinacria/schema": "*",
     "argon2": "^0.44.0",
