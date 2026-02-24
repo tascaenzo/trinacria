@@ -32,6 +32,25 @@ test("toOpenApi maps array and union metadata", () => {
   assert.equal(typeof openApi.items, "object");
 });
 
+test("toOpenApi maps record and tuple metadata", () => {
+  const recordSchema = s.record(
+    s.string({ pattern: /^[a-z_]+$/ }),
+    s.number({ int: true }),
+  );
+  const tupleSchema = s.tuple([s.string({ ip: "v4" }), s.number()] as const);
+
+  const recordOpenApi = toOpenApi(recordSchema) as Record<string, unknown>;
+  assert.equal(recordOpenApi.type, "object");
+  assert.equal(typeof recordOpenApi.additionalProperties, "object");
+  assert.equal(typeof recordOpenApi.propertyNames, "object");
+
+  const tupleOpenApi = toOpenApi(tupleSchema) as Record<string, unknown>;
+  assert.equal(tupleOpenApi.type, "array");
+  assert.equal(tupleOpenApi.minItems, 2);
+  assert.equal(tupleOpenApi.maxItems, 2);
+  assert.equal(Array.isArray((tupleOpenApi as any).prefixItems), true);
+});
+
 test("default and nullable modifiers project OpenAPI shape", () => {
   const schema = s.default(s.nullable(s.number()), null);
   const openApi = toOpenApi(schema) as Record<string, unknown>;
