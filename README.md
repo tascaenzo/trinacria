@@ -475,4 +475,5 @@ Repository docs can be synced automatically to GitHub Wiki via:
 Notes:
 
 - Wiki must be enabled in repository settings.
-- Sync runs on push to `main` and `develop` when `docs/**` changes (or manually via `workflow_dispatch`).
+- Wiki sync publishes only English docs (`docs/en`) plus shared assets.
+- Sync runs on push to `main` when `docs/**` changes (or manually via `workflow_dispatch`).

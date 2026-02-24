@@ -38,7 +38,7 @@ Purpose:
 What it does:
 - clones the wiki repository (`<owner>/<repo>.wiki.git`).
 - cleans previously generated wiki content.
-- copies `docs/assets`, `docs/en`, `docs/it` into the wiki.
+- copies `docs/assets` and `docs/en` into the wiki.
 - generates `Home.md` and `_Sidebar.md`.
 - rewrites internal markdown links (`./x.md`, `../x.md`) to wiki-compatible format.
 - commits/pushes only when changes exist.

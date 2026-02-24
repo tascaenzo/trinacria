@@ -37,13 +37,12 @@ find . -mindepth 1 -maxdepth 1 \
 echo "[wiki-sync] Copying docs content..."
 cp -R "${GITHUB_WORKSPACE}/docs/assets" ./assets
 cp -R "${GITHUB_WORKSPACE}/docs/en" ./en
-cp -R "${GITHUB_WORKSPACE}/docs/it" ./it
 
 echo "[wiki-sync] Rewriting internal markdown links for wiki navigation..."
 while IFS= read -r -d '' file; do
   # Convert relative markdown links like ./page.md or ../page.md to wiki-style links without .md
   perl -0777 -i -pe 's/\((\.{1,2}\/[^)\s#]+)\.md(#[^)]+)?\)/($1$2)/g' "$file"
-done < <(find ./en ./it -type f -name '*.md' -print0)
+done < <(find ./en -type f -name '*.md' -print0)
 
 cat > Home.md <<'EOF'
 # Trinacria Wiki
@@ -53,7 +52,6 @@ This wiki is automatically synced from the repository `docs/` folder.
 ## Documentation
 
 - [English Index](en/README)
-- [Italian Index](it/README)
 EOF
 
 if [[ -f "_Sidebar.md" ]]; then
@@ -65,7 +63,6 @@ cat > _Sidebar.md <<'EOF'
 
 - [Home](Home)
 - [English](en/README)
-- [Italiano](it/README)
 EOF
 
 if [[ -n "$(git status --porcelain)" ]]; then
