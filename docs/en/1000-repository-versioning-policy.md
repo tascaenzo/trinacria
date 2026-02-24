@@ -7,7 +7,7 @@ This repository uses Changesets for package versioning and publishing.
 - Versioning mode: independent (each package can bump independently)
 - Versioning convention: SemVer (`MAJOR.MINOR.PATCH`)
 - Base branch: `main`
-- Non-published workspace: `playground`
+- Non-published workspaces: `playground`, `api-prisma-postgresql`, `api-mongoose-mongodb`
 
 ## Required workflow for package changes
 

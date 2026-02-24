@@ -438,6 +438,7 @@ Full documentation is available in `docs/` with language-specific sections:
 
 - English: [`docs/en/README.md`](./docs/en/README.md)
 - Italian: [`docs/it/README.md`](./docs/it/README.md)
+- Apps guide: [`apps/README.md`](./apps/README.md)
 
 Recommended starting point:
 
