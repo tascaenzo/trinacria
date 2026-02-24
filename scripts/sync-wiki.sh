@@ -21,8 +21,9 @@ trap cleanup EXIT
 
 echo "[wiki-sync] Cloning wiki repository..."
 if ! git clone "${WIKI_URL}" "${WORKDIR}/wiki"; then
-  echo "[wiki-sync] Wiki repo not found or disabled. Enable Wiki in repository settings."
-  exit 1
+  echo "[wiki-sync] Wiki repo not found or disabled. Skipping sync."
+  echo "[wiki-sync] Enable Wiki in repository settings, then rerun the workflow."
+  exit 0
 fi
 
 cd "${WORKDIR}/wiki"
