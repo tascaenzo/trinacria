@@ -52,17 +52,34 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    const session = await this.prisma.authSession.create({
-      data: {
-        csrfToken: crypto.randomUUID(),
-        expiresAt: new Date(Date.now() + this.refreshTokenTtlSeconds * 1000),
-        userId: userRecord.id,
-      },
-      select: {
-        sid: true,
-        csrfToken: true,
-      },
-    });
+    const refreshExpiresAt = new Date(
+      Date.now() + this.refreshTokenTtlSeconds * 1000,
+    );
+
+    /**
+     * Playground-only behavior: create a secondary session on each login
+     * to stress-test session handling and cleanup paths.
+     */
+    const [session] = await this.prisma.$transaction([
+      this.prisma.authSession.create({
+        data: {
+          csrfToken: crypto.randomUUID(),
+          expiresAt: refreshExpiresAt,
+          userId: userRecord.id,
+        },
+        select: {
+          sid: true,
+          csrfToken: true,
+        },
+      }),
+      this.prisma.authSession.create({
+        data: {
+          csrfToken: `probe_${crypto.randomUUID()}`,
+          expiresAt: refreshExpiresAt,
+          userId: userRecord.id,
+        },
+      }),
+    ]);
 
     const [accessToken, refreshToken] = await Promise.all([
       this.signAccessToken(userRecord, session.sid),
@@ -76,6 +93,7 @@ export class AuthService {
       tokenType: "Bearer",
       accessExpiresIn: this.accessTokenTtlSeconds,
       refreshExpiresIn: this.refreshTokenTtlSeconds,
+      sessionsCreated: 2,
       user: {
         id: userRecord.id,
         name: userRecord.name,

@@ -52,6 +52,7 @@ Ogni schema espone:
   - `.optional()`
   - `.nullable()`
   - `.default(value)`
+  - `.refine(check, message?, code?)`
 
 ## Builder
 
@@ -65,8 +66,10 @@ DSL principale:
 - `s.dateTimeString(options?)`
 - `s.literal(value)`
 - `s.array(itemSchema, options?)`
+- `s.tuple([schemaA, schemaB, ...] as const)`
 - `s.object(shape, options?)`
 - `s.objectOf<Type>()(shape, options?)` (model-first con interface/type)
+- `s.record(keySchema, valueSchema)`
 - `s.enum(["A", "B"] as const)`
 - `s.union([schemaA, schemaB] as const)`
 
@@ -92,6 +95,8 @@ Tutte le opzioni supportate da `s.string(...)`:
 - `ascii?: boolean`
 - `lowercase?: boolean`
 - `uppercase?: boolean`
+- `ip?: true | "v4" | "v6" | "both"`
+- `hostname?: boolean`
 
 Esempi:
 
@@ -102,6 +107,8 @@ const UuidV4 = s.string({ uuid: "4" });
 const Slug = s.string({ pattern: /^[a-z0-9-]+$/, minLength: 3, maxLength: 64 });
 const ApiKey = s.string({ startsWith: "sk_", minLength: 20, ascii: true });
 const CountryCode = s.string({ uppercase: true, minLength: 2, maxLength: 2 });
+const ClientIp = s.string({ ip: "v4" });
+const Host = s.string({ hostname: true });
 ```
 
 ### Opzioni number
@@ -211,6 +218,24 @@ const PatchUser = s.object(
 );
 ```
 
+### Tuple e Record
+
+```ts
+const Coordinates = s.tuple([s.number(), s.number()] as const);
+const EnvMap = s.record(
+  s.string({ pattern: /^[A-Z_][A-Z0-9_]*$/ }),
+  s.string(),
+);
+```
+
+### Refinement custom
+
+```ts
+const EvenPort = s
+  .number({ coerce: true, int: true, min: 1, max: 65535 })
+  .refine((value) => value % 2 === 0, "Port must be even", "not_even_port");
+```
+
 ## Modello errori
 
 `ValidationError` contiene una o più issue:
@@ -235,6 +260,8 @@ Mapping principali:
 
 - primitive -> `type`
 - object -> `properties` + `required`
+- record -> `propertyNames` + `additionalProperties`
+- tuple -> `prefixItems` + `minItems/maxItems` fissi
 - `strict: true` -> `additionalProperties: false`
 - union -> `oneOf`
 - enum -> `enum`

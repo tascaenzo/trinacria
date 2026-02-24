@@ -12,6 +12,7 @@ export interface AuthLoginResult {
   tokenType: "Bearer";
   accessExpiresIn: number;
   refreshExpiresIn: number;
+  sessionsCreated: number;
   user: PublicAuthUser;
 }
 

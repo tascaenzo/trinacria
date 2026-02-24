@@ -1,5 +1,8 @@
 # Playground App (Trinacria)
 
+> ⚠️ **Not for production use**: this app is a framework playground/sandbox used for testing and demonstration.
+> It intentionally includes testing-oriented behaviors and simplified assumptions.
+
 ## Purpose
 
 This app exists to **test, validate, and demonstrate** the Trinacria framework in a realistic but controlled environment.
@@ -56,6 +59,11 @@ This is the recommended convention for cross-cutting infrastructure (config, db,
 ## Auth Flow (High Level)
 
 1. `POST /auth/login` validates credentials and creates a session.
+   - Optional `sessionContext` payload is validated with schema features:
+     - `clientIp` (`ip` validator)
+     - `clientHost` (`hostname` validator)
+     - `device` (`tuple`)
+     - `labels` (`record`)
 2. Returns cookies (`access`, `refresh`, `csrf`) and response payload.
 3. `AuthGuardFactory.requireAuth()` reads token from cookie first, then Bearer header.
 4. `AuthGuardFactory.requireCsrf()` protects mutating endpoints.
@@ -75,6 +83,15 @@ Configured in `src/main.ts`:
 
 The auth module also includes dedicated rate limits for sensitive endpoints.
 
+### Playground auth session stress behavior
+
+For playground testing purposes, each successful login creates:
+
+- 1 primary session used by issued tokens
+- 1 secondary probe session
+
+The login response includes `sessionsCreated: 2` to make this behavior explicit.
+
 ## Quick Local Setup
 
 1. Install root dependencies:
@@ -83,19 +100,25 @@ The auth module also includes dedicated rate limits for sensitive endpoints.
 npm install
 ```
 
-2. Sync SQLite schema:
+2. Create local env from template:
+
+```bash
+cp apps/playground/.env.example apps/playground/.env.development
+```
+
+3. Sync SQLite schema:
 
 ```bash
 npm run prisma:push -w playground -- --skip-generate
 ```
 
-3. Generate Prisma client (if needed):
+4. Generate Prisma client (if needed):
 
 ```bash
 npm run prisma:generate -w playground
 ```
 
-4. Start in dev mode:
+5. Start in dev mode:
 
 ```bash
 npm run dev -w playground
@@ -103,6 +126,7 @@ npm run dev -w playground
 
 ## Main Environment Variables
 
+Suggested template: `.env.example`.
 Local file: `.env.development`.
 
 Relevant fields:

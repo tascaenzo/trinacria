@@ -1,5 +1,6 @@
 import { createSchema } from "../core";
 import { throwValidation } from "../errors";
+import { isIP } from "node:net";
 
 export interface NumberOptions {
   /**
@@ -105,6 +106,15 @@ export interface StringOptions {
    * Requires the final value to be uppercase.
    */
   uppercase?: boolean;
+  /**
+   * Enables IP validation.
+   * Use "v4", "v6", or "both" (`true` maps to "both").
+   */
+  ip?: "v4" | "v6" | "both" | true;
+  /**
+   * Enables hostname validation.
+   */
+  hostname?: boolean;
 }
 
 export interface BooleanOptions {
@@ -211,6 +221,25 @@ export function string(options: StringOptions = {}) {
         }
       }
 
+      if (options.ip) {
+        const version = options.ip === true ? "both" : options.ip;
+        const detected = isIP(value);
+        const isValid =
+          version === "both"
+            ? detected !== 0
+            : version === "v4"
+              ? detected === 4
+              : detected === 6;
+
+        if (!isValid) {
+          throwValidation(path, "Invalid IP address", "invalid_ip");
+        }
+      }
+
+      if (options.hostname && !isValidHostname(value)) {
+        throwValidation(path, "Invalid hostname", "invalid_hostname");
+      }
+
       if (
         options.startsWith !== undefined &&
         !value.startsWith(options.startsWith)
@@ -302,6 +331,17 @@ export function string(options: StringOptions = {}) {
       }
       if (options.uuid) {
         openApi.format = "uuid";
+      }
+      if (options.ip) {
+        const version = options.ip === true ? "both" : options.ip;
+        if (version === "v4") {
+          openApi.format = "ipv4";
+        } else if (version === "v6") {
+          openApi.format = "ipv6";
+        }
+      }
+      if (options.hostname) {
+        openApi.format = "hostname";
       }
       if (options.pattern) {
         openApi.pattern = options.pattern.source;
@@ -502,4 +542,27 @@ function isMultipleOf(value: number, divisor: number): boolean {
 
   const quotient = value / divisor;
   return Math.abs(quotient - Math.round(quotient)) < Number.EPSILON;
+}
+
+function isValidHostname(value: string): boolean {
+  if (value.length === 0 || value.length > 253) {
+    return false;
+  }
+
+  const labels = value.split(".");
+  if (labels.length === 0) {
+    return false;
+  }
+
+  return labels.every((label) => {
+    if (label.length === 0 || label.length > 63) {
+      return false;
+    }
+
+    if (label.startsWith("-") || label.endsWith("-")) {
+      return false;
+    }
+
+    return /^[A-Za-z0-9-]+$/.test(label);
+  });
 }

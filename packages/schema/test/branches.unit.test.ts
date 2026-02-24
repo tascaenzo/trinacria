@@ -60,6 +60,8 @@ test("string constraints expose expected validation codes", () => {
     s.string({ uppercase: true }).safeParse("AbC").success,
     false,
   );
+  assert.equal(s.string({ ip: "v4" }).safeParse("999.1.1.1").success, false);
+  assert.equal(s.string({ hostname: true }).safeParse("bad host").success, false);
 });
 
 test("number branches: coercion edge cases and sign constraints", () => {

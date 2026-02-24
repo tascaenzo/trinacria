@@ -48,6 +48,10 @@ test("union guardrails reject empty schemas and invalid maxIssues", () => {
   );
 });
 
+test("tuple guardrails reject empty schema list", () => {
+  assert.throws(() => s.tuple([] as const), /at least one schema/);
+});
+
 test("date guardrails reject invalid min/max configurations", () => {
   assert.throws(
     () => s.date({ min: new Date("invalid") }),

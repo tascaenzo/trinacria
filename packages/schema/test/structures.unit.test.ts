@@ -74,6 +74,27 @@ test("array supports coercion, min/max and uniqueness selector", () => {
   );
 });
 
+test("record validates keys and values", () => {
+  const schema = s.record(
+    s.string({ pattern: /^[a-z_]+$/ }),
+    s.number({ int: true, min: 0 }),
+  );
+
+  const parsed = schema.parse({ retries: 3, timeout: 10 });
+  assert.equal(parsed.retries, 3);
+  assert.throws(() => schema.parse({ "bad-key": 1 }), ValidationError);
+  assert.throws(() => schema.parse({ retries: -1 }), ValidationError);
+});
+
+test("tuple validates fixed length and item types", () => {
+  const schema = s.tuple([s.string(), s.number({ int: true })] as const);
+  const parsed = schema.parse(["ok", 1]);
+  assert.equal(parsed[0], "ok");
+  assert.equal(parsed[1], 1);
+  assert.throws(() => schema.parse(["ok"]), ValidationError);
+  assert.throws(() => schema.parse(["ok", "1"]), ValidationError);
+});
+
 test("union accepts first matching branch", () => {
   const schema = s.union(
     [
@@ -84,6 +105,20 @@ test("union accepts first matching branch", () => {
 
   const parsed = schema.parse({ a: 10 }) as { a: number };
   assert.equal(parsed.a, 10);
+});
+
+test("refine applies custom validation after parse", () => {
+  const schema = s
+    .number({ int: true })
+    .refine((value) => value % 2 === 0, "Number must be even", "not_even");
+
+  assert.equal(schema.parse(4), 4);
+
+  const result = schema.safeParse(3);
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.equal(result.error.issues[0].code, "not_even");
+  }
 });
 
 test("union truncates nested issues when they exceed maxIssues", () => {

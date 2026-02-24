@@ -149,6 +149,7 @@ export class AuthController extends HttpController {
         csrfToken: authResult.csrfToken,
         tokenType: authResult.tokenType,
         expiresIn: authResult.accessExpiresIn,
+        sessionsCreated: authResult.sessionsCreated,
         user: authResult.user,
       },
       {
@@ -195,6 +196,7 @@ export class AuthController extends HttpController {
         csrfToken: refreshed.csrfToken,
         tokenType: refreshed.tokenType,
         expiresIn: refreshed.accessExpiresIn,
+        sessionsCreated: 1,
         user: refreshed.user,
       },
       {

@@ -34,6 +34,11 @@ export interface Schema<T> {
   optional(): Schema<T | undefined>;
   nullable(): Schema<T | null>;
   default(value: T): Schema<T>;
+  refine(
+    check: (value: T) => boolean,
+    message?: string,
+    code?: string,
+  ): Schema<T>;
 }
 
 /**
@@ -135,6 +140,25 @@ export function createSchema<T>(
           default: value,
         }),
         { acceptsUndefined: true },
+      );
+    },
+    refine(
+      check: (value: T) => boolean,
+      message = "Refinement failed",
+      code = "invalid_refinement",
+    ): Schema<T> {
+      return createSchema<T>(
+        "refine",
+        (input, path) => {
+          const parsed = parseAtPath(input, path);
+          if (!check(parsed)) {
+            throw new ValidationError([validationIssue(path, message, code)]);
+          }
+
+          return parsed;
+        },
+        () => toOpenApi(),
+        { acceptsUndefined: options.acceptsUndefined ?? false },
       );
     },
   };

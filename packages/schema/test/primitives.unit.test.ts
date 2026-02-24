@@ -29,6 +29,18 @@ test("string rejects non-ASCII when ascii option is enabled", () => {
   assert.throws(() => schema.parse("caffè"), ValidationError);
 });
 
+test("string validates ip and hostname formats", () => {
+  assert.equal(s.string({ ip: "v4" }).parse("127.0.0.1"), "127.0.0.1");
+  assert.equal(s.string({ ip: "v6" }).parse("2001:db8::1"), "2001:db8::1");
+  assert.throws(() => s.string({ ip: "v4" }).parse("2001:db8::1"), ValidationError);
+
+  assert.equal(
+    s.string({ hostname: true }).parse("api.trinacria.dev"),
+    "api.trinacria.dev",
+  );
+  assert.throws(() => s.string({ hostname: true }).parse("-bad-host"), ValidationError);
+});
+
 test("number supports coercion and multipleOf checks", () => {
   const schema = s.number({ coerce: true, int: true, multipleOf: 3, min: 3 });
   assert.equal(schema.parse("12"), 12);

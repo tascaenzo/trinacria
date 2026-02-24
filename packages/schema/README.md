@@ -8,6 +8,7 @@
 - normalize/coerce values when configured
 - support coercion for number/date/date-string/date-time and boolean-like env values
 - provide `safeParse` non-throwing API
+- support custom post-parse checks via `.refine(...)`
 - emit OpenAPI-compatible schema objects
 
 ## Directory structure
@@ -34,10 +35,17 @@ packages/schema/
 ### `src/builders/`
 
 - primitives: `string`, `number`, `boolean`, `literal`
-- collections: `object`, `array`, `union`
+- collections: `object`, `array`, `record`, `tuple`, `union`
 - date builders: `date`, `dateString`, `dateTimeString`
 - modifiers: `optional`, `nullable`, `defaultValue`
 - enum builder
+
+Recent additions:
+
+- string validators: `ip` (`v4`/`v6`/`both`) and `hostname`
+- `record(keySchema, valueSchema)` for validated key/value dictionaries
+- `tuple([...])` for fixed-length arrays with per-index schemas
+- `.refine(check, message?, code?)` on all schemas
 
 Security hardening included in builders:
 
