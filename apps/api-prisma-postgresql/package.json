@@ -12,11 +12,13 @@
     "prisma:studio": "prisma studio --schema prisma/schema.prisma"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@trinacria/cli": "*",
     "@trinacria/core": "*",
     "@trinacria/http": "*",
-    "@trinacria/schema": "*"
+    "@trinacria/schema": "*",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "prisma": "^7.4.1"

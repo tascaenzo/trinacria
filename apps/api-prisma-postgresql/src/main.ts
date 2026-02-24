@@ -32,7 +32,9 @@ async function bootstrap() {
     .build();
 
   app.registerGlobalProvider(valueProvider(CONFIG_SERVICE, configService));
-  app.registerGlobalProvider(classProvider(PRISMA_SERVICE, PrismaService));
+  app.registerGlobalProvider(
+    classProvider(PRISMA_SERVICE, PrismaService, [CONFIG_SERVICE]),
+  );
   registerGlobalControllers(app, configService);
 
   app.use(
