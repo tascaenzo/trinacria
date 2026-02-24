@@ -1,7 +1,7 @@
 # Documentazione Trinacria (Italiano)
 
 <p align="center">
-  <img src="../assets/logo.png" alt="Logo Trinacria" width="220" />
+  <img src="../assets/logo_transparent.png" alt="Logo Trinacria" width="220" />
 </p>
 
 Questa sezione raccoglie la documentazione ufficiale in italiano.

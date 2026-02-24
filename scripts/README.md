@@ -61,6 +61,39 @@ scripts/sync-wiki.sh
 Related workflow:
 - `.github/workflows/wiki-sync.yml`
 
+---
+
+### `docker-smoke.sh`
+
+Purpose:
+- run a Docker smoke test for an app and fail if it does not boot cleanly.
+
+What it does:
+- creates a temporary env file from `apps/<app>/.env.example`.
+- starts services with `docker compose up --build -d`.
+- polls `http://127.0.0.1:<DOCKER_API_PORT>/health` until success.
+- fails early if any container exits before health check passes.
+- prints compose logs on failure.
+- always runs `docker compose down -v --remove-orphans` in cleanup.
+
+Manual execution:
+
+```bash
+bash scripts/docker-smoke.sh apps/api-prisma-postgresql
+bash scripts/docker-smoke.sh apps/api-mongoose-mongodb
+```
+
+Related npm scripts:
+
+```bash
+npm run docker:smoke:api-prisma-postgresql
+npm run docker:smoke:api-mongoose-mongodb
+npm run docker:smoke:apps
+```
+
+Related workflow:
+- `.github/workflows/docker-smoke.yml`
+
 ## Operational notes
 
 - To enable local pre-commit hook:

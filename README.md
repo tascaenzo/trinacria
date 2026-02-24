@@ -1,7 +1,7 @@
 # 🏛 Trinacria Core
 
 <p align="center">
-  <img src="./docs/assets/logo.png" alt="Logo Trinacria" width="220" />
+  <img src="./docs/assets/logo_transparent.png" alt="Logo Trinacria" width="220" />
 </p>
 
 > A modular, async-first Dependency Injection engine designed for extensibility.
@@ -438,6 +438,7 @@ Full documentation is available in `docs/` with language-specific sections:
 
 - English: [`docs/en/README.md`](./docs/en/README.md)
 - Italian: [`docs/it/README.md`](./docs/it/README.md)
+- Apps guide: [`apps/README.md`](./apps/README.md)
 
 Recommended starting point:
 

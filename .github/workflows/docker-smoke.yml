@@ -1,0 +1,23 @@
+name: Docker Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'apps/api-prisma-postgresql/**'
+      - 'apps/api-mongoose-mongodb/**'
+      - 'scripts/docker-smoke.sh'
+      - '.github/workflows/docker-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Smoke test api-prisma-postgresql
+        run: bash scripts/docker-smoke.sh apps/api-prisma-postgresql
+
+      - name: Smoke test api-mongoose-mongodb
+        run: bash scripts/docker-smoke.sh apps/api-mongoose-mongodb
