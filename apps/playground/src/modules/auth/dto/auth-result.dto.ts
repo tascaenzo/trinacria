@@ -16,6 +16,7 @@ export const AuthResultDtoSchema = s.object(
     csrfToken: s.string(),
     tokenType: s.string(),
     expiresIn: s.number(),
+    sessionsCreated: s.number({ int: true, min: 1 }),
     user: AuthUserDtoSchema,
   },
   { strict: true },
