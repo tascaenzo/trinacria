@@ -1,28 +1,28 @@
 # Scripts Directory
 
-Questa directory contiene script operativi usati dal repository per controlli locali e automazioni CI.
+This directory contains operational scripts used by the repository for local checks and CI automations.
 
-## Elenco script
+## Script list
 
 ### `pre-commit.mjs`
 
-Scopo:
-- eseguire controlli automatici prima del commit.
+Purpose:
+- run automated checks before commit.
 
-Cosa fa:
-- legge i file staged (`git diff --cached`).
-- individua i workspace toccati (solo `packages/*`).
-- esegue `build` sui workspace toccati che espongono lo script `build`.
-- esegue `test` sui workspace toccati che espongono lo script `test`.
-- se sono toccati file globali (`package.json`, `package-lock.json`, `tsconfig.base.json`, `scripts/*`), estende i controlli a tutti i package.
+What it does:
+- reads staged files (`git diff --cached`).
+- detects touched workspaces (only `packages/*`).
+- runs `build` on touched workspaces that define a `build` script.
+- runs `test` on touched workspaces that define a `test` script.
+- if global files are touched (`package.json`, `package-lock.json`, `tsconfig.base.json`, `scripts/*`), it expands checks to all packages.
 
-Esecuzione manuale:
+Manual execution:
 
 ```bash
 node scripts/pre-commit.mjs
 ```
 
-Script npm correlato:
+Related npm script:
 
 ```bash
 npm run precommit:check
@@ -32,41 +32,41 @@ npm run precommit:check
 
 ### `sync-wiki.sh`
 
-Scopo:
-- sincronizzare la documentazione del repository (`docs/`) nella GitHub Wiki.
+Purpose:
+- sync repository documentation (`docs/`) into GitHub Wiki.
 
-Cosa fa:
-- clona il repo wiki (`<owner>/<repo>.wiki.git`).
-- pulisce il contenuto precedente generato.
-- copia `docs/assets`, `docs/en`, `docs/it` nella wiki.
-- genera `Home.md` e `_Sidebar.md`.
-- riscrive i link markdown interni (`./x.md`, `../x.md`) in formato compatibile wiki.
-- commit/push solo se ci sono modifiche.
+What it does:
+- clones the wiki repository (`<owner>/<repo>.wiki.git`).
+- cleans previously generated wiki content.
+- copies `docs/assets`, `docs/en`, `docs/it` into the wiki.
+- generates `Home.md` and `_Sidebar.md`.
+- rewrites internal markdown links (`./x.md`, `../x.md`) to wiki-compatible format.
+- commits/pushes only when changes exist.
 
-Comportamento quando la wiki non è disponibile:
-- stampa messaggio di skip ed esce con codice `0` (non fa fallire la pipeline).
+Behavior when wiki is unavailable:
+- logs a skip message and exits with code `0` (does not fail the pipeline).
 
-Variabili richieste:
-- `GITHUB_REPOSITORY` (es. `tascaenzo/trinacria`)
+Required environment variables:
+- `GITHUB_REPOSITORY` (example: `tascaenzo/trinacria`)
 - `GITHUB_TOKEN`
-- `GITHUB_WORKSPACE` (fornita automaticamente in GitHub Actions)
+- `GITHUB_WORKSPACE` (automatically provided in GitHub Actions)
 
-Esecuzione manuale (in ambiente CI):
+Manual execution (CI-like environment):
 
 ```bash
 chmod +x scripts/sync-wiki.sh
 scripts/sync-wiki.sh
 ```
 
-Workflow correlato:
+Related workflow:
 - `.github/workflows/wiki-sync.yml`
 
-## Note operative
+## Operational notes
 
-- Per usare il pre-commit hook locale:
+- To enable local pre-commit hook:
 
 ```bash
 npm run hooks:install
 ```
 
-- Per testare manualmente la sync wiki senza push, usa `workflow_dispatch` dal pannello Actions.
+- To test wiki sync manually without pushing, run `workflow_dispatch` from the Actions tab.
