@@ -1,0 +1,24 @@
+{
+  "name": "api-prisma-postgresql",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node ../../packages/cli/dist/index.js start",
+    "build": "node ../../packages/cli/dist/index.js build",
+    "dev": "node ../../packages/cli/dist/index.js dev",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate:dev": "prisma migrate dev --schema prisma/schema.prisma",
+    "prisma:push": "prisma db push --schema prisma/schema.prisma",
+    "prisma:studio": "prisma studio --schema prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.4.1",
+    "@trinacria/cli": "*",
+    "@trinacria/core": "*",
+    "@trinacria/http": "*",
+    "@trinacria/schema": "*"
+  },
+  "devDependencies": {
+    "prisma": "^7.4.1"
+  }
+}
