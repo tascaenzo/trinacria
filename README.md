@@ -464,3 +464,15 @@ Detailed policy:
 - EN: [`docs/en/1001-repository-release-scripts-workflows.md`](./docs/en/1001-repository-release-scripts-workflows.md)
 - IT: [`docs/it/1000-repository-policy-versioning.md`](./docs/it/1000-repository-policy-versioning.md)
 - IT: [`docs/it/1001-repository-release-scripts-workflow.md`](./docs/it/1001-repository-release-scripts-workflow.md)
+
+## 📚 Wiki Sync
+
+Repository docs can be synced automatically to GitHub Wiki via:
+
+- [`.github/workflows/wiki-sync.yml`](./.github/workflows/wiki-sync.yml)
+- [`scripts/sync-wiki.sh`](./scripts/sync-wiki.sh)
+
+Notes:
+
+- Wiki must be enabled in repository settings.
+- Sync runs on push to `main` and `develop` when `docs/**` changes (or manually via `workflow_dispatch`).
