@@ -30,6 +30,8 @@
     "dev:api-events-redis": "npm run dev -w api-events-redis",
     "dev:api-events-rabbitmq": "npm run dev -w api-events-rabbitmq",
     "test:packages": "npm run test -w @trinacria/core && npm run test -w @trinacria/schema && npm run test -w @trinacria/http && npm run test -w @trinacria/cron && npm run test -w @trinacria/events && npm run test -w @trinacria/cli",
+    "coverage:events": "npm run test:coverage -w @trinacria/events",
+    "coverage:cli": "npm run test:coverage -w @trinacria/cli",
     "coverage:core": "npm run test:coverage -w @trinacria/core",
     "coverage:schema": "npm run test:coverage -w @trinacria/schema",
     "coverage:all": "npm run test:coverage --workspaces --if-present",
