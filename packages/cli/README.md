@@ -1,10 +1,10 @@
 # @trinacria/cli - Implementation Guide
 
-`@trinacria/cli` provides the `trinacria` command for development and runtime operations.
+`@trinacria/cli` provides the `trinacria` command for development, runtime operations, and app scaffolding.
 
 ## What this package is responsible for
 
-- command dispatch (`dev`, `build`, `start`)
+- command dispatch (`new`, `dev`, `build`, `start`)
 - project config loading (`trinacria.config.*`)
 - TypeScript build execution
 - development autorestart workflow
@@ -46,6 +46,25 @@ packages/cli/
 - file watching with `chokidar`
 - debounced restarts on source changes
 - crash restart policy + graceful signal handling
+
+### `src/commands/new.ts`
+
+- scaffolds a new app from templates in `apps/` (excluding playground)
+- supports templates:
+  - `app-starter` (alias: `minimal`)
+  - `cron-example`
+  - `api-prisma-postgresql`
+  - `api-mongoose-mongodb`
+  - `api-events-redis`
+  - `api-events-rabbitmq`
+- rewrites generated `package.json` scripts to:
+  - `trinacria dev`
+  - `trinacria build`
+  - `trinacria start`
+- converts workspace-local `@trinacria/*` versions (`*`) to `latest`
+- optional post steps:
+  - dependency install (`--no-install` to skip)
+  - git init (`--no-git` to skip)
 
 ### `src/commands/build.ts`
 

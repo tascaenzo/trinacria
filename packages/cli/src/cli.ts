@@ -1,6 +1,7 @@
 import { dev } from "./commands/dev";
 import { build } from "./commands/build";
 import { start } from "./commands/start";
+import { createNewApp } from "./commands/new";
 import { loadConfig } from "./config/load-config";
 import { ConsoleLogger } from "@trinacria/core";
 
@@ -15,6 +16,7 @@ Usage:
   trinacria dev
   trinacria build
   trinacria start
+  trinacria new <project-name> [--template <name>] [--no-install] [--no-git] [--force]
 
 Options:
   --config <path>   Specify custom config file
@@ -27,6 +29,7 @@ interface CliDeps {
   dev: typeof dev;
   build: typeof build;
   start: typeof start;
+  createNewApp: typeof createNewApp;
   printHelp: () => void;
   exit: (code: number) => void;
   logError: (message: string, error?: unknown) => void;
@@ -37,6 +40,7 @@ const defaultDeps: CliDeps = {
   dev,
   build,
   start,
+  createNewApp,
   printHelp,
   exit: (code) => process.exit(code),
   logError: (message, error) =>
@@ -53,20 +57,25 @@ export async function runCli(args: string[], deps: CliDeps = defaultDeps) {
   }
 
   try {
-    const config = await deps.loadConfig(args);
-
     switch (command) {
+      case "new":
+        await deps.createNewApp(args.slice(1));
+        break;
+
       case "dev":
-        await deps.dev(config);
-        break;
-
       case "build":
-        await deps.build(config);
-        break;
+      case "start": {
+        const config = await deps.loadConfig(args);
 
-      case "start":
-        await deps.start(config);
+        if (command === "dev") {
+          await deps.dev(config);
+        } else if (command === "build") {
+          await deps.build(config);
+        } else {
+          await deps.start(config);
+        }
         break;
+      }
 
       default:
         deps.logError(`Unknown command: ${command}`);

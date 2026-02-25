@@ -20,6 +20,7 @@ function createDeps() {
     dev: 0,
     build: 0,
     start: 0,
+    createNewApp: 0,
     printHelp: 0,
     exitCodes: [] as number[],
     logErrors: [] as string[],
@@ -40,6 +41,9 @@ function createDeps() {
       },
       start: async () => {
         calls.start += 1;
+      },
+      createNewApp: async () => {
+        calls.createNewApp += 1;
       },
       printHelp: () => {
         calls.printHelp += 1;
@@ -69,6 +73,7 @@ test("runCli dispatches dev command", async () => {
   assert.equal(calls.dev, 1);
   assert.equal(calls.build, 0);
   assert.equal(calls.start, 0);
+  assert.equal(calls.createNewApp, 0);
 });
 
 test("runCli dispatches build command", async () => {
@@ -83,6 +88,13 @@ test("runCli dispatches start command", async () => {
   await runCli(["start"], deps);
   assert.equal(calls.loadConfig, 1);
   assert.equal(calls.start, 1);
+});
+
+test("runCli dispatches new command without loading config", async () => {
+  const { deps, calls } = createDeps();
+  await runCli(["new", "my-app"], deps);
+  assert.equal(calls.loadConfig, 0);
+  assert.equal(calls.createNewApp, 1);
 });
 
 test("runCli handles unknown command with help and exit 1", async () => {
