@@ -1,0 +1,30 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "${DOCKER_RABBITMQ_PORT}:5672"
+      - "${DOCKER_RABBITMQ_MANAGEMENT_PORT}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api-events-rabbitmq/Dockerfile
+    environment:
+      ENV: development
+      HOST: 0.0.0.0
+      PORT: 4004
+      OPENAPI_ENABLED: true
+      RABBITMQ_URL: ${DOCKER_RABBITMQ_URL}
+      RABBITMQ_EXCHANGE: ${DOCKER_RABBITMQ_EXCHANGE}
+      RABBITMQ_QUEUE_NAME: ${DOCKER_RABBITMQ_QUEUE_NAME}
+      RABBITMQ_ROUTING_PATTERN: ${DOCKER_RABBITMQ_ROUTING_PATTERN}
+    ports:
+      - "${DOCKER_API_PORT}:4004"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
