@@ -67,6 +67,30 @@ Purpose:
 Read more:
 - [`apps/api-mongoose-mongodb/README.md`](./api-mongoose-mongodb/README.md)
 
+### `api-events-redis`
+
+Path: `apps/api-events-redis`
+
+Purpose:
+- minimal API-only example for Redis Pub/Sub events integration
+- includes publish/list event endpoints, OpenAPI JSON and Swagger UI
+- includes Docker setup with Redis
+
+Read more:
+- [`apps/api-events-redis/README.md`](./api-events-redis/README.md)
+
+### `api-events-rabbitmq`
+
+Path: `apps/api-events-rabbitmq`
+
+Purpose:
+- minimal API-only example for RabbitMQ events integration
+- includes publish/list event endpoints, OpenAPI JSON and Swagger UI
+- includes Docker setup with RabbitMQ
+
+Read more:
+- [`apps/api-events-rabbitmq/README.md`](./api-events-rabbitmq/README.md)
+
 ## Conventions
 
 - Applications in `apps/` are not published npm packages.

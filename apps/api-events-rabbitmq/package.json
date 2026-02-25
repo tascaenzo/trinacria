@@ -1,0 +1,21 @@
+{
+  "name": "api-events-rabbitmq",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node ../../packages/cli/dist/index.js start",
+    "build": "node ../../packages/cli/dist/index.js build",
+    "dev": "node ../../packages/cli/dist/index.js dev"
+  },
+  "dependencies": {
+    "@trinacria/cli": "*",
+    "@trinacria/core": "*",
+    "@trinacria/events": "*",
+    "@trinacria/http": "*",
+    "@trinacria/schema": "*",
+    "amqplib": "^0.10.9"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.8"
+  }
+}
