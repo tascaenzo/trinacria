@@ -19,6 +19,30 @@ Purpose:
 Read more:
 - [`apps/playground/README.md`](./playground/README.md)
 
+### `cron-example`
+
+Path: `apps/cron-example`
+
+Purpose:
+- minimal app focused on cron scheduling only
+- demonstrates interval jobs, cron expression jobs, and overlap guard
+- useful as a starting template for background workers
+
+Read more:
+- [`apps/cron-example/README.md`](./cron-example/README.md)
+
+### `app-starter`
+
+Path: `apps/app-starter`
+
+Purpose:
+- minimal app with only `TrinacriaApp` lifecycle
+- no plugins, no modules, no external services
+- logs `Hello World` on startup
+
+Read more:
+- [`apps/app-starter/README.md`](./app-starter/README.md)
+
 ### `api-prisma-postgresql`
 
 Path: `apps/api-prisma-postgresql`

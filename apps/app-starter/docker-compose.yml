@@ -1,0 +1,8 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: apps/app-starter/Dockerfile
+    environment:
+      ENV: production
+    restart: unless-stopped
