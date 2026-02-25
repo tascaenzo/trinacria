@@ -1,6 +1,8 @@
 {
   "name": "trinacria",
   "private": true,
+  "author": "Enzo Tasca",
+  "license": "MIT",
   "scripts": {
     "clean": "rm -rf packages/**/dist apps/**/dist",
     "build:core": "npm run build -w @trinacria/core",

@@ -277,5 +277,5 @@ Repository documentation:
 
 ## License
 
-No `LICENSE` file is currently present in this repository.
-Open-source usage terms are not defined until a license is added.
+This project is licensed under the MIT License.
+See the [LICENSE](./LICENSE) file for details.
