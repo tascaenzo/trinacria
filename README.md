@@ -1,480 +1,281 @@
-# 🏛 Trinacria Core
+# Trinacria
 
-<p align="center">
-  <img src="./docs/assets/logo_transparent.png" alt="Logo Trinacria" width="220" />
-</p>
+A modular, type-safe Dependency Injection engine for TypeScript applications and infrastructure runtimes.
 
-> A modular, async-first Dependency Injection engine designed for extensibility.
+## Why Trinacria?
+Trinacria is an engine, not a framework.
 
-Trinacria Core is not an HTTP framework.
-It is not a scheduler.
-It is not a database layer.
+It provides the architectural core for building systems with explicit dependency graphs, strict module boundaries, and plugin-based extensions. It does not prescribe transport layers, routing style, persistence strategy, or application conventions.
 
-It is a foundation.
+If you want full control over architecture without decorators, reflection, or hidden container behavior, Trinacria is designed for that use case.
 
-Trinacria provides a strongly typed, modular, plugin-driven engine that allows you to build frameworks and runtime systems without coupling infrastructure to domain logic.
+## Philosophy
+Trinacria is built around explicitness and deterministic behavior:
 
----
+- Dependencies are declared through typed tokens.
+- Providers are registered with explicit construction rules.
+- Modules define clear visibility (`imports`, `providers`, `exports`).
+- Plugins extend runtime behavior through lifecycle hooks.
+- No decorators, no metadata reflection, no implicit auto-wiring.
 
-# ✅ Quality Gates
+The core stays small and focused so higher-level capabilities (HTTP, events, cron, CLI) can be composed as plugins or separate packages.
 
-## Run tests
+## Installation
 
 ```bash
-npm run test -w @trinacria/core
-npm run test -w @trinacria/schema
-npm run test -w @trinacria/http
-npm run test -w @trinacria/cli
+npm install @trinacria/core
 ```
 
-## Run coverage
+## Quick Start (minimal example)
+
+```ts
+import {
+  TrinacriaApp,
+  createToken,
+  defineModule,
+  classProvider,
+  valueProvider,
+} from "@trinacria/core";
+
+type Clock = () => Date;
+
+const CLOCK_TOKEN = createToken<Clock>("CLOCK");
+const GREETING_TOKEN = createToken<string>("GREETING");
+const GREETER_TOKEN = createToken<Greeter>("GREETER");
+
+class Greeter {
+  constructor(
+    private readonly clock: Clock,
+    private readonly greeting: string,
+  ) {}
+
+  sayHello(name: string): string {
+    return `${this.greeting}, ${name}. ${this.clock().toISOString()}`;
+  }
+}
+
+const AppModule = defineModule({
+  name: "AppModule",
+  providers: [
+    valueProvider(CLOCK_TOKEN, () => new Date()),
+    valueProvider(GREETING_TOKEN, "Hello"),
+    classProvider(GREETER_TOKEN, Greeter, [CLOCK_TOKEN, GREETING_TOKEN]),
+  ],
+  exports: [GREETER_TOKEN],
+});
+
+async function bootstrap() {
+  const app = new TrinacriaApp();
+
+  await app.registerModule(AppModule);
+  await app.start();
+
+  const greeter = await app.resolve(GREETER_TOKEN);
+  console.log(greeter.sayHello("Trinacria"));
+
+  await app.shutdown();
+}
+
+void bootstrap();
+```
+
+## Core Concepts
+
+### Token
+A `Token<T>` is a strongly typed dependency identifier created with `createToken<T>()`.
+Tokens replace string keys and keep dependency contracts type-safe at compile time.
+
+### Providers (class, value, factory)
+Trinacria supports three provider types:
+
+- `classProvider(token, ClassCtor, deps?)`
+- `valueProvider(token, value)`
+- `factoryProvider(token, factory, deps?)`
+
+All dependencies are explicit through `deps`. There is no constructor metadata reflection.
+
+### Lifecycle
+Lifecycle has clear phases:
+
+1. Configuration (`use`, `registerModule`, `registerGlobalProvider`)
+2. Bootstrap (`start`)
+3. Runtime (`resolve`, runtime module operations)
+4. Shutdown (`shutdown`)
+
+Providers may implement:
+
+- `onInit()`
+- `onDestroy()`
+
+Plugins may implement:
+
+- `onRegister(app)`
+- `onInit(app)`
+- `onModuleRegistered(module, app)`
+- `onModuleUnregistered(module, app)`
+- `onDestroy(app)`
+
+### Plugin system
+Plugins are plain objects declared with `definePlugin(...)`.
+They extend behavior without modifying core internals.
+
+`ProviderKind` (`createProviderKind<T>()`) allows plugins to discover compatible providers in a type-safe way.
+
+## Modular Architecture Example
+
+```ts
+import {
+  createToken,
+  defineModule,
+  classProvider,
+  factoryProvider,
+} from "@trinacria/core";
+
+interface UserRepository {
+  findById(id: string): Promise<{ id: string; name: string } | null>;
+}
+
+class PgUserRepository implements UserRepository {
+  async findById(id: string) {
+    return { id, name: "Ada" };
+  }
+}
+
+class UserService {
+  constructor(private readonly repo: UserRepository) {}
+  getUser(id: string) {
+    return this.repo.findById(id);
+  }
+}
+
+const USER_REPO_TOKEN = createToken<UserRepository>("USER_REPO");
+const USER_SERVICE_TOKEN = createToken<UserService>("USER_SERVICE");
+
+const InfraModule = defineModule({
+  name: "InfraModule",
+  providers: [classProvider(USER_REPO_TOKEN, PgUserRepository)],
+  exports: [USER_REPO_TOKEN],
+});
+
+const UserModule = defineModule({
+  name: "UserModule",
+  imports: [InfraModule],
+  providers: [
+    factoryProvider(
+      USER_SERVICE_TOKEN,
+      (repo) => new UserService(repo),
+      [USER_REPO_TOKEN],
+    ),
+  ],
+  exports: [USER_SERVICE_TOKEN],
+});
+```
+
+This keeps infrastructure and domain services separated while preserving explicit contracts.
+
+## Testing
+Trinacria improves testing by making dependencies explicit and replaceable via tokens.
+
+```ts
+import {
+  TrinacriaApp,
+  defineModule,
+  valueProvider,
+  createToken,
+} from "@trinacria/core";
+
+interface Mailer {
+  send(to: string): Promise<void>;
+}
+
+const MAILER_TOKEN = createToken<Mailer>("MAILER");
+const SENT_TOKEN = createToken<string[]>("SENT");
+
+const sent: string[] = [];
+const fakeMailer: Mailer = {
+  async send(to: string) {
+    sent.push(to);
+  },
+};
+
+const TestModule = defineModule({
+  name: "TestModule",
+  providers: [
+    valueProvider(MAILER_TOKEN, fakeMailer),
+    valueProvider(SENT_TOKEN, sent),
+  ],
+  exports: [MAILER_TOKEN, SENT_TOKEN],
+});
+
+async function runTest() {
+  const app = new TrinacriaApp();
+  await app.registerModule(TestModule);
+  await app.start();
+
+  const mailer = await app.resolve(MAILER_TOKEN);
+  await mailer.send("team@example.com");
+
+  const calls = await app.resolve(SENT_TOKEN);
+  console.assert(calls.length === 1);
+
+  await app.shutdown();
+}
+```
+
+No decorator setup, no reflection mocks, no hidden container overrides.
+
+## Comparison Table
+
+| Topic | Trinacria | Typical decorator-based DI |
+|---|---|---|
+| Dependency declaration | Explicit tokens and provider deps | Implicit constructor metadata and decorators |
+| Runtime reflection | Not required | Usually required |
+| Module boundaries | Explicit `imports` / `exports` | Often mixed with framework module conventions |
+| Extensibility model | Plugin lifecycle + provider kinds | Framework extension points, often coupled |
+| Container behavior | Deterministic and visible in code | May rely on implicit scanning/registration |
+| Architectural coupling | Engine-first, transport-agnostic | Frequently tied to framework runtime |
+| Testing style | Token-level provider replacement | Often needs framework testing harnesses |
+
+## Use Cases
+
+- Building custom backend platforms on TypeScript
+- Creating internal frameworks with strict module contracts
+- Writing reusable infrastructure libraries with DI
+- Implementing plugin-based runtimes (HTTP, events, cron, CLI)
+- Teams that prefer explicit architecture over convention-heavy abstractions
+
+## Roadmap
+
+- Stabilize and document the public API toward a 1.0 baseline
+- Expand architecture documentation and advanced design guides
+- Add more end-to-end example applications in `apps/`
+- Continue hardening plugin packages (`@trinacria/http`, `@trinacria/events`, `@trinacria/cron`) through tests and runtime guarantees
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork and create a feature branch.
+2. Keep changes focused and explicit.
+3. Add or update tests for behavior changes.
+4. Run quality checks before opening a PR.
+
+Common commands:
 
 ```bash
+npm run build:packages
+npm run test:packages
 npm run coverage:all
-```
-
-## Pre-commit hook (build + test on staged workspaces)
-
-Install once:
-
-```bash
-npm run hooks:install
-```
-
-Manual dry-run (without committing):
-
-```bash
 npm run precommit:check
 ```
 
-The pre-commit hook runs:
+Repository documentation:
 
-- `build` on touched workspaces
-- `test` on touched test-enabled workspaces (`core`, `schema`, `http`, `cli`)
+- `docs/en/README.md`
+- `docs/it/README.md`
+- `apps/README.md`
 
----
+## License
 
-# 🎯 Why Trinacria Exists
-
-Modern backend frameworks often mix:
-
-- Dependency Injection
-- Routing
-- HTTP servers
-- Domain conventions
-- Module systems
-- Lifecycle management
-
-Over time, this creates tight coupling between infrastructure and business logic.
-
-Trinacria takes a different approach.
-
-Instead of being a full-stack framework, it isolates the engine:
-
-- Typed tokens
-- Deterministic DI container
-- Explicit module boundaries
-- Controlled visibility
-- Plugin-based extension model
-
-Everything else lives outside the core.
-
----
-
-# 🧠 Design Philosophy
-
-### 🔹 Explicit > Implicit
-
-No hidden magic.
-No reflection-based injection.
-No accidental globals.
-
-Dependencies must be declared.
-Modules must export explicitly.
-Plugins must opt-in via typed `ProviderKind`.
-
----
-
-### 🔹 Engine > Framework
-
-Trinacria Core is a foundation layer.
-
-HTTP, Cron, GraphQL, CLI, schedulers — all of these are built as plugins on top of the core.
-
-The engine never changes to support domain features.
-
----
-
-### 🔹 Deterministic Lifecycle
-
-Trinacria enforces clear phases:
-
-```text
-Configuration
-↓
-Module Build
-↓
-Container Initialization (eager, async)
-↓
-Runtime
-↓
-Shutdown
-```
-
-This makes infrastructure predictable and safe.
-
----
-
-# 🧱 Architecture Overview
-
-```text
-TrinacriaApp
-   ↓
-ModuleRegistry
-   ↓
-Root Container
-   ↓
-Module Containers
-   ↓
-Providers
-   ↓
-Tokens
-```
-
----
-
-# 🧩 Core Concepts
-
----
-
-## 🔹 Token
-
-A strongly typed identifier for a dependency.
-
-```ts
-const USER_SERVICE = createToken<UserService>("USER_SERVICE");
-```
-
-- Based on `symbol`
-- Fully type-safe
-- No string-based injection
-
----
-
-## 🔹 Provider
-
-Defines how a dependency is created.
-
-Supported types:
-
-- `classProvider`
-- `factoryProvider`
-- `valueProvider`
-
-Example:
-
-```ts
-const UserServiceProvider = classProvider(USER_SERVICE, UserService);
-```
-
-Providers are declarative.
-Instantiation happens during container initialization.
-
----
-
-## 🔹 ProviderKind
-
-A typed tagging system used by plugins.
-
-```ts
-const HTTP_CONTROLLER_KIND = createProviderKind<BaseHttpController>();
-```
-
-Allows plugins to discover compatible providers without coupling.
-
----
-
-## 🔹 Module
-
-Modules organize providers and define visibility boundaries.
-
-```ts
-export const UserModule = defineModule({
-  name: "UserModule",
-  providers: [UserServiceProvider],
-  exports: [USER_SERVICE],
-});
-```
-
-Rules:
-
-- Internal providers are private
-- Only exported tokens are visible outside
-- Imports define visibility boundaries
-- No implicit global access
-
-Modules are architectural units, not folders.
-
----
-
-## 🔹 Plugin
-
-Plugins extend the system without modifying the core.
-
-```ts
-export const HttpPlugin = definePlugin({
-  name: "http",
-
-  async onInit(app) {
-    const controllers = app.getProvidersByKind(HTTP_CONTROLLER_KIND);
-
-    for (const provider of controllers) {
-      const instance = await app.resolve(provider.token);
-
-      // Register routes here
-    }
-  },
-});
-```
-
-The core does not know about HTTP.
-The plugin interprets providers using `ProviderKind`.
-
----
-
-## 🔹 Global Providers
-
-Infrastructure-level services can be registered globally:
-
-```ts
-app.registerGlobalProvider(valueProvider(LOGGER_TOKEN, new ConsoleLogger()));
-```
-
-Global providers:
-
-- Live in the root container
-- Are visible to all modules
-- Should be used for infrastructure (logger, config, metrics)
-
-Avoid using them for domain services.
-
----
-
-# 🚀 Application API
-
-The main entry point is `TrinacriaApp`.
-
-```ts
-const app = new TrinacriaApp();
-
-app
-  .registerGlobalProvider(valueProvider(CONFIG_TOKEN, config))
-  .use(HttpPlugin)
-  .registerModule(UserModule)
-  .registerModule(OrderModule);
-
-await app.start();
-```
-
-Resolve dependencies:
-
-```ts
-const orderService = await app.resolve(ORDER_SERVICE);
-```
-
-Shutdown:
-
-```ts
-await app.shutdown();
-```
-
----
-
-# 🔄 Lifecycle
-
-### 1️⃣ Configuration Phase
-
-- `use(plugin)`
-- `registerModule(module)`
-- `registerGlobalProvider(provider)`
-
-No provider instantiation happens here.
-
----
-
-### 2️⃣ start()
-
-Internally:
-
-```text
-plugin.onRegister()
-↓
-module build
-↓
-container eager initialization
-↓
-plugin.onInit()
-```
-
-All providers are instantiated asynchronously and deterministically.
-
----
-
-### 3️⃣ Runtime
-
-- `resolve(token)`
-- `getProvidersByKind(kind)`
-- `registerModule()` (dynamic)
-- `unregisterModule()` (dynamic)
-- `isModuleRegistered(module)`
-- `listModules()`
-- `hasToken(token)`
-- `describeGraph()`
-
----
-
-### 4️⃣ shutdown()
-
-```text
-plugin.onDestroy()
-```
-
-Used for graceful shutdown and resource cleanup.
-
----
-
-# 🔄 Runtime Module Registration
-
-Modules can be added dynamically:
-
-```ts
-await app.registerModule(AdminModule);
-```
-
-Runtime registration is transactional:
-
-1. module is added to internal runtime list
-2. module graph is built in the registry
-3. containers are initialized (eager)
-4. plugins are notified via `onModuleRegistered`
-
-If one plugin fails, Trinacria performs rollback:
-
-1. calls `onModuleUnregistered` on already-notified plugins (reverse order)
-2. unregisters the module from the registry (container/export/kind-index cleanup)
-3. removes the module from runtime list
-4. throws `ModuleRegistrationError` with registration + rollback details
-
-This keeps runtime state consistent even during partial plugin failures.
-
----
-
-# 🔧 Runtime Unregistration Details
-
-`unregisterModule(module)` does:
-
-1. validates that no other module imports the target module
-2. runs provider `onDestroy()` hooks for module providers (reverse creation order)
-3. removes exported tokens from root visibility
-4. removes provider-kind references from plugin discovery index
-5. notifies plugins with `onModuleUnregistered`
-
-If plugin unregistration hooks fail, cleanup is preserved and Trinacria raises `ModuleUnregistrationError`.
-
----
-
-# 🔬 Provider Lifecycle Hooks
-
-Provider instances can expose optional lifecycle hooks:
-
-- `onInit(): void | Promise<void>`
-- `onDestroy(): void | Promise<void>`
-
-Behavior:
-
-- `onInit` is invoked after provider instantiation
-- `onDestroy` is invoked during module unregistration and application shutdown
-- destroy order is reverse-instantiation order to reduce dependency tear-down issues
-
----
-
-# 📦 What Trinacria Core Does NOT Provide
-
-- HTTP server
-- Routing
-- Database adapters
-- Scheduler
-- CLI
-
-These are built as plugins.
-
----
-
-# 🧭 When to Use Trinacria
-
-Use Trinacria if:
-
-- You want strict modular boundaries
-- You need a strongly typed DI engine
-- You want full control over infrastructure
-- You are building your own framework layer
-
-Do not use Trinacria if:
-
-- You want an opinionated full-stack framework
-- You prefer convention over explicit structure
-
----
-
-# 🏁 Philosophy in One Sentence
-
-> Trinacria is a modular DI engine designed to remain small, explicit, and extensible — while letting domain and infrastructure live outside the core.
-
----
-
-# 📚 Documentation
-
-Full documentation is available in `docs/` with language-specific sections:
-
-- English: [`docs/en/README.md`](./docs/en/README.md)
-- Italian: [`docs/it/README.md`](./docs/it/README.md)
-- Apps guide: [`apps/README.md`](./apps/README.md)
-
-Recommended starting point:
-
-- [`docs/en/0000-getting-started.md`](./docs/en/0000-getting-started.md)
-
----
-
-# 📦 Release & Versioning
-
-This monorepo uses [Changesets](https://github.com/changesets/changesets) with **independent** package versioning.
-
-Useful commands:
-
-```bash
-npm run changeset
-npm run changeset:status
-npm run version-packages
-npm run release
-```
-
-Detailed policy:
-
-- EN: [`docs/en/1000-repository-versioning-policy.md`](./docs/en/1000-repository-versioning-policy.md)
-- EN: [`docs/en/1001-repository-release-scripts-workflows.md`](./docs/en/1001-repository-release-scripts-workflows.md)
-- IT: [`docs/it/1000-repository-policy-versioning.md`](./docs/it/1000-repository-policy-versioning.md)
-- IT: [`docs/it/1001-repository-release-scripts-workflow.md`](./docs/it/1001-repository-release-scripts-workflow.md)
-
-## 📚 Wiki Sync
-
-Repository docs can be synced automatically to GitHub Wiki via:
-
-- [`.github/workflows/wiki-sync.yml`](./.github/workflows/wiki-sync.yml)
-- [`scripts/sync-wiki.sh`](./scripts/sync-wiki.sh)
-
-Notes:
-
-- Wiki must be enabled in repository settings.
-- Wiki sync publishes only English docs (`docs/en`) plus shared assets.
-- Sync runs on push to `main` when `docs/**` changes (or manually via `workflow_dispatch`).
+No `LICENSE` file is currently present in this repository.
+Open-source usage terms are not defined until a license is added.
