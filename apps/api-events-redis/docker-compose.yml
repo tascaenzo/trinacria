@@ -1,0 +1,33 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${DOCKER_REDIS_PORT}:6379"
+    volumes:
+      - trinacria_api_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api-events-redis/Dockerfile
+    environment:
+      ENV: development
+      HOST: 0.0.0.0
+      PORT: 4003
+      OPENAPI_ENABLED: true
+      REDIS_URL: ${DOCKER_REDIS_URL}
+      REDIS_CHANNEL: ${DOCKER_REDIS_CHANNEL}
+    ports:
+      - "${DOCKER_API_PORT}:4003"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  trinacria_api_redis_data:
