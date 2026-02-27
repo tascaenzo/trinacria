@@ -20,14 +20,17 @@ Defined in root `package.json`:
 Interactive Changesets command.
 
 It creates a markdown file in `.changeset/` that describes:
+
 - changed package(s) (`@trinacria/core`, `@trinacria/http`, etc.)
 - bump type (`patch`, `minor`, `major`)
 - release/changelog note
 
 When to use it:
+
 - every time a PR changes behavior/API of published packages.
 
 Expected output:
+
 - a new file like `.changeset/your-message.md` to commit with code changes.
 
 ### `npm run changeset:status`
@@ -35,6 +38,7 @@ Expected output:
 Shows pending changesets and resulting version updates.
 
 When to use it:
+
 - before merge/release to check if a changeset is missing
 - in CI to enforce release-flow quality
 
@@ -43,6 +47,7 @@ When to use it:
 Runs `changeset version`.
 
 What it does:
+
 - reads `.changeset/` files
 - updates affected package versions
 - updates internal dependency ranges according to `updateInternalDependencies`
@@ -50,6 +55,7 @@ What it does:
 - consumes used changesets (removes them)
 
 When to use it:
+
 - in the automated release PR flow
 - locally only when you want to simulate release-PR output
 
@@ -58,13 +64,16 @@ When to use it:
 Runs `changeset publish`.
 
 What it does:
+
 - publishes newly versioned packages to npm
 - creates release tags
 
 When to use it:
+
 - in the `Release` workflow on `main` (not on feature branches)
 
 Prerequisites:
+
 - npm token configured (`NPM_TOKEN`) in GitHub Actions secrets
 - packages configured for publishing
 
@@ -73,17 +82,20 @@ Prerequisites:
 Runs `node scripts/pre-commit.mjs`.
 
 What it does:
+
 - detects touched workspaces from staged files
 - runs `build` for touched workspaces (if `build` script exists)
 - runs `test` for touched workspaces (if `test` script exists)
 - if global files are touched (for example `package.json`, `scripts/*`), checks are expanded to the full monorepo
 
 Goal:
+
 - block commits with broken build/tests before CI.
 
 ### `npm run hooks:install`
 
 Installs local git hook:
+
 - sets `core.hooksPath` to `.githooks`
 - makes `.githooks/pre-commit` executable
 
@@ -107,9 +119,10 @@ npm run changeset
 CI executes:
 
 1. `npm ci`
-2. `npm run build`
-3. `npm run test --workspaces --if-present`
-4. changeset check on PR:
+2. `npm run lint`
+3. `npm run build`
+4. `npm run test:packages`
+5. changeset check on PR:
 
 ```bash
 npx changeset status --since=origin/main

@@ -20,14 +20,17 @@ Definiti nel root `package.json`:
 Comando interattivo di Changesets.
 
 Serve a creare un file markdown in `.changeset/` che descrive:
+
 - quali package cambiano (`@trinacria/core`, `@trinacria/http`, ecc.)
 - tipo di bump (`patch`, `minor`, `major`)
 - nota release/changelog
 
 Quando usarlo:
+
 - ogni volta che una PR modifica comportamento/API di package pubblicati.
 
 Output atteso:
+
 - nuovo file tipo `.changeset/your-message.md` da committare insieme al codice.
 
 ### `npm run changeset:status`
@@ -35,6 +38,7 @@ Output atteso:
 Mostra lo stato dei changeset pendenti e quali versioni verranno generate.
 
 Quando usarlo:
+
 - prima di merge/release per verificare se manca qualche changeset
 - in CI per controllo qualità del flusso release
 
@@ -43,6 +47,7 @@ Quando usarlo:
 Esegue `changeset version`.
 
 Cosa fa:
+
 - legge i file in `.changeset/`
 - aggiorna le versioni dei package coinvolti
 - aggiorna dipendenze interne in base a `updateInternalDependencies`
@@ -50,6 +55,7 @@ Cosa fa:
 - consuma i changeset usati (li rimuove)
 
 Quando usarlo:
+
 - nella release PR gestita da automation (workflow release)
 - localmente solo se vuoi simulare il risultato del release PR
 
@@ -58,13 +64,16 @@ Quando usarlo:
 Esegue `changeset publish`.
 
 Cosa fa:
+
 - pubblica su npm i package con nuova versione
 - crea i relativi tag release
 
 Quando usarlo:
+
 - nel workflow `Release` su `main` (non manualmente su feature branch)
 
 Prerequisiti:
+
 - token npm configurato (`NPM_TOKEN`) nei secret GitHub Actions
 - package non privati e configurati correttamente
 
@@ -73,17 +82,20 @@ Prerequisiti:
 Esegue `node scripts/pre-commit.mjs`.
 
 Cosa fa:
+
 - individua i workspace toccati dai file staged
 - esegue `build` sui workspace toccati (se hanno script `build`)
 - esegue `test` sui workspace toccati (se hanno script `test`)
 - se tocchi file globali (es. `package.json`, `scripts/*`), estende i controlli a tutto il monorepo
 
 Obiettivo:
+
 - bloccare commit con build/test rotti prima che arrivino in CI.
 
 ### `npm run hooks:install`
 
 Installa il git hook locale:
+
 - imposta `core.hooksPath` su `.githooks`
 - rende eseguibile `.githooks/pre-commit`
 
@@ -107,9 +119,10 @@ npm run changeset
 La CI fa:
 
 1. `npm ci`
-2. `npm run build`
-3. `npm run test --workspaces --if-present`
-4. verifica changeset su PR con:
+2. `npm run lint`
+3. `npm run build`
+4. `npm run test:packages`
+5. verifica changeset su PR con:
 
 ```bash
 npx changeset status --since=origin/main
