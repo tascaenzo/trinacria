@@ -129,6 +129,14 @@ A ogni push su `main`:
    - `npm run release`
    - publish su npm
 
+## Flusso alpha su branch `alpha` (`.github/workflows/release-alpha-github.yml`)
+
+Ad ogni push su `alpha`:
+
+1. build + test completi
+2. `npm run version-packages:alpha` per versioni snapshot prerelease
+3. `npm run release:alpha:github` per publish su GitHub Packages
+
 ## Errori comuni e come risolverli
 
 - "Manca changeset" in PR:

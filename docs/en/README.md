@@ -17,6 +17,7 @@ This section contains the official documentation in English.
 - [0006 - Events Plugin](./0006-events-plugin.md)
 - [1000 - Repository Versioning Policy](./1000-repository-versioning-policy.md)
 - [1001 - Repository Release Scripts and Workflows](./1001-repository-release-scripts-workflows.md)
+- [1002 - Repository Library Publish and Artifacts](./1002-repository-publish-artifacts.md)
 
 ## Quick Links (Official EN)
 
@@ -24,6 +25,7 @@ This section contains the official documentation in English.
 - [Cron Plugin Guide + Lock Hooks](./0005-cron.md)
 - [Events Plugin Guide (Internal Bus + Redis/RabbitMQ)](./0006-events-plugin.md)
 - [Repository Versioning and Release Guide](./1001-repository-release-scripts-workflows.md)
+- [Library Publish and Artifact Guide (pack/npm/git)](./1002-repository-publish-artifacts.md)
 
 ## Scope
 

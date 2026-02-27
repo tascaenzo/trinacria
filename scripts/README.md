@@ -94,6 +94,56 @@ npm run docker:smoke:apps
 Related workflow:
 - `.github/workflows/docker-smoke.yml`
 
+---
+
+### `publish-libs.mjs`
+
+Purpose:
+- prepare and publish workspace libraries (`packages/*`) with one command.
+
+Modes:
+- `pack`: build/test + generate `.tgz` artifacts only.
+- `npm`: build/test + `npm publish` (supports `--registry`, `--access`, `--dry-run`).
+- `git`: build/test + local git tags by package/version (optional push with `--push`).
+
+Production artifact layout:
+- `<artifacts-dir>/<package>/<version>/<tarball>.tgz`
+- `<artifacts-dir>/<package>/<version>/<tarball>.tgz.sha256`
+- `<artifacts-dir>/manifest.json` (metadata + checksums)
+
+Note:
+- in `npm` mode the script publishes the generated tarball file, so published content is exactly the validated artifact.
+
+Common usage:
+
+```bash
+npm run publish:libs:pack
+npm run publish:libs:npm
+npm run publish:libs:npm:dry
+npm run publish:libs:git
+npm run publish:libs:git:dry
+```
+
+Channel-oriented usage:
+
+```bash
+# alpha channel -> GitHub Packages
+npm run prepare:alpha:github
+npm run version-packages:alpha
+npm run release:alpha:github
+
+# stable channel -> npmjs
+npm run release
+```
+
+Advanced examples:
+
+```bash
+node scripts/publish-libs.mjs --mode npm --registry https://npm.pkg.github.com --access restricted
+node scripts/publish-libs.mjs --mode pack --packages @trinacria/core,@trinacria/http --artifacts-dir .artifacts/release
+node scripts/publish-libs.mjs --mode git --tag-prefix release/ --push
+```
+
 ## Operational notes
 
 - To enable local pre-commit hook:

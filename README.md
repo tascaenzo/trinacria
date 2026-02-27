@@ -278,6 +278,13 @@ Repository documentation:
 - `docs/en/README.md`
 - `docs/it/README.md`
 - `apps/README.md`
+- `docs/en/1002-repository-publish-artifacts.md` (library publish/artifact pipeline)
+- `docs/it/1002-repository-publish-artifacts.md` (pipeline publish librerie/artifact)
+
+Release channels:
+
+- `alpha` channel on GitHub Packages via `.github/workflows/release-alpha-github.yml`
+- `stable` channel on npmjs via `.github/workflows/release.yml`
 
 ## License
 
