@@ -117,17 +117,21 @@ npx changeset status --since=origin/main
 
 If a required changeset is missing, update the PR.
 
-## Release flow on `main` (`.github/workflows/release.yml`)
+## Release flow (current)
 
-On each push to `main`:
+Release is executed with the guided command:
 
-1. full build + tests
-2. `changesets/action` runs:
-- `npm run version-packages`
-- opens/updates PR `chore: release packages` if pending changesets exist
-3. once the release PR is merged:
-- `npm run release`
-- publish to npm
+```bash
+npm run release:npm
+```
+
+What it does:
+
+1. asks package/tag/version choices
+2. runs pre-checks (`npm whoami`, build, test, pack dry-run)
+3. calls publish flow through `scripts/publish-libs.mjs`
+
+`scripts/publish-libs.mjs --mode npm` runs CLI template smoke checks by default before publishing.
 
 ## Common issues
 
@@ -147,6 +151,6 @@ On each push to `main`:
 
 - `.changeset/config.json`
 - `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
+- `.github/workflows/cli-template-smoke.yml`
 - `scripts/pre-commit.mjs`
 - [`1000 - Repository Versioning Policy`](./1000-repository-versioning-policy.md)

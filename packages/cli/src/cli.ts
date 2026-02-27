@@ -13,14 +13,19 @@ export function printHelp() {
 Trinacria CLI
 
 Usage:
+  trinacria new <project-name> [--template <name>] [--no-install] [--no-git] [--force]
+  trinacria create <project-name> [--template <name>] [--no-install] [--no-git] [--force]
+  trinacria init <project-name> [--template <name>] [--no-install] [--no-git] [--force]
   trinacria dev
   trinacria build
   trinacria start
-  trinacria new <project-name> [--template <name>] [--no-install] [--no-git] [--force]
 
 Options:
   --config <path>   Specify custom config file
   --help            Show help
+
+Notes:
+  - default template is "app-starter" (alias: minimal, starter, base, default)
 `);
 }
 
@@ -59,6 +64,8 @@ export async function runCli(args: string[], deps: CliDeps = defaultDeps) {
   try {
     switch (command) {
       case "new":
+      case "create":
+      case "init":
         await deps.createNewApp(args.slice(1));
         break;
 

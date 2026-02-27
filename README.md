@@ -1,7 +1,7 @@
 # Trinacria
 
 <p align="center">
-  <img src="./docs/assets/logo.png" alt="Logo Trinacria" width="220" />
+  <img src="./docs/assets/logo_transparent.png" alt="Trinacria logo" width="220" />
 </p>
 
 A modular, type-safe Dependency Injection engine for TypeScript applications and infrastructure runtimes.
@@ -278,6 +278,13 @@ Repository documentation:
 - `docs/en/README.md`
 - `docs/it/README.md`
 - `apps/README.md`
+- `docs/en/1002-repository-publish-artifacts.md` (library publish/artifact pipeline)
+- `docs/it/1002-repository-publish-artifacts.md` (pipeline publish librerie/artifact)
+
+Release channels:
+
+- publish flow via `npm run release:npm` (guided)
+- CLI template smoke workflow: `.github/workflows/cli-template-smoke.yml`
 
 ## License
 

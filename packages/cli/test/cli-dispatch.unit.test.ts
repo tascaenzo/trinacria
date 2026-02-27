@@ -97,6 +97,20 @@ test("runCli dispatches new command without loading config", async () => {
   assert.equal(calls.createNewApp, 1);
 });
 
+test("runCli dispatches create alias without loading config", async () => {
+  const { deps, calls } = createDeps();
+  await runCli(["create", "my-app"], deps);
+  assert.equal(calls.loadConfig, 0);
+  assert.equal(calls.createNewApp, 1);
+});
+
+test("runCli dispatches init alias without loading config", async () => {
+  const { deps, calls } = createDeps();
+  await runCli(["init", "my-app"], deps);
+  assert.equal(calls.loadConfig, 0);
+  assert.equal(calls.createNewApp, 1);
+});
+
 test("runCli handles unknown command with help and exit 1", async () => {
   const { deps, calls } = createDeps();
   await runCli(["unknown"], deps);

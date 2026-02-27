@@ -17,6 +17,7 @@ Questa sezione raccoglie la documentazione ufficiale in italiano.
 - [0006 - Plugin Events](./0006-events-plugin.md)
 - [1000 - Repository: Policy di Versioning](./1000-repository-policy-versioning.md)
 - [1001 - Repository: Script e Workflow Release](./1001-repository-release-scripts-workflow.md)
+- [1002 - Repository: Publish librerie e artifact npm](./1002-repository-publish-artifacts.md)
 
 ## Link Rapidi (Official IT)
 
@@ -24,6 +25,7 @@ Questa sezione raccoglie la documentazione ufficiale in italiano.
 - [Guida Plugin Cron + Hook Lock](./0005-cron.md)
 - [Guida Plugin Events (Bus interno + Redis/RabbitMQ)](./0006-events-plugin.md)
 - [Guida Release e Versioning (Changesets + CI)](./1001-repository-release-scripts-workflow.md)
+- [Guida Publish Artifact e Registry (pack/npm/git)](./1002-repository-publish-artifacts.md)
 
 ## Ambito
 

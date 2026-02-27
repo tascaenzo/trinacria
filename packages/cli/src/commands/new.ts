@@ -41,7 +41,7 @@ interface NewDeps {
 
 const defaultDeps: NewDeps = {
   cwd: () => process.cwd(),
-  templatesRoot: () => path.resolve(__dirname, "../../../../apps"),
+  templatesRoot: () => resolveTemplatesRoot(),
   pathExists: (target) => fs.existsSync(target),
   mkdir: (target) => fs.mkdirSync(target, { recursive: true }),
   readdir: (target) => fs.readdirSync(target, { withFileTypes: true }),
@@ -67,6 +67,15 @@ const defaultDeps: NewDeps = {
     }),
   info: (message) => log.info(message, context),
 };
+
+function resolveTemplatesRoot(): string {
+  const distributedTemplatesRoot = path.resolve(__dirname, "../templates");
+  if (fs.existsSync(distributedTemplatesRoot)) {
+    return distributedTemplatesRoot;
+  }
+
+  return path.resolve(__dirname, "../../../../apps");
+}
 
 export async function createNewApp(
   args: string[],
@@ -175,7 +184,12 @@ function parseNewArgs(args: string[]): NewOptions {
 function normalizeTemplateName(templateInput: string): TemplateAppName {
   const normalized = templateInput.trim().toLowerCase();
 
-  if (normalized === "minimal") {
+  if (
+    normalized === "minimal" ||
+    normalized === "starter" ||
+    normalized === "base" ||
+    normalized === "default"
+  ) {
     return "app-starter";
   }
 
@@ -289,6 +303,13 @@ function adaptGeneratedPackageJson(
     devDependencies["@trinacria/cli"] = cliVersion;
   } else {
     devDependencies["@trinacria/cli"] = "latest";
+  }
+
+  if (!devDependencies.typescript) {
+    devDependencies.typescript = "latest";
+  }
+  if (!devDependencies["@types/node"]) {
+    devDependencies["@types/node"] = "latest";
   }
 
   packageJson.dependencies = dependencies;

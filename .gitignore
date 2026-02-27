@@ -43,3 +43,7 @@ apps/playground/prisma/*.db-*
 # Cache
 .cache/
 .eslintcache
+.npm-cache/
+
+# Local release artifacts
+.artifacts/

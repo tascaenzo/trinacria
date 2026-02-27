@@ -11,5 +11,14 @@
   },
   "peerDependencies": {
     "@trinacria/core": "*"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tascaenzo/trinacria.git",
+    "directory": "packages/cron"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

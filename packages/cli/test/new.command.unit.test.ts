@@ -38,6 +38,24 @@ test("parseNewArgs supports alias template and flags", () => {
   assert.equal(parsed.force, true);
 });
 
+test("parseNewArgs supports starter aliases", () => {
+  const starter = __newTestUtils.parseNewArgs([
+    "my-app",
+    "--template",
+    "starter",
+  ]);
+  const base = __newTestUtils.parseNewArgs(["my-app", "--template", "base"]);
+  const defaultTemplate = __newTestUtils.parseNewArgs([
+    "my-app",
+    "--template",
+    "default",
+  ]);
+
+  assert.equal(starter.template, "app-starter");
+  assert.equal(base.template, "app-starter");
+  assert.equal(defaultTemplate.template, "app-starter");
+});
+
 test("createNewApp generates project from apps/app-starter", async () => {
   await withTempDir(async (dir) => {
     const previousCwd = process.cwd();
@@ -48,6 +66,16 @@ test("createNewApp generates project from apps/app-starter", async () => {
       const targetDir = path.join(dir, "my-generated-app");
       assert.equal(fs.existsSync(path.join(targetDir, "src", "main.ts")), true);
       assert.equal(fs.existsSync(path.join(targetDir, "trinacria.config.mjs")), true);
+      assert.equal(fs.existsSync(path.join(targetDir, ".gitignore")), true);
+
+      const tsconfig = JSON.parse(
+        fs.readFileSync(path.join(targetDir, "tsconfig.json"), "utf8"),
+      ) as {
+        extends?: string;
+        compilerOptions?: Record<string, unknown>;
+      };
+      assert.equal(Boolean(tsconfig.extends), false);
+      assert.equal(tsconfig.compilerOptions?.target, "ES2022");
 
       const packageJson = JSON.parse(
         fs.readFileSync(path.join(targetDir, "package.json"), "utf8"),
@@ -65,6 +93,8 @@ test("createNewApp generates project from apps/app-starter", async () => {
       assert.equal(packageJson.dependencies["@trinacria/core"], "latest");
       assert.equal(packageJson.dependencies["@trinacria/cli"], undefined);
       assert.equal(packageJson.devDependencies["@trinacria/cli"], "latest");
+      assert.equal(packageJson.devDependencies.typescript, "latest");
+      assert.equal(packageJson.devDependencies["@types/node"], "latest");
     } finally {
       process.chdir(previousCwd);
     }

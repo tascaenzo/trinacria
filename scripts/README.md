@@ -94,6 +94,127 @@ npm run docker:smoke:apps
 Related workflow:
 - `.github/workflows/docker-smoke.yml`
 
+---
+
+### `publish-libs.mjs`
+
+Purpose:
+- prepare and publish workspace libraries (`packages/*`) with one command.
+
+Modes:
+- `pack`: build/test + generate `.tgz` artifacts only.
+- `npm`: build/test + CLI template smoke gate + `npm publish` (supports `--registry`, `--access`, `--dry-run`, `--skip-existing`).
+
+Production artifact layout:
+- `<artifacts-dir>/<package>/<version>/<tarball>.tgz`
+- `<artifacts-dir>/<package>/<version>/<tarball>.tgz.sha256`
+- `<artifacts-dir>/manifest.json` (metadata + checksums)
+
+Note:
+- in `npm` mode the script publishes the generated tarball file, so published content is exactly the validated artifact.
+
+Common usage:
+
+```bash
+npm run publish:libs:pack
+npm run publish:libs:npm
+npm run publish:libs:npm:dry
+```
+
+Channel-oriented usage:
+
+```bash
+# alpha/stable channels -> npmjs (guided flow)
+npm run release:npm
+```
+
+Manual npm release usage:
+
+```bash
+# stable on npm (changeset versions + publish with dist-tag latest)
+npm run release:npm:stable:dry
+npm run release:npm:stable
+
+# guided release on npm (package + suggested next version + confirmation)
+npm run release:npm
+```
+
+Publish already-versioned artifacts to npm alpha tag:
+
+```bash
+npm run publish:libs:npm:alpha:dry
+npm run publish:libs:npm:alpha
+```
+
+Notes:
+- `publish-libs.mjs --mode npm` runs `node scripts/cli-template-smoke.mjs` before publish by default (`--skip-cli-smoke` to bypass).
+- if a package contains `README.npm.md`, `publish-libs.mjs` uses it as `README.md` in the published tarball.
+
+Advanced examples:
+
+```bash
+node scripts/publish-libs.mjs --mode npm --registry https://npm.pkg.github.com --access restricted
+node scripts/publish-libs.mjs --mode pack --packages @trinacria/core,@trinacria/http --artifacts-dir .artifacts/release
+```
+
+---
+
+### `cli-template-smoke.mjs`
+
+Purpose:
+- end-to-end smoke test for `@trinacria/cli` scaffolding before release.
+
+What it does:
+- builds framework packages
+- generates one app per template (`new --template ...`)
+- rewrites `@trinacria/*` dependencies to local `file:` packages
+- installs deps, builds app, runs `start`, then runs `dev` and validates watch-mode stability after file change
+- for HTTP templates, checks `/health` endpoint
+
+Related npm script:
+
+```bash
+npm run smoke:cli:templates
+```
+
+Related workflow:
+- `.github/workflows/cli-template-smoke.yml`
+
+---
+
+### `release-npm-guided.mjs`
+
+Purpose:
+- interactive npm release flow for one package with progressive version suggestion.
+
+What it does:
+- asks menu-driven numeric choices (`package`, `tag`, bump strategy, version mode, publish/dry-run)
+- suggests next version (`alpha` progression or stable bump)
+- runs pre-checks (`npm whoami`, build, test, `npm pack --dry-run`)
+- updates package version (`npm version --no-git-tag-version`)
+- runs publish flow via `publish-libs.mjs` (or dry-run if publish is not confirmed)
+
+Related npm script:
+
+```bash
+npm run release:npm
+```
+
+---
+
+### `pre-release-checklist-cli-alpha.md`
+
+Purpose:
+- operational pre-release checklist for `@trinacria/cli` alpha releases on npm.
+
+What it covers:
+- repo/worktree sanity checks
+- package build/test gates
+- tarball content validation (`npm pack --dry-run`)
+- local smoke test from packed artifact
+- publish command and post-publish verification
+- rollback/deprecate path for broken versions
+
 ## Operational notes
 
 - To enable local pre-commit hook:
