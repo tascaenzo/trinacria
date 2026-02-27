@@ -19,7 +19,7 @@ export function requestId(options: RequestIdOptions = {}): HttpMiddleware {
     const existing = ctx.req.headers[headerName];
     const requestIdValue = Array.isArray(existing)
       ? existing[0]
-      : existing ?? generator();
+      : (existing ?? generator());
 
     if (!ctx.res.hasHeader(headerName)) {
       ctx.res.setHeader(headerName, requestIdValue);

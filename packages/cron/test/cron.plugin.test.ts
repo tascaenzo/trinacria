@@ -206,7 +206,10 @@ test("non-concurrent jobs skip overlapping executions and surface errors via cal
 
       assert.equal(sawOverlap, false);
       assert.ok(runs >= 2, `Expected at least 2 runs, got ${runs}`);
-      assert.ok(errors >= 1, `Expected at least one error callback, got ${errors}`);
+      assert.ok(
+        errors >= 1,
+        `Expected at least one error callback, got ${errors}`,
+      );
     } finally {
       await app.shutdown();
     }
@@ -272,7 +275,10 @@ test("lock hooks can gate single-job execution even when concurrent runs are all
 
       assert.equal(sawOverlap, false);
       assert.ok(runs >= 2, `Expected at least 2 runs, got ${runs}`);
-      assert.ok(lockSkipped >= 1, `Expected at least 1 skipped run, got ${lockSkipped}`);
+      assert.ok(
+        lockSkipped >= 1,
+        `Expected at least 1 skipped run, got ${lockSkipped}`,
+      );
       assert.ok(releases <= runs);
     } finally {
       await app.shutdown();
@@ -399,7 +405,10 @@ test("lock renewal runs for long-running jobs and releases once", async () => {
       await app.registerModule(module);
       await app.start();
 
-      assert.ok(renewCalls >= 3, `Expected at least 3 renew calls, got ${renewCalls}`);
+      assert.ok(
+        renewCalls >= 3,
+        `Expected at least 3 renew calls, got ${renewCalls}`,
+      );
       assert.equal(releaseCalls, 1);
     } finally {
       await app.shutdown();
@@ -492,21 +501,27 @@ test("invalid lockRenewIntervalMs throws at plugin creation", () => {
 
 test("invalid retry numeric values fail startup validation", async () => {
   await withSilencedOutput(async () => {
-    const JOB_TOKEN = createToken<CronJobProvider>("INVALID_RETRY_NUMERIC_PROVIDER");
-    const module = createJobProviderModule("InvalidRetryNumericModule", JOB_TOKEN, [
-      {
-        name: "invalid-retry-job",
-        runOnInit: true,
-        schedule: { type: "interval", everyMs: 60_000 },
-        retry: {
-          maxAttempts: 2,
-          backoffMs: Number.POSITIVE_INFINITY,
+    const JOB_TOKEN = createToken<CronJobProvider>(
+      "INVALID_RETRY_NUMERIC_PROVIDER",
+    );
+    const module = createJobProviderModule(
+      "InvalidRetryNumericModule",
+      JOB_TOKEN,
+      [
+        {
+          name: "invalid-retry-job",
+          runOnInit: true,
+          schedule: { type: "interval", everyMs: 60_000 },
+          retry: {
+            maxAttempts: 2,
+            backoffMs: Number.POSITIVE_INFINITY,
+          },
+          run: async () => {
+            // never called
+          },
         },
-        run: async () => {
-          // never called
-        },
-      },
-    ]);
+      ],
+    );
 
     const app = new TrinacriaApp();
     app.use(createCronPlugin());
@@ -570,17 +585,23 @@ test("onEvent emits skipped-lock when lock is not acquired", async () => {
   await withSilencedOutput(async () => {
     const statuses: string[] = [];
 
-    const JOB_TOKEN = createToken<CronJobProvider>("ON_EVENT_SKIPPED_LOCK_PROVIDER");
-    const module = createJobProviderModule("OnEventSkippedLockModule", JOB_TOKEN, [
-      {
-        name: "on-event-skipped-lock-job",
-        runOnInit: true,
-        schedule: { type: "interval", everyMs: 60_000 },
-        run: async () => {
-          // not expected
+    const JOB_TOKEN = createToken<CronJobProvider>(
+      "ON_EVENT_SKIPPED_LOCK_PROVIDER",
+    );
+    const module = createJobProviderModule(
+      "OnEventSkippedLockModule",
+      JOB_TOKEN,
+      [
+        {
+          name: "on-event-skipped-lock-job",
+          runOnInit: true,
+          schedule: { type: "interval", everyMs: 60_000 },
+          run: async () => {
+            // not expected
+          },
         },
-      },
-    ]);
+      ],
+    );
 
     const app = new TrinacriaApp();
     try {

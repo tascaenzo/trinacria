@@ -5,6 +5,7 @@ A minimal API-only example using Trinacria Events with RabbitMQ transport.
 ## Scope
 
 This app is intentionally a base template:
+
 - no authentication (no JWT/session/password flow)
 - no authorization roles/policies
 - no database persistence for domain data
@@ -91,5 +92,6 @@ docker compose \
 The API will be available at `http://127.0.0.1:${DOCKER_API_PORT}` (default `4004`).
 
 Compose services:
+
 - `rabbitmq`: RabbitMQ 3 (management image)
 - `api`: this Trinacria API

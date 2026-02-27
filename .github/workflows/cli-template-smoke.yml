@@ -69,4 +69,3 @@ jobs:
 
       - name: Run CLI template smoke test
         run: npm run smoke:cli:templates
-

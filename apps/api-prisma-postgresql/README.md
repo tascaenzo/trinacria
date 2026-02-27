@@ -5,6 +5,7 @@ A minimal API-only example using Trinacria, Prisma, and PostgreSQL.
 ## Scope
 
 This app is intentionally a base template:
+
 - no authentication (no JWT/session/password flow)
 - no authorization roles/policies
 - no background jobs
@@ -99,6 +100,7 @@ docker compose \
 The API will be available at `http://127.0.0.1:${DOCKER_API_PORT}` (default `4001`).
 
 Compose services:
+
 - `postgres`: PostgreSQL 16
 - `api`: this Trinacria API (built from this monorepo)
 

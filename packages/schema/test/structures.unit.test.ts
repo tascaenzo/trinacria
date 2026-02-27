@@ -57,9 +57,9 @@ test("array supports coercion, min/max and uniqueness selector", () => {
   );
 
   assert.equal(
-    s.array(s.number({ coerce: true }), { coerce: { separator: ";" } }).parse(
-      "1; 2; 3",
-    ).length,
+    s
+      .array(s.number({ coerce: true }), { coerce: { separator: ";" } })
+      .parse("1; 2; 3").length,
     3,
   );
 
@@ -96,12 +96,10 @@ test("tuple validates fixed length and item types", () => {
 });
 
 test("union accepts first matching branch", () => {
-  const schema = s.union(
-    [
-      s.object({ a: s.number({ int: true }) }),
-      s.object({ b: s.string({ minLength: 5 }) }),
-    ] as const,
-  );
+  const schema = s.union([
+    s.object({ a: s.number({ int: true }) }),
+    s.object({ b: s.string({ minLength: 5 }) }),
+  ] as const);
 
   const parsed = schema.parse({ a: 10 }) as { a: number };
   assert.equal(parsed.a, 10);
@@ -123,7 +121,9 @@ test("refine applies custom validation after parse", () => {
 
 test("union truncates nested issues when they exceed maxIssues", () => {
   const schema = s.union(
-    [s.union([s.number(), s.string(), s.boolean()] as const, { maxIssues: 5 })] as const,
+    [
+      s.union([s.number(), s.string(), s.boolean()] as const, { maxIssues: 5 }),
+    ] as const,
     { maxIssues: 2 },
   );
 
@@ -165,10 +165,7 @@ test("date/dateString/dateTimeString support coercion and ranges", () => {
     dateTimeSchema.parse(new Date("2024-03-01T10:00:00.000Z")),
     "2024-03-01T10:00:00.000Z",
   );
-  assert.throws(
-    () => dateTimeSchema.parse("not-a-date-time"),
-    ValidationError,
-  );
+  assert.throws(() => dateTimeSchema.parse("not-a-date-time"), ValidationError);
 });
 
 test("object builder rejects forbidden keys in schema shape", () => {

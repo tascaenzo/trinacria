@@ -79,14 +79,20 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
         notifiedPlugins.push(plugin);
       }
     } catch (error) {
-      await this.rollbackRuntimeModuleRegistration(module, notifiedPlugins, error);
+      await this.rollbackRuntimeModuleRegistration(
+        module,
+        notifiedPlugins,
+        error,
+      );
     }
   }
 
   async unregisterModule(module: ModuleDefinition): Promise<void> {
     CoreLog.warn(`[Trinacria] Module unregistered: ${module.name}`);
 
-    const existingModule = this.modules.find((item) => item.name === module.name);
+    const existingModule = this.modules.find(
+      (item) => item.name === module.name,
+    );
     if (!existingModule) {
       return;
     }
@@ -120,7 +126,9 @@ export class TrinacriaApp implements ApplicationContext, ApplicationBuilder {
     }
 
     if (hookErrors.length > 0) {
-      const details = hookErrors.map((error) => toErrorMessage(error)).join("; ");
+      const details = hookErrors
+        .map((error) => toErrorMessage(error))
+        .join("; ");
       throw new ModuleUnregistrationError(
         `Module "${existingModule.name}" was unregistered but one or more plugin hooks failed: ${details}`,
       );

@@ -3,9 +3,8 @@ import type { RabbitMqChannelLike } from "@trinacria/events";
 import { connect, type Channel, type ChannelModel } from "amqplib";
 import type { ConfigService } from "./config.service";
 
-export const RABBITMQ_SERVICE = createToken<RabbitMqService>(
-  "RABBITMQ_SERVICE",
-);
+export const RABBITMQ_SERVICE =
+  createToken<RabbitMqService>("RABBITMQ_SERVICE");
 
 export class RabbitMqService {
   private connection?: ChannelModel;

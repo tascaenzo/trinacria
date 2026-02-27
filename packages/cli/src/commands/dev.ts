@@ -51,7 +51,10 @@ const defaultDevDeps: DevDeps = {
   },
 };
 
-export async function runDev(config: ResolvedConfig, deps: DevDeps = defaultDevDeps) {
+export async function runDev(
+  config: ResolvedConfig,
+  deps: DevDeps = defaultDevDeps,
+) {
   const entry = path.resolve(config.entry);
   const crashLoopWindowMs = config.crashLoopWindowMs;
   const maxConsecutiveCrashRestarts = config.maxConsecutiveCrashRestarts;

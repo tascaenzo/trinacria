@@ -196,7 +196,9 @@ Implement `EventTransport`:
 
 ```ts
 interface EventTransport {
-  connect(onEnvelope: (envelope: EventEnvelope) => Promise<void> | void): Promise<void> | void;
+  connect(
+    onEnvelope: (envelope: EventEnvelope) => Promise<void> | void,
+  ): Promise<void> | void;
   publish(envelope: EventEnvelope): Promise<void> | void;
   disconnect?(): Promise<void> | void;
 }

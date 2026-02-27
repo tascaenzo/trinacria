@@ -88,7 +88,9 @@ function isValidationErrorLike(error: unknown): error is ValidationErrorLike {
   }
 
   const candidate = error as Partial<ValidationErrorLike>;
-  return candidate.name === "ValidationError" && Array.isArray(candidate.issues);
+  return (
+    candidate.name === "ValidationError" && Array.isArray(candidate.issues)
+  );
 }
 
 function formatValidationErrorMessage(error: ValidationErrorLike): string {

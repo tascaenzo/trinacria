@@ -5,7 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import { __startTestUtils } from "../src/commands/start";
 
-function withTempDir(run: (dir: string) => Promise<void> | void): Promise<void> {
+function withTempDir(
+  run: (dir: string) => Promise<void> | void,
+): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trinacria-cli-start-"));
   return Promise.resolve()
     .then(() => run(dir))
@@ -47,7 +49,10 @@ test("resolveBuiltEntryPath maps entry from rootDir to outDir", async () => {
         ),
       );
 
-      const built = __startTestUtils.resolveBuiltEntryPath("src/main.ts", "dist");
+      const built = __startTestUtils.resolveBuiltEntryPath(
+        "src/main.ts",
+        "dist",
+      );
       const expected = path.resolve(dir, "dist", "main.js");
       const normalizeTmpPrefix = (value: string) =>
         value.startsWith("/private/") ? value.slice("/private".length) : value;

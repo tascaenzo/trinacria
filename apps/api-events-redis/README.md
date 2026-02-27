@@ -5,6 +5,7 @@ A minimal API-only example using Trinacria Events with Redis Pub/Sub transport.
 ## Scope
 
 This app is intentionally a base template:
+
 - no authentication (no JWT/session/password flow)
 - no authorization roles/policies
 - no database persistence for domain data
@@ -91,5 +92,6 @@ docker compose \
 The API will be available at `http://127.0.0.1:${DOCKER_API_PORT}` (default `4003`).
 
 Compose services:
+
 - `redis`: Redis 7
 - `api`: this Trinacria API

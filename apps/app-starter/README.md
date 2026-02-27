@@ -3,6 +3,7 @@
 A minimal Trinacria app with only `TrinacriaApp` bootstrap and a `Hello World` log.
 
 This template does not include:
+
 - plugins
 - modules
 - database

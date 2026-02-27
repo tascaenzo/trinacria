@@ -19,7 +19,11 @@ npm i @trinacria/cron @trinacria/core
 
 ```ts
 import { TrinacriaApp, createToken, defineModule } from "@trinacria/core";
-import { createCronPlugin, cronProvider, type CronJobProvider } from "@trinacria/cron";
+import {
+  createCronPlugin,
+  cronProvider,
+  type CronJobProvider,
+} from "@trinacria/cron";
 
 const JOBS = createToken<CronJobProvider>("JOBS");
 

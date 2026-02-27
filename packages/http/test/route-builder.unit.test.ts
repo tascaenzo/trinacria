@@ -25,7 +25,9 @@ test("route builder binds method name handlers to controller instance", async ()
 
 test("route builder resolves method reference and keeps handlerName", () => {
   const controller = new DemoController();
-  const routes = new RouteBuilder(controller).get("/ref", controller.byRef).build();
+  const routes = new RouteBuilder(controller)
+    .get("/ref", controller.byRef)
+    .build();
   assert.equal(routes[0].handlerName, "byRef");
 });
 
@@ -33,14 +35,10 @@ test("route builder accepts route options object with docs/middlewares", () => {
   const controller = new DemoController();
   const mw = async (_ctx: any, next: () => Promise<unknown>) => next();
   const routes = new RouteBuilder(controller)
-    .post(
-      "/with-options",
-      "byName",
-      {
-        middlewares: [mw],
-        docs: { summary: "demo" },
-      },
-    )
+    .post("/with-options", "byName", {
+      middlewares: [mw],
+      docs: { summary: "demo" },
+    })
     .build();
 
   assert.equal(routes[0].middlewares?.length, 1);
@@ -70,9 +68,7 @@ test("route builder accepts middleware list args", () => {
 
 test("route builder keeps handlerName undefined for external anonymous handler", () => {
   const controller = new DemoController();
-  const routes = new RouteBuilder(controller)
-    .get("/anon", () => "x")
-    .build();
+  const routes = new RouteBuilder(controller).get("/anon", () => "x").build();
 
   assert.equal(routes[0].handlerName, undefined);
 });

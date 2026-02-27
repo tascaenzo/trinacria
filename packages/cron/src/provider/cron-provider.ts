@@ -1,4 +1,8 @@
-import { classProvider, type DependencyList, type Token } from "@trinacria/core";
+import {
+  classProvider,
+  type DependencyList,
+  type Token,
+} from "@trinacria/core";
 import { CRON_JOB_PROVIDER_KIND } from "./kind";
 import type { CronJobProvider } from "../contracts";
 

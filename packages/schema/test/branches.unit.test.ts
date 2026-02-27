@@ -4,14 +4,8 @@ import { s, ValidationError } from "../src/index.ts";
 import { createSchema } from "../src/core/schema.ts";
 
 test("string constraints expose expected validation codes", () => {
-  assert.equal(
-    s.string({ email: true }).safeParse("not-email").success,
-    false,
-  );
-  assert.equal(
-    s.string({ url: true }).safeParse("not-a-url").success,
-    false,
-  );
+  assert.equal(s.string({ email: true }).safeParse("not-email").success, false);
+  assert.equal(s.string({ url: true }).safeParse("not-a-url").success, false);
   assert.equal(
     s
       .string({ url: true, urlProtocols: ["https:"] })
@@ -32,36 +26,24 @@ test("string constraints expose expected validation codes", () => {
     s.string({ startsWith: "pre" }).safeParse("value").success,
     false,
   );
-  assert.equal(
-    s.string({ endsWith: "suf" }).safeParse("value").success,
-    false,
-  );
-  assert.equal(
-    s.string({ includes: "mid" }).safeParse("value").success,
-    false,
-  );
+  assert.equal(s.string({ endsWith: "suf" }).safeParse("value").success, false);
+  assert.equal(s.string({ includes: "mid" }).safeParse("value").success, false);
   assert.equal(
     s.string({ pattern: /^[a-z]+$/ }).safeParse("A1").success,
     false,
   );
-  assert.equal(
-    s.string({ alpha: true }).safeParse("abc1").success,
-    false,
-  );
+  assert.equal(s.string({ alpha: true }).safeParse("abc1").success, false);
   assert.equal(
     s.string({ alphanumeric: true }).safeParse("abc-1").success,
     false,
   );
-  assert.equal(
-    s.string({ lowercase: true }).safeParse("Abc").success,
-    false,
-  );
-  assert.equal(
-    s.string({ uppercase: true }).safeParse("AbC").success,
-    false,
-  );
+  assert.equal(s.string({ lowercase: true }).safeParse("Abc").success, false);
+  assert.equal(s.string({ uppercase: true }).safeParse("AbC").success, false);
   assert.equal(s.string({ ip: "v4" }).safeParse("999.1.1.1").success, false);
-  assert.equal(s.string({ hostname: true }).safeParse("bad host").success, false);
+  assert.equal(
+    s.string({ hostname: true }).safeParse("bad host").success,
+    false,
+  );
 });
 
 test("number branches: coercion edge cases and sign constraints", () => {
@@ -79,7 +61,10 @@ test("boolean coercion does not coerce unsupported numeric values", () => {
 
 test("array branches: invalid_type, too_small, too_big and unique=true", () => {
   assert.equal(s.array(s.string()).safeParse({}).success, false);
-  assert.equal(s.array(s.string(), { nonEmpty: true }).safeParse([]).success, false);
+  assert.equal(
+    s.array(s.string(), { nonEmpty: true }).safeParse([]).success,
+    false,
+  );
   assert.equal(
     s.array(s.string(), { maxItems: 1 }).safeParse(["a", "b"]).success,
     false,
@@ -114,12 +99,14 @@ test("object branches: invalid_type, unknown keys and minProperties", () => {
 test("date/dateString/dateTimeString negative branches", () => {
   assert.equal(s.date().safeParse("2024-01-01").success, false);
   assert.equal(
-    s.date({ min: new Date("2024-01-02T00:00:00.000Z") })
+    s
+      .date({ min: new Date("2024-01-02T00:00:00.000Z") })
       .safeParse(new Date("2024-01-01T00:00:00.000Z")).success,
     false,
   );
   assert.equal(
-    s.date({ max: new Date("2024-01-02T00:00:00.000Z") })
+    s
+      .date({ max: new Date("2024-01-02T00:00:00.000Z") })
       .safeParse(new Date("2024-01-03T00:00:00.000Z")).success,
     false,
   );

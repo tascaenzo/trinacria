@@ -49,11 +49,26 @@ test("console logger error handles Error and non-Error payloads", () => {
     logger.error("error with object", { code: 123 });
     logger.warn("warn line");
 
-    assert.equal(errors.some((line) => line.includes("error with stack")), true);
-    assert.equal(errors.some((line) => line.includes("Error: boom")), true);
-    assert.equal(errors.some((line) => line.includes("error with object")), true);
-    assert.equal(errors.some((line) => line.includes("warn line")), true);
-    assert.equal(errors.some((line) => line.includes("\x1b[")), true);
+    assert.equal(
+      errors.some((line) => line.includes("error with stack")),
+      true,
+    );
+    assert.equal(
+      errors.some((line) => line.includes("Error: boom")),
+      true,
+    );
+    assert.equal(
+      errors.some((line) => line.includes("error with object")),
+      true,
+    );
+    assert.equal(
+      errors.some((line) => line.includes("warn line")),
+      true,
+    );
+    assert.equal(
+      errors.some((line) => line.includes("\x1b[")),
+      true,
+    );
   } finally {
     console.error = originalError;
     console.warn = originalWarn;
@@ -74,7 +89,9 @@ test("core logger forwards debug/info/warn/error to configured logger", () => {
       calls.push(`warn:${msg}`);
     }
     override error(msg: string, err?: unknown): void {
-      calls.push(`error:${msg}:${err instanceof Error ? err.message : String(err)}`);
+      calls.push(
+        `error:${msg}:${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

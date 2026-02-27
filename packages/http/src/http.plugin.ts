@@ -179,7 +179,9 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
 
       logger.info(`HTTP server started on http://${host}:${port}`);
       if (openApi?.enabled) {
-        logger.info(`OpenAPI JSON exposed at http://${host}:${port}${openApiJsonPath}`);
+        logger.info(
+          `OpenAPI JSON exposed at http://${host}:${port}${openApiJsonPath}`,
+        );
       }
     },
 
