@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { Router } from "../src/routing/router";
 import type { RouteDefinition } from "../src/routing/route-definition";
 
-function route(method: RouteDefinition["method"], path: string): RouteDefinition {
+function route(
+  method: RouteDefinition["method"],
+  path: string,
+): RouteDefinition {
   return {
     method,
     path,
@@ -36,7 +39,10 @@ test("router prefers static segment over param segment", () => {
 test("router detects duplicate route registration", () => {
   const router = new Router();
   router.register(route("GET", "/same"));
-  assert.throws(() => router.register(route("GET", "/same")), /already registered/);
+  assert.throws(
+    () => router.register(route("GET", "/same")),
+    /already registered/,
+  );
 });
 
 test("router resolves allowed methods for a path", () => {

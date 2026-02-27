@@ -17,10 +17,26 @@ export function requestLogger(
 
     try {
       const result = await next();
-      logLine(logger, ctx.req.method, ctx.req.url, ctx.res.statusCode, startedAt, includeUserAgent, ctx.req.headers["user-agent"]);
+      logLine(
+        logger,
+        ctx.req.method,
+        ctx.req.url,
+        ctx.res.statusCode,
+        startedAt,
+        includeUserAgent,
+        ctx.req.headers["user-agent"],
+      );
       return result;
     } catch (error) {
-      logLine(logger, ctx.req.method, ctx.req.url, ctx.res.statusCode || 500, startedAt, includeUserAgent, ctx.req.headers["user-agent"]);
+      logLine(
+        logger,
+        ctx.req.method,
+        ctx.req.url,
+        ctx.res.statusCode || 500,
+        startedAt,
+        includeUserAgent,
+        ctx.req.headers["user-agent"],
+      );
       throw error;
     }
   };

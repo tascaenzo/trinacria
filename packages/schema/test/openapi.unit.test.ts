@@ -20,10 +20,10 @@ test("toOpenApi maps object required/additionalProperties/minProperties", () => 
 });
 
 test("toOpenApi maps array and union metadata", () => {
-  const schema = s.array(
-    s.union([s.literal("a"), s.literal("b")] as const),
-    { minItems: 1, unique: true },
-  );
+  const schema = s.array(s.union([s.literal("a"), s.literal("b")] as const), {
+    minItems: 1,
+    unique: true,
+  });
 
   const openApi = toOpenApi(schema) as Record<string, unknown>;
   assert.equal(openApi.type, "array");

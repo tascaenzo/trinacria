@@ -6,9 +6,7 @@ export interface RequestTimeoutOptions {
   errorMessage?: string;
 }
 
-export function requestTimeout(
-  options: RequestTimeoutOptions,
-): HttpMiddleware {
+export function requestTimeout(options: RequestTimeoutOptions): HttpMiddleware {
   if (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0) {
     throw new RangeError("requestTimeout.timeoutMs must be > 0");
   }

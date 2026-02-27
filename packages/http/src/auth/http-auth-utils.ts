@@ -57,7 +57,9 @@ export function readCookieValue(
 
 export function isSafeHttpMethod(method: string | undefined): boolean {
   const normalized = method?.toUpperCase() ?? "GET";
-  return normalized === "GET" || normalized === "HEAD" || normalized === "OPTIONS";
+  return (
+    normalized === "GET" || normalized === "HEAD" || normalized === "OPTIONS"
+  );
 }
 
 export function resolveClientAddress(

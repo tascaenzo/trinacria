@@ -1,8 +1,4 @@
-import {
-  ConsoleLogger,
-  TrinacriaApp,
-  valueProvider,
-} from "@trinacria/core";
+import { ConsoleLogger, TrinacriaApp, valueProvider } from "@trinacria/core";
 import { createEventsPlugin, RabbitMqEventTransport } from "@trinacria/events";
 import {
   cors,
@@ -13,14 +9,8 @@ import {
   requestLogger,
   requestTimeout,
 } from "@trinacria/http";
-import {
-  CONFIG_SERVICE,
-  ConfigService,
-} from "./global/config.service";
-import {
-  RABBITMQ_SERVICE,
-  RabbitMqService,
-} from "./global/rabbitmq.service";
+import { CONFIG_SERVICE, ConfigService } from "./global/config.service";
+import { RABBITMQ_SERVICE, RabbitMqService } from "./global/rabbitmq.service";
 import { registerGlobalControllers } from "./global/register-global-controllers";
 import { EventsModule } from "./modules/events/events.module";
 

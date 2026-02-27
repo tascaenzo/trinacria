@@ -1,9 +1,6 @@
 import { HttpController, HttpContext, response } from "@trinacria/http";
 import type { EventBus } from "@trinacria/events";
-import {
-  EventListDtoSchema,
-  PublishEventDtoSchema,
-} from "./dto";
+import { EventListDtoSchema, PublishEventDtoSchema } from "./dto";
 import { DEMO_EVENT_NAME } from "./events.provider";
 import { EventsService } from "./events.service";
 

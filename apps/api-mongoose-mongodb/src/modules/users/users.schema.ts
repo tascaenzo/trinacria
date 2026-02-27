@@ -1,8 +1,4 @@
-import {
-  type HydratedDocument,
-  type Model,
-  Schema,
-} from "mongoose";
+import { type HydratedDocument, type Model, Schema } from "mongoose";
 
 export interface UserEntity {
   name: string;

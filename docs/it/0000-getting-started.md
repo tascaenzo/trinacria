@@ -244,4 +244,3 @@ Controlla coerenza tra:
 ## Porta già in uso
 
 Cambia `port` nel `createHttpPlugin({ port: ... })` o libera la porta.
-

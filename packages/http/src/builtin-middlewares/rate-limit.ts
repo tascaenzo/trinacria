@@ -59,10 +59,7 @@ export function rateLimit(options: RateLimitOptions = {}): HttpMiddleware {
     store.prune?.(now);
 
     if (counter.count > roundedMax) {
-      const retryAfter = Math.max(
-        1,
-        Math.ceil((counter.resetAt - now) / 1000),
-      );
+      const retryAfter = Math.max(1, Math.ceil((counter.resetAt - now) / 1000));
 
       throw new TooManyRequestsException("Too Many Requests", {
         code: "RATE_LIMITED",

@@ -6,8 +6,12 @@ import path from "node:path";
 import { start } from "../src/commands/start";
 import type { ResolvedConfig } from "../src/config/config.contract";
 
-function withTempDir(run: (dir: string) => Promise<void> | void): Promise<void> {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trinacria-cli-start-cmd-"));
+function withTempDir(
+  run: (dir: string) => Promise<void> | void,
+): Promise<void> {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "trinacria-cli-start-cmd-"),
+  );
   return Promise.resolve()
     .then(() => run(dir))
     .finally(() => {

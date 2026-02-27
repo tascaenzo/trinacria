@@ -5,7 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import { __newTestUtils, createNewApp } from "../src/commands/new";
 
-function withTempDir(run: (dir: string) => Promise<void> | void): Promise<void> {
+function withTempDir(
+  run: (dir: string) => Promise<void> | void,
+): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trinacria-cli-new-"));
   return Promise.resolve()
     .then(() => run(dir))
@@ -65,7 +67,10 @@ test("createNewApp generates project from apps/app-starter", async () => {
 
       const targetDir = path.join(dir, "my-generated-app");
       assert.equal(fs.existsSync(path.join(targetDir, "src", "main.ts")), true);
-      assert.equal(fs.existsSync(path.join(targetDir, "trinacria.config.mjs")), true);
+      assert.equal(
+        fs.existsSync(path.join(targetDir, "trinacria.config.mjs")),
+        true,
+      );
       assert.equal(fs.existsSync(path.join(targetDir, ".gitignore")), true);
 
       const tsconfig = JSON.parse(
@@ -103,7 +108,14 @@ test("createNewApp generates project from apps/app-starter", async () => {
 
 test("createNewApp fails for unknown template", async () => {
   await assert.rejects(
-    () => createNewApp(["my-app", "--template", "playground", "--no-install", "--no-git"]),
+    () =>
+      createNewApp([
+        "my-app",
+        "--template",
+        "playground",
+        "--no-install",
+        "--no-git",
+      ]),
     /Unknown template/,
   );
 });
@@ -114,7 +126,11 @@ test("createNewApp fails if target directory is not empty without --force", asyn
     process.chdir(dir);
     try {
       fs.mkdirSync(path.join(dir, "my-app"), { recursive: true });
-      fs.writeFileSync(path.join(dir, "my-app", "existing.txt"), "data", "utf8");
+      fs.writeFileSync(
+        path.join(dir, "my-app", "existing.txt"),
+        "data",
+        "utf8",
+      );
 
       await assert.rejects(
         () => createNewApp(["my-app", "--no-install", "--no-git"]),

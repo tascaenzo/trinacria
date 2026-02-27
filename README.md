@@ -7,6 +7,7 @@
 A modular, type-safe Dependency Injection engine for TypeScript applications and infrastructure runtimes.
 
 ## Why Trinacria?
+
 Trinacria is an engine, not a framework.
 
 It provides the architectural core for building systems with explicit dependency graphs, strict module boundaries, and plugin-based extensions. It does not prescribe transport layers, routing style, persistence strategy, or application conventions.
@@ -14,6 +15,7 @@ It provides the architectural core for building systems with explicit dependency
 If you want full control over architecture without decorators, reflection, or hidden container behavior, Trinacria is designed for that use case.
 
 ## Philosophy
+
 Trinacria is built around explicitness and deterministic behavior:
 
 - Dependencies are declared through typed tokens.
@@ -86,10 +88,12 @@ void bootstrap();
 ## Core Concepts
 
 ### Token
+
 A `Token<T>` is a strongly typed dependency identifier created with `createToken<T>()`.
 Tokens replace string keys and keep dependency contracts type-safe at compile time.
 
 ### Providers (class, value, factory)
+
 Trinacria supports three provider types:
 
 - `classProvider(token, ClassCtor, deps?)`
@@ -99,6 +103,7 @@ Trinacria supports three provider types:
 All dependencies are explicit through `deps`. There is no constructor metadata reflection.
 
 ### Lifecycle
+
 Lifecycle has clear phases:
 
 1. Configuration (`use`, `registerModule`, `registerGlobalProvider`)
@@ -120,6 +125,7 @@ Plugins may implement:
 - `onDestroy(app)`
 
 ### Plugin system
+
 Plugins are plain objects declared with `definePlugin(...)`.
 They extend behavior without modifying core internals.
 
@@ -165,11 +171,9 @@ const UserModule = defineModule({
   name: "UserModule",
   imports: [InfraModule],
   providers: [
-    factoryProvider(
-      USER_SERVICE_TOKEN,
-      (repo) => new UserService(repo),
-      [USER_REPO_TOKEN],
-    ),
+    factoryProvider(USER_SERVICE_TOKEN, (repo) => new UserService(repo), [
+      USER_REPO_TOKEN,
+    ]),
   ],
   exports: [USER_SERVICE_TOKEN],
 });
@@ -178,6 +182,7 @@ const UserModule = defineModule({
 This keeps infrastructure and domain services separated while preserving explicit contracts.
 
 ## Testing
+
 Trinacria improves testing by making dependencies explicit and replaceable via tokens.
 
 ```ts
@@ -230,15 +235,15 @@ No decorator setup, no reflection mocks, no hidden container overrides.
 
 ## Comparison Table
 
-| Topic | Trinacria | Typical decorator-based DI |
-|---|---|---|
-| Dependency declaration | Explicit tokens and provider deps | Implicit constructor metadata and decorators |
-| Runtime reflection | Not required | Usually required |
-| Module boundaries | Explicit `imports` / `exports` | Often mixed with framework module conventions |
-| Extensibility model | Plugin lifecycle + provider kinds | Framework extension points, often coupled |
-| Container behavior | Deterministic and visible in code | May rely on implicit scanning/registration |
-| Architectural coupling | Engine-first, transport-agnostic | Frequently tied to framework runtime |
-| Testing style | Token-level provider replacement | Often needs framework testing harnesses |
+| Topic                  | Trinacria                         | Typical decorator-based DI                    |
+| ---------------------- | --------------------------------- | --------------------------------------------- |
+| Dependency declaration | Explicit tokens and provider deps | Implicit constructor metadata and decorators  |
+| Runtime reflection     | Not required                      | Usually required                              |
+| Module boundaries      | Explicit `imports` / `exports`    | Often mixed with framework module conventions |
+| Extensibility model    | Plugin lifecycle + provider kinds | Framework extension points, often coupled     |
+| Container behavior     | Deterministic and visible in code | May rely on implicit scanning/registration    |
+| Architectural coupling | Engine-first, transport-agnostic  | Frequently tied to framework runtime          |
+| Testing style          | Token-level provider replacement  | Often needs framework testing harnesses       |
 
 ## Use Cases
 

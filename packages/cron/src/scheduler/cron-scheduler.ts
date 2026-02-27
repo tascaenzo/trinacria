@@ -46,7 +46,9 @@ export class CronScheduler {
       !Number.isInteger(options.lockRenewIntervalMs) ||
       options.lockRenewIntervalMs <= 0
     ) {
-      throw new Error("Invalid lockRenewIntervalMs: expected a positive integer");
+      throw new Error(
+        "Invalid lockRenewIntervalMs: expected a positive integer",
+      );
     }
   }
 
@@ -136,11 +138,15 @@ export class CronScheduler {
             return;
           }
 
-          stopLockRenewal = this.startLockRenewal(job, acquiredLock, (error) => {
-            if (!renewError) {
-              renewError = error;
-            }
-          });
+          stopLockRenewal = this.startLockRenewal(
+            job,
+            acquiredLock,
+            (error) => {
+              if (!renewError) {
+                renewError = error;
+              }
+            },
+          );
           attempts = await this.runWithRetry(job, context);
           if (renewError) {
             throw renewError;
@@ -305,7 +311,10 @@ export class CronScheduler {
       scheduledAt: context.scheduledAt,
       startedAt: context.startedAt,
       finishedAt,
-      durationMs: Math.max(0, finishedAt.getTime() - context.startedAt.getTime()),
+      durationMs: Math.max(
+        0,
+        finishedAt.getTime() - context.startedAt.getTime(),
+      ),
       status: result.status,
       attempts: result.attempts,
       error: result.error,
@@ -392,10 +401,17 @@ export class CronScheduler {
     ) {
       throw new Error(`Invalid retry policy for cron job "${job.name}"`);
     }
-    if (policy.backoffMs < 0 || policy.maxBackoffMs <= 0 || policy.multiplier < 1) {
+    if (
+      policy.backoffMs < 0 ||
+      policy.maxBackoffMs <= 0 ||
+      policy.multiplier < 1
+    ) {
       throw new Error(`Invalid retry policy for cron job "${job.name}"`);
     }
-    if (!Number.isInteger(policy.backoffMs) || !Number.isInteger(policy.maxBackoffMs)) {
+    if (
+      !Number.isInteger(policy.backoffMs) ||
+      !Number.isInteger(policy.maxBackoffMs)
+    ) {
       throw new Error(`Invalid retry policy for cron job "${job.name}"`);
     }
     if (policy.jitterMs < 0) {
@@ -423,7 +439,8 @@ function resolveRetryPolicy(
     maxAttempts: jobPolicy?.maxAttempts ?? pluginPolicy?.maxAttempts ?? 1,
     backoffMs: jobPolicy?.backoffMs ?? pluginPolicy?.backoffMs ?? 250,
     multiplier: jobPolicy?.multiplier ?? pluginPolicy?.multiplier ?? 2,
-    maxBackoffMs: jobPolicy?.maxBackoffMs ?? pluginPolicy?.maxBackoffMs ?? 10_000,
+    maxBackoffMs:
+      jobPolicy?.maxBackoffMs ?? pluginPolicy?.maxBackoffMs ?? 10_000,
     jitterMs: jobPolicy?.jitterMs ?? pluginPolicy?.jitterMs ?? 0,
   };
 }
@@ -437,7 +454,8 @@ function computeRetryDelayMs(
     policy.maxBackoffMs,
     policy.backoffMs * Math.pow(policy.multiplier, exponent),
   );
-  const jitter = policy.jitterMs > 0 ? Math.floor(Math.random() * (policy.jitterMs + 1)) : 0;
+  const jitter =
+    policy.jitterMs > 0 ? Math.floor(Math.random() * (policy.jitterMs + 1)) : 0;
   return backoff + jitter;
 }
 

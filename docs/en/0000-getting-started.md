@@ -244,4 +244,3 @@ Check consistency between:
 ## Port already in use
 
 Change `port` in `createHttpPlugin({ port: ... })` or free the port.
-

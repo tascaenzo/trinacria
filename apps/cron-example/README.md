@@ -3,6 +3,7 @@
 App minimale di esempio per usare `@trinacria/cron`.
 
 Mostra:
+
 - job a intervallo (`interval`)
 - job con espressione cron (`cron`)
 - protezione overlap con `allowConcurrent: false`

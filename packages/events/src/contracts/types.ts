@@ -54,7 +54,9 @@ export interface EventBus {
 }
 
 export interface ManagedEventBus extends EventBus {
-  replaceManagedSubscriptions(subscriptions: readonly EventSubscription[]): void;
+  replaceManagedSubscriptions(
+    subscriptions: readonly EventSubscription[],
+  ): void;
   clear(): void;
   start?(): MaybePromise<void>;
   stop?(): MaybePromise<void>;

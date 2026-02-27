@@ -57,7 +57,9 @@ export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
 
 function normalizeConfig(config: ResolvedConfig): ResolvedConfig {
   const crashLoopWindowMs = Number(config.crashLoopWindowMs);
-  const maxConsecutiveCrashRestarts = Number(config.maxConsecutiveCrashRestarts);
+  const maxConsecutiveCrashRestarts = Number(
+    config.maxConsecutiveCrashRestarts,
+  );
 
   return {
     ...config,

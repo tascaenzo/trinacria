@@ -20,7 +20,11 @@ npm i @trinacria/http @trinacria/core
 
 ```ts
 import { TrinacriaApp, createToken, defineModule } from "@trinacria/core";
-import { HttpController, createHttpPlugin, httpProvider } from "@trinacria/http";
+import {
+  HttpController,
+  createHttpPlugin,
+  httpProvider,
+} from "@trinacria/http";
 
 class HealthController extends HttpController {
   routes() {

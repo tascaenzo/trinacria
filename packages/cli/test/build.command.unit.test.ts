@@ -12,7 +12,9 @@ class ExitError extends Error {
   }
 }
 
-function withTempDir(run: (dir: string) => Promise<void> | void): Promise<void> {
+function withTempDir(
+  run: (dir: string) => Promise<void> | void,
+): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trinacria-cli-build-"));
   return Promise.resolve()
     .then(() => run(dir))
@@ -75,9 +77,11 @@ test("build exits with code 1 when tsconfig.json is missing", async () => {
     process.chdir(dir);
     try {
       await assert.rejects(
-        () => withSilencedOutput(() => withExitIntercept(() => build(createConfig()))),
-        (error: unknown) =>
-          error instanceof ExitError && error.code === 1,
+        () =>
+          withSilencedOutput(() =>
+            withExitIntercept(() => build(createConfig())),
+          ),
+        (error: unknown) => error instanceof ExitError && error.code === 1,
       );
     } finally {
       process.chdir(previousCwd);
@@ -93,9 +97,11 @@ test("build exits with code 1 when tsconfig.json is malformed", async () => {
       fs.writeFileSync(path.join(dir, "tsconfig.json"), "{ invalid");
 
       await assert.rejects(
-        () => withSilencedOutput(() => withExitIntercept(() => build(createConfig()))),
-        (error: unknown) =>
-          error instanceof ExitError && error.code === 1,
+        () =>
+          withSilencedOutput(() =>
+            withExitIntercept(() => build(createConfig())),
+          ),
+        (error: unknown) => error instanceof ExitError && error.code === 1,
       );
     } finally {
       process.chdir(previousCwd);
@@ -109,7 +115,10 @@ test("build succeeds and emits output on valid project", async () => {
     process.chdir(dir);
     try {
       fs.mkdirSync(path.join(dir, "src"), { recursive: true });
-      fs.writeFileSync(path.join(dir, "src", "main.ts"), "export const ok = 1;\n");
+      fs.writeFileSync(
+        path.join(dir, "src", "main.ts"),
+        "export const ok = 1;\n",
+      );
       fs.writeFileSync(
         path.join(dir, "tsconfig.json"),
         JSON.stringify(
@@ -128,10 +137,7 @@ test("build succeeds and emits output on valid project", async () => {
       );
 
       await withSilencedOutput(() => build(createConfig("build-out")));
-      assert.equal(
-        fs.existsSync(path.join(dir, "build-out", "main.js")),
-        true,
-      );
+      assert.equal(fs.existsSync(path.join(dir, "build-out", "main.js")), true);
     } finally {
       process.chdir(previousCwd);
     }
@@ -168,11 +174,10 @@ test("build exits with code 1 when TypeScript diagnostics contain errors", async
 
       await assert.rejects(
         () =>
-          withSilencedOutput(
-            () => withExitIntercept(() => build(createConfig("dist"))),
+          withSilencedOutput(() =>
+            withExitIntercept(() => build(createConfig("dist"))),
           ),
-        (error: unknown) =>
-          error instanceof ExitError && error.code === 1,
+        (error: unknown) => error instanceof ExitError && error.code === 1,
       );
     } finally {
       process.chdir(previousCwd);

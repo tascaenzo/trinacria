@@ -45,7 +45,10 @@ export class ConfigService {
   private loadEnvFile() {
     const currentEnv = process.env.ENV || "development";
     const fileNames = [".env", `.env.${currentEnv}`];
-    const roots = [process.cwd(), path.join(process.cwd(), "apps/api-events-redis")];
+    const roots = [
+      process.cwd(),
+      path.join(process.cwd(), "apps/api-events-redis"),
+    ];
 
     fileNames.forEach((fileName) => {
       roots.forEach((root) => {

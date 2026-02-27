@@ -3,12 +3,12 @@ name: Docker Smoke
 on:
   pull_request:
     paths:
-      - 'apps/api-prisma-postgresql/**'
-      - 'apps/api-mongoose-mongodb/**'
-      - 'apps/api-events-redis/**'
-      - 'apps/api-events-rabbitmq/**'
-      - 'scripts/docker-smoke.sh'
-      - '.github/workflows/docker-smoke.yml'
+      - "apps/api-prisma-postgresql/**"
+      - "apps/api-mongoose-mongodb/**"
+      - "apps/api-events-redis/**"
+      - "apps/api-events-rabbitmq/**"
+      - "scripts/docker-smoke.sh"
+      - ".github/workflows/docker-smoke.yml"
   workflow_dispatch:
 
 jobs:

@@ -6,4 +6,5 @@ export const PLAYGROUND_CRON_JOB_PROVIDER = createToken<CronJobProvider>(
   "PLAYGROUND_CRON_JOB_PROVIDER",
 );
 
-export const CRON_LOCK_SERVICE = createToken<CronLockService>("CRON_LOCK_SERVICE");
+export const CRON_LOCK_SERVICE =
+  createToken<CronLockService>("CRON_LOCK_SERVICE");
