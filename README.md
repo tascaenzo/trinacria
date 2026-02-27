@@ -1,7 +1,7 @@
 # Trinacria
 
 <p align="center">
-  <img src="./docs/assets/logo.png" alt="Logo Trinacria" width="220" />
+  <img src="./docs/assets/logo_transparent.png" alt="Trinacria logo" width="220" />
 </p>
 
 A modular, type-safe Dependency Injection engine for TypeScript applications and infrastructure runtimes.
