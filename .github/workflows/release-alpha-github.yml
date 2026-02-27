@@ -1,9 +1,6 @@
 name: Release Alpha (GitHub Packages)
 
 on:
-  push:
-    branches:
-      - alpha
   workflow_dispatch:
 
 concurrency: release-alpha
