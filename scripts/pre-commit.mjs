@@ -33,6 +33,10 @@ if (stagedFiles.length === 0) {
   process.exit(0);
 }
 
+const eslintTargets = stagedFiles.filter((file) =>
+  /\.(ts|mts|cts|js|mjs|cjs)$/.test(file),
+);
+
 const runAll =
   stagedFiles.some((file) => GLOBAL_FILES.has(file)) ||
   stagedFiles.some((file) => file.startsWith("scripts/"));
@@ -54,8 +58,17 @@ const testTargets = runAll
   ? WORKSPACES.filter((w) => w.test).map((w) => w.name)
   : WORKSPACES.filter((w) => w.test && touched.has(w.name)).map((w) => w.name);
 
-if (lintTargets.length === 0 && testTargets.length === 0) {
+if (
+  lintTargets.length === 0 &&
+  testTargets.length === 0 &&
+  eslintTargets.length === 0
+) {
   process.exit(0);
+}
+
+if (eslintTargets.length > 0) {
+  console.log("[pre-commit] Running eslint static checks...");
+  run(`npx eslint ${eslintTargets.map(shellQuote).join(" ")}`);
 }
 
 console.log("[pre-commit] Running workspace build checks...");
@@ -71,6 +84,10 @@ if (testTargets.length > 0) {
 }
 
 console.log("[pre-commit] Checks passed.");
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\"'\"'`)}'`;
+}
 
 function discoverWorkspaces(patterns) {
   const workspaces = [];
