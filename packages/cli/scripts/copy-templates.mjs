@@ -20,14 +20,18 @@ const templateNames = [
 
 fs.mkdirSync(distTemplatesRoot, { recursive: true });
 
+let copiedCount = 0;
+
 for (const templateName of templateNames) {
   const source = path.resolve(appsRoot, templateName);
   const target = path.resolve(distTemplatesRoot, templateName);
 
   if (!fs.existsSync(source)) {
-    throw new Error(`Template source not found: ${source}`);
+    console.warn(`[copy-templates] skip missing template: ${source}`);
+    continue;
   }
 
+  fs.rmSync(target, { recursive: true, force: true });
   fs.cpSync(source, target, {
     recursive: true,
     force: true,
@@ -36,5 +40,11 @@ for (const templateName of templateNames) {
       return name !== "node_modules" && name !== "dist" && name !== ".git";
     },
   });
+  copiedCount += 1;
 }
 
+if (copiedCount === 0) {
+  throw new Error(
+    `[copy-templates] no templates found in ${appsRoot}. Make sure at least one app template is available.`,
+  );
+}
