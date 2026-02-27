@@ -243,10 +243,15 @@ async function smokeTemplate(workspaceRoot, template) {
   const healthUrl = template.hasHttp && port ? `http://127.0.0.1:${port}/health` : "";
 
   log(`Starting ${template.name} (start)...`);
-  await runLongLived("npm", ["run", "start"], appDir, {
-    healthUrl,
-    bootMs: 4000,
-  });
+  if (template.hasHttp) {
+    await runLongLived("npm", ["run", "start"], appDir, {
+      healthUrl,
+      bootMs: 4000,
+    });
+  } else {
+    // Non-HTTP templates can complete immediately after startup logic.
+    await run("npm", ["run", "start"], appDir);
+  }
 
   log(`Starting ${template.name} (dev/watch)...`);
   await runLongLived("npm", ["run", "dev"], appDir, {
