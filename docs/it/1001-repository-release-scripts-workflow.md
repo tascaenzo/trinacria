@@ -135,7 +135,8 @@ Ad ogni push su `alpha`:
 
 1. build + test completi
 2. `npm run version-packages:alpha` per versioni snapshot prerelease
-3. `npm run release:alpha:github` per publish su GitHub Packages
+3. `npm run prepare:alpha:github` per remap scope temporaneo (`@tascaenzo/*`)
+4. `npm run release:alpha:github` per publish su GitHub Packages
 
 ## Errori comuni e come risolverli
 

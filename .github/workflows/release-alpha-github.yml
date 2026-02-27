@@ -39,11 +39,11 @@ jobs:
       - name: Test framework packages
         run: npm run test:packages
 
-      - name: Remap package scope for personal GitHub Packages publish
-        run: npm run prepare:alpha:github
-
       - name: Generate alpha snapshot versions
         run: npm run version-packages:alpha
+
+      - name: Remap package scope for personal GitHub Packages publish
+        run: npm run prepare:alpha:github
 
       - name: Publish alpha snapshots to GitHub Packages
         run: npm run release:alpha:github

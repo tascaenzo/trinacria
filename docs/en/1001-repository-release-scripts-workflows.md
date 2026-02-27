@@ -135,7 +135,8 @@ On each push to `alpha`:
 
 1. full build + tests
 2. `npm run version-packages:alpha` to generate prerelease snapshot versions
-3. `npm run release:alpha:github` to publish to GitHub Packages
+3. `npm run prepare:alpha:github` to apply temporary scope remap (`@tascaenzo/*`)
+4. `npm run release:alpha:github` to publish to GitHub Packages
 
 ## Common issues
 

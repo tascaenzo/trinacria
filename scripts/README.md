@@ -128,8 +128,8 @@ Channel-oriented usage:
 
 ```bash
 # alpha channel -> GitHub Packages
-npm run prepare:alpha:github
 npm run version-packages:alpha
+npm run prepare:alpha:github
 npm run release:alpha:github
 
 # stable channel -> npmjs
