@@ -1,37 +1,31 @@
 # App Starter
 
-App minima: solo bootstrap di `TrinacriaApp` e log `Hello World`.
+A minimal Trinacria app with only `TrinacriaApp` bootstrap and a `Hello World` log.
 
-Non include:
-- plugin
-- moduli
+This template does not include:
+- plugins
+- modules
 - database
-- API HTTP
+- HTTP API
 
-## Avvio
-
-```bash
-npm run dev -w app-starter
-```
-
-Oppure dalla root:
+## Start
 
 ```bash
-npm run dev:app-starter
+npm run dev
 ```
 
 ## Docker quick start
 
 ```bash
 docker compose \
-  -f apps/app-starter/docker-compose.yml \
+  -f docker-compose.yml \
   up --build -d
 ```
 
-Per fermare:
+To stop:
 
 ```bash
 docker compose \
-  -f apps/app-starter/docker-compose.yml \
+  -f docker-compose.yml \
   down
 ```

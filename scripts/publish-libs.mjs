@@ -17,26 +17,23 @@ Usage:
   node scripts/publish-libs.mjs [options]
 
 Options:
-  --mode <pack|npm|git>          Execution mode (default: pack)
+  --mode <pack|npm>              Execution mode (default: pack)
   --packages <pkg1,pkg2>         Comma-separated package names (default: all public packages in packages/*)
   --registry <url>               NPM registry URL (used only in npm mode)
   --access <public|restricted>   Access mode for npm publish (default: public)
+  --tag <name>                   Dist-tag for npm publish (default: none, npm default is latest)
   --artifacts-dir <path>         Output folder for artifacts (default: .artifacts/npm)
-  --tag-prefix <prefix>          Prefix for git tags in git mode (default: empty)
-  --git-remote <name>            Git remote for tag push in git mode (default: origin)
-  --push                         Push tags to remote in git mode
   --skip-build                   Skip build step
   --skip-test                    Skip test step
+  --skip-cli-smoke               Skip CLI template smoke test gate (npm mode)
   --skip-existing                Skip publish when package@version already exists in registry (npm mode)
-  --allow-dirty                  Allow git mode even with dirty working tree
-  --dry-run                      Do everything except publish/tag/push
+  --dry-run                      Do everything except publish
   --help                         Show this message
 
 Examples:
   node scripts/publish-libs.mjs --mode pack
   node scripts/publish-libs.mjs --mode npm --registry https://registry.npmjs.org
   node scripts/publish-libs.mjs --mode npm --dry-run
-  node scripts/publish-libs.mjs --mode git --push --tag-prefix release/
 `;
 
 function parseArgs(argv) {
@@ -45,14 +42,12 @@ function parseArgs(argv) {
     packages: [],
     registry: "",
     access: "public",
+    tag: "",
     artifactsDir: ".artifacts/npm",
-    tagPrefix: "",
-    gitRemote: "origin",
-    push: false,
     skipBuild: false,
     skipTest: false,
+    skipCliSmoke: false,
     skipExisting: false,
-    allowDirty: false,
     dryRun: false,
     help: false,
   };
@@ -63,10 +58,6 @@ function parseArgs(argv) {
       options.help = true;
       continue;
     }
-    if (arg === "--push") {
-      options.push = true;
-      continue;
-    }
     if (arg === "--skip-build") {
       options.skipBuild = true;
       continue;
@@ -75,8 +66,8 @@ function parseArgs(argv) {
       options.skipTest = true;
       continue;
     }
-    if (arg === "--allow-dirty") {
-      options.allowDirty = true;
+    if (arg === "--skip-cli-smoke") {
+      options.skipCliSmoke = true;
       continue;
     }
     if (arg === "--skip-existing") {
@@ -120,19 +111,14 @@ function parseArgs(argv) {
       options.access = takeValue();
       continue;
     }
+    if (flag === "--tag") {
+      options.tag = takeValue();
+      continue;
+    }
     if (flag === "--artifacts-dir") {
       options.artifactsDir = takeValue();
       continue;
     }
-    if (flag === "--tag-prefix") {
-      options.tagPrefix = takeValue();
-      continue;
-    }
-    if (flag === "--git-remote") {
-      options.gitRemote = takeValue();
-      continue;
-    }
-
     throw new Error(`Unknown option: ${arg}`);
   }
 
@@ -223,23 +209,6 @@ function selectPackages(allPackages, requestedPackages) {
   return selected;
 }
 
-function ensureCleanGitTree() {
-  const { stdout } = run("git", ["status", "--porcelain"], { capture: true });
-  if (stdout) {
-    throw new Error(
-      "Git working tree is not clean. Commit/stash changes or use --allow-dirty.",
-    );
-  }
-}
-
-function tagExists(tag) {
-  const result = spawnSync("git", ["tag", "--list", tag], {
-    cwd: ROOT_DIR,
-    encoding: "utf8",
-  });
-  return result.status === 0 && (result.stdout || "").trim() === tag;
-}
-
 function artifactPackageDirName(packageName) {
   return packageName.replace(/^@/, "").replace(/\//g, "--");
 }
@@ -290,8 +259,8 @@ function main() {
     return;
   }
 
-  if (!["pack", "npm", "git"].includes(options.mode)) {
-    throw new Error(`Invalid --mode "${options.mode}". Use pack, npm or git.`);
+  if (!["pack", "npm"].includes(options.mode)) {
+    throw new Error(`Invalid --mode "${options.mode}". Use pack or npm.`);
   }
   if (!["public", "restricted"].includes(options.access)) {
     throw new Error(`Invalid --access "${options.access}". Use public or restricted.`);
@@ -310,10 +279,6 @@ function main() {
   console.log("Selected packages:");
   for (const pkg of selectedPackages) {
     console.log(`- ${pkg.name}@${pkg.version}`);
-  }
-
-  if (options.mode === "git" && !options.allowDirty) {
-    ensureCleanGitTree();
   }
 
   if (!options.skipBuild) {
@@ -390,6 +355,11 @@ function main() {
   }
 
   if (options.mode === "npm") {
+    if (!options.skipCliSmoke) {
+      console.log("\nRunning CLI template smoke test gate...");
+      run("node", ["scripts/cli-template-smoke.mjs"]);
+    }
+
     console.log("\nPublishing to npm registry...");
     for (const artifact of artifactRecords) {
       if (options.skipExisting && !options.dryRun) {
@@ -408,6 +378,9 @@ function main() {
       if (options.registry) {
         args.push("--registry", options.registry);
       }
+      if (options.tag) {
+        args.push("--tag", options.tag);
+      }
       if (options.dryRun) {
         args.push("--dry-run");
       }
@@ -421,33 +394,7 @@ function main() {
     return;
   }
 
-  console.log("\nCreating git tags...");
-  for (const artifact of artifactRecords) {
-    const tag = `${options.tagPrefix}${artifact.name}@${artifact.version}`;
-    if (tagExists(tag)) {
-      console.log(`- skip existing tag: ${tag}`);
-      continue;
-    }
-
-    if (options.dryRun) {
-      console.log(`- dry-run tag: ${tag}`);
-      continue;
-    }
-
-    run("git", ["tag", "-a", tag, "-m", `release: ${artifact.name}@${artifact.version}`]);
-    console.log(`- created: ${tag}`);
-
-    if (options.push) {
-      run("git", ["push", options.gitRemote, tag]);
-      console.log(`- pushed: ${tag} -> ${options.gitRemote}`);
-    }
-  }
-
-  if (options.dryRun) {
-    console.log("\nDry run completed. No tag was created/pushed.");
-  } else {
-    console.log("\nGit release flow completed.");
-  }
+  throw new Error(`Unhandled mode: ${options.mode}`);
 }
 
 try {

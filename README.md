@@ -283,8 +283,8 @@ Repository documentation:
 
 Release channels:
 
-- `alpha` channel on GitHub Packages via `.github/workflows/release-alpha-github.yml`
-- `stable` channel on npmjs via `.github/workflows/release.yml`
+- publish flow via `npm run release:npm` (guided)
+- CLI template smoke workflow: `.github/workflows/cli-template-smoke.yml`
 
 ## License
 

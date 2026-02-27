@@ -117,26 +117,21 @@ npx changeset status --since=origin/main
 
 Se manca il changeset per una modifica che impatta package pubblicati, la PR dovrebbe essere aggiornata.
 
-## Flusso release su `main` (`.github/workflows/release.yml`)
+## Flusso release (attuale)
 
-A ogni push su `main`:
+La release viene eseguita con il comando guidato:
 
-1. build + test completi
-2. `changesets/action` esegue:
-   - `npm run version-packages`
-   - crea/aggiorna PR `chore: release packages` se ci sono changeset pendenti
-3. quando la release PR viene mergiata:
-   - `npm run release`
-   - publish su npm
+```bash
+npm run release:npm
+```
 
-## Flusso alpha su branch `alpha` (`.github/workflows/release-alpha-github.yml`)
+Cosa fa:
 
-Ad ogni push su `alpha`:
+1. chiede scelte package/tag/versione
+2. esegue pre-check (`npm whoami`, build, test, pack dry-run)
+3. richiama la publish tramite `scripts/publish-libs.mjs`
 
-1. build + test completi
-2. `npm run version-packages:alpha` per versioni snapshot prerelease
-3. `npm run prepare:alpha:github` per remap scope temporaneo (`@tascaenzo/*`)
-4. `npm run release:alpha:github` per publish su GitHub Packages
+`scripts/publish-libs.mjs --mode npm` esegue di default gli smoke test dei template CLI prima della publish.
 
 ## Errori comuni e come risolverli
 
@@ -156,6 +151,6 @@ Ad ogni push su `alpha`:
 
 - `.changeset/config.json`
 - `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
+- `.github/workflows/cli-template-smoke.yml`
 - `scripts/pre-commit.mjs`
 - [`1000 - Repository: Policy di Versioning`](./1000-repository-policy-versioning.md)
