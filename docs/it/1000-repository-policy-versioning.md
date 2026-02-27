@@ -19,6 +19,7 @@ npm run changeset
 ```
 
 3. Seleziona package coinvolti e tipo di bump:
+
 - `patch`: fix e miglioramenti interni backward-compatible
 - `minor`: nuove feature backward-compatible
 - `major`: breaking changes
@@ -47,3 +48,5 @@ npm run changeset
 ## Documenti correlati
 
 - [`1001 - Repository: Script e Workflow Release`](./1001-repository-release-scripts-workflow.md)
+- [`1003 - Repository: Workflow Branching`](./1003-repository-branching-workflow.md)
+- [`1005 - Repository: Flussi reali attivi`](./1005-repository-real-workflows.md)
