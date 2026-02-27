@@ -57,11 +57,11 @@ node scripts/publish-libs.mjs --mode npm --skip-cli-smoke
 
 ## Artifact layout
 
-Default output: `.artifacts/npm`
+Default output: `.tmp/artifacts/npm`
 
-- `.artifacts/npm/<package>/<version>/<tarball>.tgz`
-- `.artifacts/npm/<package>/<version>/<tarball>.tgz.sha256`
-- `.artifacts/npm/manifest.json`
+- `.tmp/artifacts/npm/<package>/<version>/<tarball>.tgz`
+- `.tmp/artifacts/npm/<package>/<version>/<tarball>.tgz.sha256`
+- `.tmp/artifacts/npm/manifest.json`
 
 `manifest.json` includes:
 
@@ -81,8 +81,8 @@ npm run publish:libs:npm:dry
 2. Verify artifacts:
 
 ```bash
-cat .artifacts/npm/manifest.json
-tar -tzf .artifacts/npm/<package>/<version>/<file>.tgz
+cat .tmp/artifacts/npm/manifest.json
+tar -tzf .tmp/artifacts/npm/<package>/<version>/<file>.tgz
 ```
 
 3. Real registry publish:
@@ -104,7 +104,7 @@ npm run release:npm
 Example:
 
 ```bash
-node scripts/publish-libs.mjs --mode pack --packages @trinacria/core,@trinacria/http --artifacts-dir .artifacts/release
+node scripts/publish-libs.mjs --mode pack --packages @trinacria/core,@trinacria/http --artifacts-dir .tmp/artifacts/release
 ```
 
 ## Operational requirements

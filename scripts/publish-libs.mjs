@@ -21,7 +21,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
 const PACKAGES_DIR = path.join(ROOT_DIR, "packages");
-const LOCAL_NPM_CACHE_DIR = path.join(ROOT_DIR, ".npm-cache");
+const LOCAL_NPM_CACHE_DIR = path.join(ROOT_DIR, ".tmp/npm-cache");
 
 const HELP_TEXT = `
 Usage:
@@ -33,7 +33,7 @@ Options:
   --registry <url>               NPM registry URL (used only in npm mode)
   --access <public|restricted>   Access mode for npm publish (default: public)
   --tag <name>                   Dist-tag for npm publish (default: none, npm default is latest)
-  --artifacts-dir <path>         Output folder for artifacts (default: .artifacts/npm)
+  --artifacts-dir <path>         Output folder for artifacts (default: .tmp/artifacts/npm)
   --skip-build                   Skip build step
   --skip-test                    Skip test step
   --skip-cli-smoke               Skip CLI template smoke test gate (npm mode)
@@ -54,7 +54,7 @@ function parseArgs(argv) {
     registry: "",
     access: "public",
     tag: "",
-    artifactsDir: ".artifacts/npm",
+    artifactsDir: ".tmp/artifacts/npm",
     skipBuild: false,
     skipTest: false,
     skipCliSmoke: false,
@@ -296,7 +296,9 @@ function main() {
     throw new Error(`Invalid --mode "${options.mode}". Use pack or npm.`);
   }
   if (!["public", "restricted"].includes(options.access)) {
-    throw new Error(`Invalid --access "${options.access}". Use public or restricted.`);
+    throw new Error(
+      `Invalid --access "${options.access}". Use public or restricted.`,
+    );
   }
 
   const workspacePackages = getWorkspacePackages();
@@ -350,7 +352,11 @@ function main() {
       const tarballPath = path.join(packageArtifactDir, packEntry.filename);
       const sha256 = sha256File(tarballPath);
       const shaFilePath = `${tarballPath}.sha256`;
-      writeFileSync(shaFilePath, `${sha256}  ${path.basename(tarballPath)}\n`, "utf8");
+      writeFileSync(
+        shaFilePath,
+        `${sha256}  ${path.basename(tarballPath)}\n`,
+        "utf8",
+      );
 
       artifactRecords.push({
         name: pkg.name,
@@ -407,7 +413,9 @@ function main() {
           options.registry,
         );
         if (exists) {
-          console.log(`- skip existing version: ${artifact.name}@${artifact.version}`);
+          console.log(
+            `- skip existing version: ${artifact.name}@${artifact.version}`,
+          );
           continue;
         }
       }

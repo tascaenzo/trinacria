@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
 const PACKAGES_DIR = path.join(ROOT_DIR, "packages");
-const LOCAL_NPM_CACHE_DIR = path.join(ROOT_DIR, ".npm-cache");
+const LOCAL_NPM_CACHE_DIR = path.join(ROOT_DIR, ".tmp/npm-cache");
 const NPM_REGISTRY = "https://registry.npmjs.org";
 const HELP_TEXT = `
 Usage:
@@ -149,7 +149,9 @@ async function askChoice(rl, title, choices, defaultIndex = 0) {
     if (Number.isInteger(index) && index >= 0 && index < choices.length) {
       return index;
     }
-    console.log(`Invalid choice: ${raw}. Enter a number from 1 to ${choices.length}.`);
+    console.log(
+      `Invalid choice: ${raw}. Enter a number from 1 to ${choices.length}.`,
+    );
   }
 }
 
@@ -168,10 +170,13 @@ async function main() {
     throw new Error("No public packages found in packages/*");
   }
 
-  const defaultPackage = packages.find((pkg) => pkg.name === "@trinacria/cli")?.name
-    || packages[0].name;
+  const defaultPackage =
+    packages.find((pkg) => pkg.name === "@trinacria/cli")?.name ||
+    packages[0].name;
 
-  const packageChoices = packages.map((pkg) => `${pkg.name} (current: ${pkg.version})`);
+  const packageChoices = packages.map(
+    (pkg) => `${pkg.name} (current: ${pkg.version})`,
+  );
 
   const rl = readline.createInterface({ input, output });
 
@@ -203,19 +208,28 @@ async function main() {
     const bump = bumpChoices[bumpIndex];
 
     const suggestedVersion =
-      tag === "alpha" ? suggestAlpha(selected.version) : bumpStable(selected.version, bump);
-    const versionChoices = [`Use suggested version: ${suggestedVersion}`, "Enter custom version"];
+      tag === "alpha"
+        ? suggestAlpha(selected.version)
+        : bumpStable(selected.version, bump);
+    const versionChoices = [
+      `Use suggested version: ${suggestedVersion}`,
+      "Enter custom version",
+    ];
     const versionChoiceIndex = await askChoice(
       rl,
       "Select version to publish:",
       versionChoices,
       0,
     );
-    const version = versionChoiceIndex === 0
-      ? suggestedVersion
-      : await ask(rl, "Enter custom version", suggestedVersion);
+    const version =
+      versionChoiceIndex === 0
+        ? suggestedVersion
+        : await ask(rl, "Enter custom version", suggestedVersion);
 
-    const publishChoices = ["Publish now to npm", "Dry-run only (do not publish)"];
+    const publishChoices = [
+      "Publish now to npm",
+      "Dry-run only (do not publish)",
+    ];
     const publishChoiceIndex = await askChoice(
       rl,
       "Confirm final action:",
@@ -280,7 +294,9 @@ async function main() {
     console.log(
       `\nNote: ${packageName} was updated locally to version ${version}.`,
     );
-    console.log("To revert local version changes: git restore packages/*/package.json package-lock.json");
+    console.log(
+      "To revert local version changes: git restore packages/*/package.json package-lock.json",
+    );
   } finally {
     rl.close();
   }
