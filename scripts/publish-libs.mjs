@@ -2,7 +2,18 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -252,6 +263,28 @@ function packageVersionExistsInRegistry(packageName, version, registry) {
   return result.status === 0;
 }
 
+function stagePackageForPack(packageDir) {
+  const stagingRoot = mkdtempSync(path.join(tmpdir(), "trinacria-pack-"));
+  const stagedDir = path.join(stagingRoot, path.basename(packageDir));
+
+  cpSync(packageDir, stagedDir, {
+    recursive: true,
+    force: true,
+    filter: (sourcePath) => {
+      const name = path.basename(sourcePath);
+      return name !== "node_modules" && name !== ".git";
+    },
+  });
+
+  const npmReadmePath = path.join(stagedDir, "README.npm.md");
+  const readmePath = path.join(stagedDir, "README.md");
+  if (existsSync(npmReadmePath)) {
+    copyFileSync(npmReadmePath, readmePath);
+  }
+
+  return { stagingRoot, stagedDir };
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -306,31 +339,36 @@ function main() {
     rmSync(packageArtifactDir, { recursive: true, force: true });
     mkdirSync(packageArtifactDir, { recursive: true });
 
-    const { stdout } = run(
-      "npm",
-      ["pack", "-w", pkg.name, "--pack-destination", packageArtifactDir, "--json"],
-      { capture: true },
-    );
-    const packEntry = extractPackJson(stdout);
-    const tarballPath = path.join(packageArtifactDir, packEntry.filename);
-    const sha256 = sha256File(tarballPath);
-    const shaFilePath = `${tarballPath}.sha256`;
-    writeFileSync(shaFilePath, `${sha256}  ${path.basename(tarballPath)}\n`, "utf8");
+    const { stagingRoot, stagedDir } = stagePackageForPack(pkg.dir);
+    try {
+      const { stdout } = run(
+        "npm",
+        ["pack", stagedDir, "--pack-destination", packageArtifactDir, "--json"],
+        { capture: true },
+      );
+      const packEntry = extractPackJson(stdout);
+      const tarballPath = path.join(packageArtifactDir, packEntry.filename);
+      const sha256 = sha256File(tarballPath);
+      const shaFilePath = `${tarballPath}.sha256`;
+      writeFileSync(shaFilePath, `${sha256}  ${path.basename(tarballPath)}\n`, "utf8");
 
-    artifactRecords.push({
-      name: pkg.name,
-      version: pkg.version,
-      tarball: tarballPath,
-      sha256,
-      integrity: packEntry.integrity,
-      shasum: packEntry.shasum,
-      size: packEntry.size,
-      unpackedSize: packEntry.unpackedSize,
-    });
+      artifactRecords.push({
+        name: pkg.name,
+        version: pkg.version,
+        tarball: tarballPath,
+        sha256,
+        integrity: packEntry.integrity,
+        shasum: packEntry.shasum,
+        size: packEntry.size,
+        unpackedSize: packEntry.unpackedSize,
+      });
 
-    console.log(`- ${pkg.name}@${pkg.version}`);
-    console.log(`  tarball: ${tarballPath}`);
-    console.log(`  sha256: ${shaFilePath}`);
+      console.log(`- ${pkg.name}@${pkg.version}`);
+      console.log(`  tarball: ${tarballPath}`);
+      console.log(`  sha256: ${shaFilePath}`);
+    } finally {
+      rmSync(stagingRoot, { recursive: true, force: true });
+    }
   }
 
   const manifestPath = path.join(artifactsDirAbs, "manifest.json");

@@ -148,6 +148,7 @@ npm run publish:libs:npm:alpha
 
 Notes:
 - `publish-libs.mjs --mode npm` runs `node scripts/cli-template-smoke.mjs` before publish by default (`--skip-cli-smoke` to bypass).
+- if a package contains `README.npm.md`, `publish-libs.mjs` uses it as `README.md` in the published tarball.
 
 Advanced examples:
 
