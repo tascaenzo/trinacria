@@ -123,14 +123,59 @@ async function runLongLived(command, args, cwd, options = {}) {
     }
   }
 
-  child.kill(stopSignal);
-  const finishedCode = await new Promise((resolve) => {
-    child.on("exit", (code) => resolve(code));
-  });
+  const finishedCode = await stopProcessWithTimeout(child, stopSignal);
 
   if (![0, 130, 143, null].includes(finishedCode)) {
     throw new Error(`Unexpected exit code after stop: ${finishedCode}`);
   }
+}
+
+async function stopProcessWithTimeout(child, stopSignal) {
+  if (child.exitCode !== null) {
+    return child.exitCode;
+  }
+
+  child.kill(stopSignal);
+  let code = await waitForExit(child, 8000);
+  if (code !== null) {
+    return code;
+  }
+
+  child.kill("SIGTERM");
+  code = await waitForExit(child, 5000);
+  if (code !== null) {
+    return code;
+  }
+
+  child.kill("SIGKILL");
+  code = await waitForExit(child, 3000);
+  return code;
+}
+
+function waitForExit(child, timeoutMs) {
+  return new Promise((resolve) => {
+    if (child.exitCode !== null) {
+      resolve(child.exitCode);
+      return;
+    }
+
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(null);
+      }
+    }, timeoutMs);
+
+    child.once("exit", (code) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
 }
 
 function sleep(ms) {
