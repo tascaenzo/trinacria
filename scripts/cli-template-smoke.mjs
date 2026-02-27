@@ -92,6 +92,7 @@ async function runLongLived(command, args, cwd, options = {}) {
   const child = spawn(command, args, {
     cwd,
     stdio: "inherit",
+    detached: true,
     env: {
       ...process.env,
       NPM_CONFIG_CACHE: process.env.NPM_CONFIG_CACHE || NPM_CACHE,
@@ -135,21 +136,39 @@ async function stopProcessWithTimeout(child, stopSignal) {
     return child.exitCode;
   }
 
-  child.kill(stopSignal);
+  killProcessTree(child, stopSignal);
   let code = await waitForExit(child, 8000);
   if (code !== null) {
     return code;
   }
 
-  child.kill("SIGTERM");
+  killProcessTree(child, "SIGTERM");
   code = await waitForExit(child, 5000);
   if (code !== null) {
     return code;
   }
 
-  child.kill("SIGKILL");
+  killProcessTree(child, "SIGKILL");
   code = await waitForExit(child, 3000);
   return code;
+}
+
+function killProcessTree(child, signal) {
+  if (!child.pid) {
+    return;
+  }
+
+  try {
+    // When spawned with detached=true, the child runs in its own process group.
+    // Signalling the negative pid reliably terminates npm + spawned app process.
+    process.kill(-child.pid, signal);
+  } catch {
+    try {
+      child.kill(signal);
+    } catch {
+      // no-op
+    }
+  }
 }
 
 function waitForExit(child, timeoutMs) {
