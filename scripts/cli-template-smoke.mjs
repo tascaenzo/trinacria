@@ -13,12 +13,12 @@ const CLI_ENTRY = path.join(ROOT_DIR, "packages/cli/dist/index.js");
 const NPM_CACHE = path.join(ROOT_DIR, ".npm-cache");
 
 const TEMPLATE_MATRIX = [
-  { name: "app-starter", hasHttp: false },
-  { name: "cron-example", hasHttp: false },
-  { name: "api-prisma-postgresql", hasHttp: true },
-  { name: "api-mongoose-mongodb", hasHttp: true },
-  { name: "api-events-redis", hasHttp: true },
-  { name: "api-events-rabbitmq", hasHttp: true },
+  { name: "app-starter", hasHttp: false, startMode: "oneshot" },
+  { name: "cron-example", hasHttp: false, startMode: "daemon" },
+  { name: "api-prisma-postgresql", hasHttp: true, startMode: "daemon" },
+  { name: "api-mongoose-mongodb", hasHttp: true, startMode: "daemon" },
+  { name: "api-events-redis", hasHttp: true, startMode: "daemon" },
+  { name: "api-events-rabbitmq", hasHttp: true, startMode: "daemon" },
 ];
 
 function parseArgs(argv) {
@@ -288,7 +288,7 @@ async function smokeTemplate(workspaceRoot, template) {
   const healthUrl = template.hasHttp && port ? `http://127.0.0.1:${port}/health` : "";
 
   log(`Starting ${template.name} (start)...`);
-  if (template.hasHttp) {
+  if (template.startMode === "daemon") {
     await runLongLived("npm", ["run", "start"], appDir, {
       healthUrl,
       bootMs: 4000,
