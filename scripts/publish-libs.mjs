@@ -27,6 +27,7 @@ Options:
   --push                         Push tags to remote in git mode
   --skip-build                   Skip build step
   --skip-test                    Skip test step
+  --skip-existing                Skip publish when package@version already exists in registry (npm mode)
   --allow-dirty                  Allow git mode even with dirty working tree
   --dry-run                      Do everything except publish/tag/push
   --help                         Show this message
@@ -50,6 +51,7 @@ function parseArgs(argv) {
     push: false,
     skipBuild: false,
     skipTest: false,
+    skipExisting: false,
     allowDirty: false,
     dryRun: false,
     help: false,
@@ -75,6 +77,10 @@ function parseArgs(argv) {
     }
     if (arg === "--allow-dirty") {
       options.allowDirty = true;
+      continue;
+    }
+    if (arg === "--skip-existing") {
+      options.skipExisting = true;
       continue;
     }
     if (arg === "--dry-run") {
@@ -258,6 +264,25 @@ function sha256File(filePath) {
   return hash.digest("hex");
 }
 
+function packageVersionExistsInRegistry(packageName, version, registry) {
+  const args = ["view", `${packageName}@${version}`, "version", "--json"];
+  if (registry) {
+    args.push("--registry", registry);
+  }
+
+  const result = spawnSync("npm", args, {
+    cwd: ROOT_DIR,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      NPM_CONFIG_CACHE: process.env.NPM_CONFIG_CACHE || LOCAL_NPM_CACHE_DIR,
+    },
+    stdio: ["inherit", "pipe", "pipe"],
+  });
+
+  return result.status === 0;
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -367,6 +392,18 @@ function main() {
   if (options.mode === "npm") {
     console.log("\nPublishing to npm registry...");
     for (const artifact of artifactRecords) {
+      if (options.skipExisting && !options.dryRun) {
+        const exists = packageVersionExistsInRegistry(
+          artifact.name,
+          artifact.version,
+          options.registry,
+        );
+        if (exists) {
+          console.log(`- skip existing version: ${artifact.name}@${artifact.version}`);
+          continue;
+        }
+      }
+
       const args = ["publish", artifact.tarball, "--access", options.access];
       if (options.registry) {
         args.push("--registry", options.registry);

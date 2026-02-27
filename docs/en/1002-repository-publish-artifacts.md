@@ -142,6 +142,7 @@ npm run publish:libs:npm
 - `--artifacts-dir <path>`: custom artifact directory
 - `--skip-build`: skip build (only if already built)
 - `--skip-test`: skip tests (only if risk is accepted)
+- `--skip-existing`: skip `publish` when `package@version` already exists in registry
 - `--dry-run`: no-op simulation for publish/tag actions
 
 Example:

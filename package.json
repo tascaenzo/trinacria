@@ -46,7 +46,7 @@
     "version-packages:alpha": "changeset version --snapshot alpha",
     "prepare:alpha:github": "node scripts/prepare-github-alpha-scope.mjs --from-scope @trinacria --to-scope @tascaenzo",
     "release": "changeset publish",
-    "release:alpha:github": "node scripts/publish-libs.mjs --mode npm --registry https://npm.pkg.github.com --access restricted --skip-build --skip-test",
+    "release:alpha:github": "node scripts/publish-libs.mjs --mode npm --registry https://npm.pkg.github.com --access restricted --skip-build --skip-test --skip-existing",
     "release:alpha:github:dry": "node scripts/publish-libs.mjs --mode npm --registry https://npm.pkg.github.com --access restricted --dry-run",
     "publish:libs:pack": "node scripts/publish-libs.mjs --mode pack",
     "publish:libs:npm": "node scripts/publish-libs.mjs --mode npm",

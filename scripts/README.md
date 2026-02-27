@@ -103,7 +103,7 @@ Purpose:
 
 Modes:
 - `pack`: build/test + generate `.tgz` artifacts only.
-- `npm`: build/test + `npm publish` (supports `--registry`, `--access`, `--dry-run`).
+- `npm`: build/test + `npm publish` (supports `--registry`, `--access`, `--dry-run`, `--skip-existing`).
 - `git`: build/test + local git tags by package/version (optional push with `--push`).
 
 Production artifact layout:
