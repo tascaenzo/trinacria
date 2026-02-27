@@ -1,0 +1,104 @@
+name: Dependency Auto Update
+
+on:
+  schedule:
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      MAJOR_UPDATE_EMAIL_TO: ${{ secrets.MAJOR_UPDATE_EMAIL_TO }}
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Detect major updates
+        id: major
+        run: |
+          REPORT_JSON=$(node scripts/dependency-major-report.mjs)
+          echo "report_json<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$REPORT_JSON" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "has_major=$(echo "$REPORT_JSON" | node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(0,"utf8")); process.stdout.write(String(r.hasMajor));')" >> "$GITHUB_OUTPUT"
+
+      - name: Update dependencies within semver ranges
+        run: |
+          npm update --workspaces --include-workspace-root
+          npm install --package-lock-only --workspaces --include-workspace-root
+
+      - name: Create pull request for semver-safe updates
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/deps-auto-update
+          delete-branch: true
+          title: "chore(deps): semver-safe dependency updates"
+          body: |
+            Automated dependency update using npm semver ranges.
+
+            - Command: `npm update --workspaces --include-workspace-root`
+            - Lock refresh: `npm install --package-lock-only --workspaces --include-workspace-root`
+
+            Major updates are not auto-applied and are reported separately.
+          commit-message: "chore(deps): semver-safe dependency updates"
+          labels: dependencies, automated
+
+      - name: Build major update email body
+        if: steps.major.outputs.has_major == 'true' && env.MAJOR_UPDATE_EMAIL_TO != '' && env.SMTP_SERVER != ''
+        run: |
+          echo '${{ steps.major.outputs.report_json }}' > .tmp/dependency-major-report.json
+          node -e '
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync(".tmp/dependency-major-report.json", "utf8"));
+          const lines = [];
+          lines.push("Major dependency updates detected.");
+          lines.push("");
+          for (const m of report.majors) {
+            lines.push(`- ${m.dependent}: ${m.name} ${m.current} -> ${m.latest} (wanted: ${m.wanted}, type: ${m.type})`);
+          }
+          lines.push("");
+          lines.push(`Repository: ${process.env.GITHUB_REPOSITORY}`);
+          lines.push(`Workflow run: https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`);
+          fs.writeFileSync(".tmp/major-update-email.txt", lines.join("\\n"), "utf8");
+          '
+
+      - name: Send major update email
+        if: steps.major.outputs.has_major == 'true' && env.MAJOR_UPDATE_EMAIL_TO != '' && env.SMTP_SERVER != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[trinacria] Major dependency updates available"
+          to: ${{ secrets.MAJOR_UPDATE_EMAIL_TO }}
+          from: ${{ secrets.SMTP_FROM }}
+          body: file://.tmp/major-update-email.txt
+
+      - name: Job summary
+        run: |
+          echo "## Dependency Auto Update" >> $GITHUB_STEP_SUMMARY
+          echo "- Semver-safe updates applied in PR flow" >> $GITHUB_STEP_SUMMARY
+          echo "- Major updates detected: ${{ steps.major.outputs.has_major }}" >> $GITHUB_STEP_SUMMARY
