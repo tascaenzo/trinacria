@@ -8,5 +8,14 @@
     "build": "tsc -p tsconfig.json",
     "test": "tsx --test test/**/*.test.ts",
     "test:coverage": "tsx --test --experimental-test-coverage test/**/*.test.ts"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tascaenzo/trinacria.git",
+    "directory": "packages/schema"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

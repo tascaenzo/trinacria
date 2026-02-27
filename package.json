@@ -43,7 +43,16 @@
     "changeset": "changeset",
     "changeset:status": "changeset status",
     "version-packages": "changeset version",
+    "version-packages:alpha": "changeset version --snapshot alpha",
+    "prepare:alpha:github": "node scripts/prepare-github-alpha-scope.mjs --from-scope @trinacria --to-scope @tascaenzo",
     "release": "changeset publish",
+    "release:alpha:github": "node scripts/publish-libs.mjs --mode npm --registry https://npm.pkg.github.com --access restricted --skip-build --skip-test",
+    "release:alpha:github:dry": "node scripts/publish-libs.mjs --mode npm --registry https://npm.pkg.github.com --access restricted --dry-run",
+    "publish:libs:pack": "node scripts/publish-libs.mjs --mode pack",
+    "publish:libs:npm": "node scripts/publish-libs.mjs --mode npm",
+    "publish:libs:npm:dry": "node scripts/publish-libs.mjs --mode npm --dry-run",
+    "publish:libs:git": "node scripts/publish-libs.mjs --mode git --push",
+    "publish:libs:git:dry": "node scripts/publish-libs.mjs --mode git --dry-run",
     "precommit:check": "node scripts/pre-commit.mjs",
     "hooks:install": "git config core.hooksPath .githooks && chmod +x .githooks/pre-commit"
   },
@@ -52,7 +61,7 @@
     "apps/*"
   ],
   "devDependencies": {
-    "@changesets/cli": "^2.29.7",
+    "@changesets/cli": "^2.29.8",
     "@types/node": "^25.2.3",
     "typescript": "^5.9.3"
   }
