@@ -32,6 +32,17 @@ npm install
 npm run dev
 ```
 
+Quick start with explicit templates:
+
+```bash
+npx @trinacria/cli@alpha new my-app --template app-starter
+npx @trinacria/cli@alpha new my-cron --template cron-example
+npx @trinacria/cli@alpha new my-api-pg --template api-prisma-postgresql
+npx @trinacria/cli@alpha new my-api-mongo --template api-mongoose-mongodb
+npx @trinacria/cli@alpha new my-api-redis --template api-events-redis
+npx @trinacria/cli@alpha new my-api-rabbit --template api-events-rabbitmq
+```
+
 Aliases:
 
 ```bash
@@ -86,6 +97,9 @@ export default {
 ## Notes
 
 - In generated apps, `@trinacria/cli` is added to `devDependencies`.
+- Generated app includes `.env` created from `.env.example` (if present).
+- Generated app keeps `.gitignore` (and writes a default one if missing).
+- `@trinacria/*` dependencies are generated as semver-compatible ranges from the versions bundled in CLI release templates.
 - `dev` uses watch mode with automatic restart on source changes.
 - `start` runs the compiled file mapped from your configured entry.
 

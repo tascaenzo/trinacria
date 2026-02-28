@@ -5,6 +5,20 @@ import os from "node:os";
 import path from "node:path";
 import { __newTestUtils, createNewApp } from "../src/commands/new";
 
+const CLI_PACKAGE_VERSION = (
+  JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf8"),
+  ) as { version: string }
+).version;
+const CORE_PACKAGE_VERSION = (
+  JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, "..", "..", "core", "package.json"),
+      "utf8",
+    ),
+  ) as { version: string }
+).version;
+
 function withTempDir(
   run: (dir: string) => Promise<void> | void,
 ): Promise<void> {
@@ -72,6 +86,7 @@ test("createNewApp generates project from apps/app-starter", async () => {
         true,
       );
       assert.equal(fs.existsSync(path.join(targetDir, ".gitignore")), true);
+      assert.equal(fs.existsSync(path.join(targetDir, ".env")), true);
 
       const tsconfig = JSON.parse(
         fs.readFileSync(path.join(targetDir, "tsconfig.json"), "utf8"),
@@ -95,11 +110,34 @@ test("createNewApp generates project from apps/app-starter", async () => {
       assert.equal(packageJson.scripts.dev, "trinacria dev");
       assert.equal(packageJson.scripts.build, "trinacria build");
       assert.equal(packageJson.scripts.start, "trinacria start");
-      assert.equal(packageJson.dependencies["@trinacria/core"], "latest");
+      assert.equal(
+        packageJson.dependencies["@trinacria/core"],
+        `^${CORE_PACKAGE_VERSION}`,
+      );
       assert.equal(packageJson.dependencies["@trinacria/cli"], undefined);
-      assert.equal(packageJson.devDependencies["@trinacria/cli"], "latest");
+      assert.equal(
+        packageJson.devDependencies["@trinacria/cli"],
+        `^${CLI_PACKAGE_VERSION}`,
+      );
       assert.equal(packageJson.devDependencies.typescript, "latest");
       assert.equal(packageJson.devDependencies["@types/node"], "latest");
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+});
+
+test("createNewApp uses last path segment as package name", async () => {
+  await withTempDir(async (dir) => {
+    const previousCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      await createNewApp(["apps/my-service", "--no-install", "--no-git"]);
+
+      const packageJson = JSON.parse(
+        fs.readFileSync(path.join(dir, "apps", "my-service", "package.json"), "utf8"),
+      ) as { name: string };
+      assert.equal(packageJson.name, "my-service");
     } finally {
       process.chdir(previousCwd);
     }
