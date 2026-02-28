@@ -9,11 +9,26 @@ import {
 test("parseCronExpression supports wildcard, ranges, lists and steps", () => {
   const parsed = parseCronExpression("*/15 9-17 * * 1,3,5");
 
-  assert.equal(matchesCronExpression(parsed, new Date(2026, 1, 23, 9, 0)), true);
-  assert.equal(matchesCronExpression(parsed, new Date(2026, 1, 23, 9, 15)), true);
-  assert.equal(matchesCronExpression(parsed, new Date(2026, 1, 23, 9, 10)), false);
-  assert.equal(matchesCronExpression(parsed, new Date(2026, 1, 24, 9, 0)), false);
-  assert.equal(matchesCronExpression(parsed, new Date(2026, 1, 23, 18, 0)), false);
+  assert.equal(
+    matchesCronExpression(parsed, new Date(2026, 1, 23, 9, 0)),
+    true,
+  );
+  assert.equal(
+    matchesCronExpression(parsed, new Date(2026, 1, 23, 9, 15)),
+    true,
+  );
+  assert.equal(
+    matchesCronExpression(parsed, new Date(2026, 1, 23, 9, 10)),
+    false,
+  );
+  assert.equal(
+    matchesCronExpression(parsed, new Date(2026, 1, 24, 9, 0)),
+    false,
+  );
+  assert.equal(
+    matchesCronExpression(parsed, new Date(2026, 1, 23, 18, 0)),
+    false,
+  );
 });
 
 test("parseCronExpression throws for invalid field count", () => {

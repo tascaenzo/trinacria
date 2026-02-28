@@ -1,8 +1,4 @@
-import {
-  classProvider,
-  defineModule,
-  factoryProvider,
-} from "@trinacria/core";
+import { classProvider, defineModule, factoryProvider } from "@trinacria/core";
 import { httpProvider } from "@trinacria/http";
 import {
   CONFIG_SERVICE,
@@ -11,10 +7,7 @@ import {
 import { PRISMA_SERVICE } from "../../global-service/prisma.service";
 import { AUTH_CONFIG, AuthConfig } from "./auth.config";
 import { AUTH_CONTROLLER, AuthController } from "./auth.controller";
-import {
-  AUTH_GUARD_FACTORY,
-  AuthGuardFactory,
-} from "./auth-guard.factory";
+import { AUTH_GUARD_FACTORY, AuthGuardFactory } from "./auth-guard.factory";
 import { AUTH_SERVICE, AuthService } from "./auth.service";
 import { Hs256JwtSigner, JWT_SIGNER } from "./jwt";
 

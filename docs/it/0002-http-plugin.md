@@ -352,7 +352,7 @@ middlewares: [
   rateLimit({ windowMs: 60_000, max: 300 }),
   requestTimeout({ timeoutMs: 15_000 }),
   createSecurityHeadersBuilder().preset("development").build(),
-]
+];
 ```
 
 #### API dietro reverse proxy (production)
@@ -364,11 +364,8 @@ middlewares: [
   cors({ origin: [/\.mycompany\.com$/], credentials: true, maxAge: 600 }),
   rateLimit({ windowMs: 60_000, max: 240, trustProxy: true }),
   requestTimeout({ timeoutMs: 12_000 }),
-  createSecurityHeadersBuilder()
-    .preset("production")
-    .trustProxy(true)
-    .build(),
-]
+  createSecurityHeadersBuilder().preset("production").trustProxy(true).build(),
+];
 ```
 
 #### API protetta (endpoint auth-heavy)
@@ -381,19 +378,19 @@ middlewares: [
   rateLimit({ windowMs: 60_000, max: 120, trustProxy: true }),
   requestTimeout({ timeoutMs: 8_000 }),
   createSecurityHeadersBuilder().preset("production").build(),
-]
+];
 ```
 
 ### Default vs raccomandazioni production
 
-| Middleware | Default sicuro | Raccomandazione production |
-| --- | --- | --- |
-| `requestId` | `x-request-id` generato | Mantieni request id e propagalo in log/tracing |
-| `requestLogger` | access log base | Abilita `includeUserAgent: true`, usa context esplicito |
-| `cors` | permissivo (`origin: "*"`) | Restringi origin, abilita credentials solo se necessario |
-| `rateLimit` | `60s`, `120 req`, no trust proxy | Taratura per classi endpoint, `trustProxy: true` solo dietro proxy trusted |
-| `requestTimeout` | nessun default se non configurato | Imposta sempre timeout esplicito (`8-15s` tipico API) |
-| `securityHeaders` | usa preset ambiente | preset `production` + rollout CSP + config proxy trusted |
+| Middleware        | Default sicuro                    | Raccomandazione production                                                 |
+| ----------------- | --------------------------------- | -------------------------------------------------------------------------- |
+| `requestId`       | `x-request-id` generato           | Mantieni request id e propagalo in log/tracing                             |
+| `requestLogger`   | access log base                   | Abilita `includeUserAgent: true`, usa context esplicito                    |
+| `cors`            | permissivo (`origin: "*"`)        | Restringi origin, abilita credentials solo se necessario                   |
+| `rateLimit`       | `60s`, `120 req`, no trust proxy  | Taratura per classi endpoint, `trustProxy: true` solo dietro proxy trusted |
+| `requestTimeout`  | nessun default se non configurato | Imposta sempre timeout esplicito (`8-15s` tipico API)                      |
+| `securityHeaders` | usa preset ambiente               | preset `production` + rollout CSP + config proxy trusted                   |
 
 ### Header di sicurezza (stile Helmet)
 

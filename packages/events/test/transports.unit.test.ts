@@ -8,7 +8,10 @@ import {
 } from "../src";
 
 test("RedisEventTransport publish + subscribe loopback", async () => {
-  const callbacks = new Map<string, (message: string, channel: string) => Promise<void> | void>();
+  const callbacks = new Map<
+    string,
+    (message: string, channel: string) => Promise<void> | void
+  >();
   const published: string[] = [];
 
   const transport = new RedisEventTransport({
@@ -100,8 +103,9 @@ test("RedisEventTransport retries connect and forwards parsing errors", async ()
   await transport.connect(async () => {});
   assert.equal(subscribeAttempts, 3);
 
+  const callback = callbacks.get("trinacria:events");
   await assert.rejects(
-    () => callbacks.get("trinacria:events")?.("{bad-json", "trinacria:events"),
+    async () => callback!("{bad-json", "trinacria:events"),
     /SyntaxError|Invalid event envelope payload/,
   );
   assert.equal(errors.length, 1);
@@ -109,8 +113,10 @@ test("RedisEventTransport retries connect and forwards parsing errors", async ()
 
 test("RabbitMqEventTransport publish + consume", async () => {
   let boundQueue = "";
-  let consumerHandler: ((message: RabbitMqMessage | null) => Promise<void> | void) | undefined;
-  let consumerTag = "consumer-1";
+  let consumerHandler:
+    | ((message: RabbitMqMessage | null) => Promise<void> | void)
+    | undefined;
+  const consumerTag = "consumer-1";
   const publishedRoutingKeys: string[] = [];
   let acked = 0;
   let cancelled = 0;
@@ -194,8 +200,14 @@ test("RabbitMqEventTransport publish + consume", async () => {
 });
 
 test("RabbitMqEventTransport sends malformed payloads to dead-letter exchange", async () => {
-  let consumerHandler: ((message: RabbitMqMessage | null) => Promise<void> | void) | undefined;
-  const published: Array<{ exchange: string; routingKey: string; content: string }> = [];
+  let consumerHandler:
+    | ((message: RabbitMqMessage | null) => Promise<void> | void)
+    | undefined;
+  const published: Array<{
+    exchange: string;
+    routingKey: string;
+    content: string;
+  }> = [];
   let acked = 0;
 
   const transport = new RabbitMqEventTransport({
@@ -210,7 +222,11 @@ test("RabbitMqEventTransport sends malformed payloads to dead-letter exchange", 
         return { consumerTag: "consumer-dlq" };
       },
       publish(exchange, routingKey, content) {
-        published.push({ exchange, routingKey, content: content.toString("utf8") });
+        published.push({
+          exchange,
+          routingKey,
+          content: content.toString("utf8"),
+        });
         return true;
       },
       ack() {

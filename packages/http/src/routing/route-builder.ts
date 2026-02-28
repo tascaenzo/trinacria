@@ -20,9 +20,10 @@ export class RouteBuilder<C = any> {
   /**
    * Resolves handler input to a callable function bound to controller instance.
    */
-  private resolveHandler(
-    handler: HandlerInput<C>,
-  ): { fn: RouteHandler; handlerName?: string } {
+  private resolveHandler(handler: HandlerInput<C>): {
+    fn: RouteHandler;
+    handlerName?: string;
+  } {
     if (typeof handler === "string") {
       const fn = (this.controller as Record<string, unknown>)[handler];
 
@@ -95,9 +96,10 @@ export class RouteBuilder<C = any> {
     return this;
   }
 
-  private parseArgs(
-    args: Array<HttpMiddleware | RouteOptions>,
-  ): { middlewares: HttpMiddleware[]; docs: RouteOptions["docs"] } {
+  private parseArgs(args: Array<HttpMiddleware | RouteOptions>): {
+    middlewares: HttpMiddleware[];
+    docs: RouteOptions["docs"];
+  } {
     if (args.length === 0) {
       return { middlewares: [], docs: undefined };
     }

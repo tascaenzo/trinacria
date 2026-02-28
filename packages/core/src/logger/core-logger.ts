@@ -11,7 +11,7 @@ export class CoreLog {
    * Replaces the logger used by CoreLog.
    * The optional context parameter is kept for API compatibility.
    */
-  static setLogger(logger: ConsoleLogger, context?: string): void {
+  static setLogger(logger: ConsoleLogger): void {
     this.logger = logger;
   }
 

@@ -5,7 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import { loadConfig } from "../src/config/load-config";
 
-function withTempDir(run: (dir: string) => Promise<void> | void): Promise<void> {
+function withTempDir(
+  run: (dir: string) => Promise<void> | void,
+): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trinacria-cli-config-"));
   return Promise.resolve()
     .then(() => run(dir))
@@ -157,11 +159,7 @@ test("loadConfig supports ESM config fallback when require hits ERR_REQUIRE_ESM"
 test("loadConfig wraps non-ESM load errors with config path context", async () => {
   await withTempDir(async (dir) => {
     const configPath = path.join(dir, "broken.config.cjs");
-    fs.writeFileSync(
-      configPath,
-      `throw new Error("broken-config");`,
-      "utf8",
-    );
+    fs.writeFileSync(configPath, `throw new Error("broken-config");`, "utf8");
 
     await assert.rejects(
       () => loadConfig(["dev", "--config", configPath]),

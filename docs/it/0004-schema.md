@@ -286,7 +286,9 @@ const CreateUserSchema = s.object(
 ```ts
 const EnvSchema = s.object(
   {
-    ENV: s.enum(["development", "staging", "production"]).default("development"),
+    ENV: s
+      .enum(["development", "staging", "production"])
+      .default("development"),
     HOST: s.string({ trim: true, minLength: 1 }).default("0.0.0.0"),
     PORT: s
       .number({ coerce: true, int: true, min: 1, max: 65535 })

@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, copyFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  copyFileSync,
+} from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -10,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
 const CLI_ENTRY = path.join(ROOT_DIR, "packages/cli/dist/index.js");
-const NPM_CACHE = path.join(ROOT_DIR, ".npm-cache");
+const NPM_CACHE = path.join(ROOT_DIR, ".tmp/npm-cache");
 
 const TEMPLATE_MATRIX = [
   { name: "app-starter", hasHttp: false, startMode: "oneshot" },
@@ -44,7 +50,10 @@ function parseArgs(argv) {
         throw new Error("Missing value for --templates");
       }
       i += 1;
-      options.templates = raw.split(",").map((item) => item.trim()).filter(Boolean);
+      options.templates = raw
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
       continue;
     }
     throw new Error(`Unknown option: ${arg}`);
@@ -75,7 +84,11 @@ function run(command, args, cwd, extraEnv = {}) {
         resolve();
         return;
       }
-      reject(new Error(`Command failed: ${command} ${args.join(" ")} (exit ${code})`));
+      reject(
+        new Error(
+          `Command failed: ${command} ${args.join(" ")} (exit ${code})`,
+        ),
+      );
     });
   });
 }
@@ -109,7 +122,9 @@ async function runLongLived(command, args, cwd, options = {}) {
 
   await sleep(bootMs);
   if (exited) {
-    throw new Error(`Process exited too early: ${command} ${args.join(" ")} (exit ${exitCode})`);
+    throw new Error(
+      `Process exited too early: ${command} ${args.join(" ")} (exit ${exitCode})`,
+    );
   }
 
   if (healthUrl) {
@@ -120,7 +135,9 @@ async function runLongLived(command, args, cwd, options = {}) {
     writeFileSync(touchFile, `${readFileSync(touchFile, "utf8")}\n`, "utf8");
     await sleep(2500);
     if (exited) {
-      throw new Error(`Dev process crashed after file change: ${command} ${args.join(" ")}`);
+      throw new Error(
+        `Dev process crashed after file change: ${command} ${args.join(" ")}`,
+      );
     }
   }
 
@@ -252,7 +269,11 @@ function rewriteTrinacriaDeps(appDir) {
     packageJson[field] = deps;
   }
 
-  writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
+  writeFileSync(
+    packageJsonPath,
+    `${JSON.stringify(packageJson, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 function getTemplatePort(appDir) {
@@ -287,7 +308,19 @@ async function smokeTemplate(workspaceRoot, template) {
   const appDir = path.join(workspaceRoot, appName);
 
   log(`Generating ${template.name}...`);
-  await run("node", [CLI_ENTRY, "new", appName, "--template", template.name, "--no-install", "--no-git"], workspaceRoot);
+  await run(
+    "node",
+    [
+      CLI_ENTRY,
+      "new",
+      appName,
+      "--template",
+      template.name,
+      "--no-install",
+      "--no-git",
+    ],
+    workspaceRoot,
+  );
 
   rewriteTrinacriaDeps(appDir);
   prepareEnvFiles(appDir);
@@ -304,7 +337,8 @@ async function smokeTemplate(workspaceRoot, template) {
   await run("npm", ["run", "build"], appDir);
 
   const port = getTemplatePort(appDir);
-  const healthUrl = template.hasHttp && port ? `http://127.0.0.1:${port}/health` : "";
+  const healthUrl =
+    template.hasHttp && port ? `http://127.0.0.1:${port}/health` : "";
 
   log(`Starting ${template.name} (start)...`);
   if (template.startMode === "daemon") {
@@ -327,15 +361,20 @@ async function smokeTemplate(workspaceRoot, template) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const templates = options.templates.length === 0
-    ? TEMPLATE_MATRIX
-    : TEMPLATE_MATRIX.filter((entry) => options.templates.includes(entry.name));
+  const templates =
+    options.templates.length === 0
+      ? TEMPLATE_MATRIX
+      : TEMPLATE_MATRIX.filter((entry) =>
+          options.templates.includes(entry.name),
+        );
 
   if (templates.length === 0) {
     throw new Error("No templates selected for smoke test.");
   }
 
-  const workspaceRoot = mkdtempSync(path.join(tmpdir(), "trinacria-cli-smoke-"));
+  const workspaceRoot = mkdtempSync(
+    path.join(tmpdir(), "trinacria-cli-smoke-"),
+  );
 
   try {
     if (!options.skipBuildPackages) {

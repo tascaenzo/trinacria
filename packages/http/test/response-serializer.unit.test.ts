@@ -8,7 +8,10 @@ const ctx = {} as any;
 
 test("serializer returns text/plain for string", () => {
   const serialized = defaultResponseSerializer("hello", ctx);
-  assert.equal(serialized.headers?.["content-type"], "text/plain; charset=utf-8");
+  assert.equal(
+    serialized.headers?.["content-type"],
+    "text/plain; charset=utf-8",
+  );
   assert.equal(serialized.body, "hello");
 });
 

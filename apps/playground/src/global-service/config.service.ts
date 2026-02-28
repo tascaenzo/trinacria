@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createToken } from "@trinacria/core";
-import { formatValidationError, s, Infer, ValidationError } from "@trinacria/schema";
+import {
+  formatValidationError,
+  s,
+  Infer,
+  ValidationError,
+} from "@trinacria/schema";
 
 export const configSchema = s.object({
   // The runtime environment. Affects which security preset is used.

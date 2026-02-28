@@ -152,7 +152,9 @@ Example:
 const requestLogger = async (ctx, next) => {
   const start = Date.now();
   const result = await next();
-  console.log(`${ctx.req.method} ${ctx.req.url} -> ${ctx.res.statusCode} (${Date.now() - start}ms)`);
+  console.log(
+    `${ctx.req.method} ${ctx.req.url} -> ${ctx.res.statusCode} (${Date.now() - start}ms)`,
+  );
   return result;
 };
 ```
@@ -350,7 +352,7 @@ middlewares: [
   rateLimit({ windowMs: 60_000, max: 300 }),
   requestTimeout({ timeoutMs: 15_000 }),
   createSecurityHeadersBuilder().preset("development").build(),
-]
+];
 ```
 
 #### API behind reverse proxy (production)
@@ -362,11 +364,8 @@ middlewares: [
   cors({ origin: [/\.mycompany\.com$/], credentials: true, maxAge: 600 }),
   rateLimit({ windowMs: 60_000, max: 240, trustProxy: true }),
   requestTimeout({ timeoutMs: 12_000 }),
-  createSecurityHeadersBuilder()
-    .preset("production")
-    .trustProxy(true)
-    .build(),
-]
+  createSecurityHeadersBuilder().preset("production").trustProxy(true).build(),
+];
 ```
 
 #### Protected API (auth-heavy endpoints)
@@ -379,19 +378,19 @@ middlewares: [
   rateLimit({ windowMs: 60_000, max: 120, trustProxy: true }),
   requestTimeout({ timeoutMs: 8_000 }),
   createSecurityHeadersBuilder().preset("production").build(),
-]
+];
 ```
 
 ### Defaults vs production recommendations
 
-| Middleware | Safe default | Production recommendation |
-| --- | --- | --- |
-| `requestId` | `x-request-id` generated | Keep request id and propagate to logs/tracing |
-| `requestLogger` | basic access log | Enable `includeUserAgent: true`, use explicit context |
-| `cors` | permissive (`origin: "*"`) | Restrict origins, enable credentials only if needed |
-| `rateLimit` | `60s`, `120 req`, no proxy trust | Tune by endpoint class, set `trustProxy: true` only behind trusted proxy |
-| `requestTimeout` | no default unless configured | Always set explicit timeout (`8-15s` typical API range) |
-| `securityHeaders` | use env preset | `production` preset + CSP rollout + trusted proxy configuration |
+| Middleware        | Safe default                     | Production recommendation                                                |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| `requestId`       | `x-request-id` generated         | Keep request id and propagate to logs/tracing                            |
+| `requestLogger`   | basic access log                 | Enable `includeUserAgent: true`, use explicit context                    |
+| `cors`            | permissive (`origin: "*"`)       | Restrict origins, enable credentials only if needed                      |
+| `rateLimit`       | `60s`, `120 req`, no proxy trust | Tune by endpoint class, set `trustProxy: true` only behind trusted proxy |
+| `requestTimeout`  | no default unless configured     | Always set explicit timeout (`8-15s` typical API range)                  |
+| `securityHeaders` | use env preset                   | `production` preset + CSP rollout + trusted proxy configuration          |
 
 ### Security headers (Helmet-like)
 
@@ -491,7 +490,10 @@ To control status/headers, use `response(...)`:
 ```ts
 import { response } from "@trinacria/http";
 
-return response({ ok: true }, { status: 201, headers: { location: "/users/123" } });
+return response(
+  { ok: true },
+  { status: 201, headers: { location: "/users/123" } },
+);
 ```
 
 ## Error handling

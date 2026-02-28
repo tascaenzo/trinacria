@@ -46,7 +46,10 @@ test("module registry handles token conflicts and import-link cleanup on unregis
     exports: [CONFLICT],
   });
 
-  assert.throws(() => registryConflict.build(conflictModule), TokenConflictError);
+  assert.throws(
+    () => registryConflict.build(conflictModule),
+    TokenConflictError,
+  );
 
   const TOKEN_BASE = createToken<BaseService>("BASE_TOKEN");
   const TOKEN_FEATURE = createToken<FeatureService>("FEATURE_TOKEN");

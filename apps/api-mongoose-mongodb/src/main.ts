@@ -1,8 +1,4 @@
-import {
-  TrinacriaApp,
-  classProvider,
-  valueProvider,
-} from "@trinacria/core";
+import { TrinacriaApp, classProvider, valueProvider } from "@trinacria/core";
 import {
   cors,
   createHttpPlugin,
@@ -12,10 +8,7 @@ import {
   requestLogger,
   requestTimeout,
 } from "@trinacria/http";
-import {
-  CONFIG_SERVICE,
-  ConfigService,
-} from "./global/config.service";
+import { CONFIG_SERVICE, ConfigService } from "./global/config.service";
 import { MONGOOSE_SERVICE, MongooseService } from "./global/mongoose.service";
 import { registerGlobalControllers } from "./global/register-global-controllers";
 import { UsersModule } from "./modules/users/users.module";

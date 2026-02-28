@@ -37,7 +37,10 @@ export class ConfigService {
     return {
       CRON_ENABLED: parseBoolean(process.env.CRON_ENABLED, true),
       CRON_TICK_MS: parseNumber(process.env.CRON_TICK_MS, 1_000),
-      HEARTBEAT_INTERVAL_MS: parseNumber(process.env.HEARTBEAT_INTERVAL_MS, 10_000),
+      HEARTBEAT_INTERVAL_MS: parseNumber(
+        process.env.HEARTBEAT_INTERVAL_MS,
+        10_000,
+      ),
     };
   }
 }

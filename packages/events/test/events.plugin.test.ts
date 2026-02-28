@@ -5,7 +5,7 @@ import {
   createToken,
   defineModule,
   type Token,
-} from "../../core/src";
+} from "@trinacria/core";
 
 import {
   EVENT_BUS_TOKEN,
@@ -206,7 +206,9 @@ test("transport abstraction can deliver events via external bus adapter", async 
     class LoopbackTransport implements EventTransport {
       private handler?: (envelope: EventEnvelope) => Promise<void> | void;
 
-      connect(onEnvelope: (envelope: EventEnvelope) => Promise<void> | void): void {
+      connect(
+        onEnvelope: (envelope: EventEnvelope) => Promise<void> | void,
+      ): void {
         this.handler = onEnvelope;
       }
 
@@ -253,21 +255,23 @@ test("custom managed bus can be injected into events plugin", async () => {
         this.subscriptions = [];
       }
 
-      replaceManagedSubscriptions(subscriptions: readonly EventSubscription[]): void {
+      replaceManagedSubscriptions(
+        subscriptions: readonly EventSubscription[],
+      ): void {
         this.subscriptions = subscriptions;
       }
 
       async emit<TPayload>(_event: string, _payload: TPayload): Promise<void> {}
 
-      on<TPayload>(): () => void {
+      on<_TPayload>(): () => void {
         return () => {};
       }
 
-      once<TPayload>(): () => void {
+      once<_TPayload>(): () => void {
         return () => {};
       }
 
-      off<TPayload>(): void {}
+      off<_TPayload>(): void {}
 
       listenerCount(): number {
         return this.subscriptions.length;
@@ -306,10 +310,14 @@ test("custom managed bus can be injected into events plugin", async () => {
 test("inbound deduplication skips duplicated envelope ids", async () => {
   await withSilencedOutput(async () => {
     let received = 0;
-    let onEnvelope: ((envelope: EventEnvelope) => Promise<void> | void) | undefined;
+    let onEnvelope:
+      | ((envelope: EventEnvelope) => Promise<void> | void)
+      | undefined;
 
     class ManualTransport implements EventTransport {
-      connect(handler: (envelope: EventEnvelope) => Promise<void> | void): void {
+      connect(
+        handler: (envelope: EventEnvelope) => Promise<void> | void,
+      ): void {
         onEnvelope = handler;
       }
       async publish(): Promise<void> {}
@@ -436,7 +444,9 @@ test("stopOnError interrupts dispatch and updates health error fields", async ()
 
 test("custom idempotency store and duplicate callback are used for inbound events", async () => {
   await withSilencedOutput(async () => {
-    let onEnvelope: ((envelope: EventEnvelope) => Promise<void> | void) | undefined;
+    let onEnvelope:
+      | ((envelope: EventEnvelope) => Promise<void> | void)
+      | undefined;
     let received = 0;
     const duplicates: string[] = [];
 
@@ -451,7 +461,9 @@ test("custom idempotency store and duplicate callback are used for inbound event
     };
 
     class ManualTransport implements EventTransport {
-      connect(handler: (envelope: EventEnvelope) => Promise<void> | void): void {
+      connect(
+        handler: (envelope: EventEnvelope) => Promise<void> | void,
+      ): void {
         onEnvelope = handler;
       }
       async publish(): Promise<void> {}

@@ -1,4 +1,10 @@
-import { asInternal, createSchema, isRecord, type Infer, type Schema } from "../core";
+import {
+  asInternal,
+  createSchema,
+  isRecord,
+  type Infer,
+  type Schema,
+} from "../core";
 import { throwValidation } from "../errors";
 
 const FORBIDDEN_OBJECT_KEYS = new Set([
@@ -36,7 +42,10 @@ export function record<K extends string, V>(
         }
 
         const parsedKey = internalKey.parseAtPath(rawKey, [...path, rawKey]);
-        const parsedValue = internalValue.parseAtPath(rawValue, [...path, rawKey]);
+        const parsedValue = internalValue.parseAtPath(rawValue, [
+          ...path,
+          rawKey,
+        ]);
 
         if (Object.hasOwn(result, parsedKey)) {
           throwValidation(
@@ -59,7 +68,7 @@ export function record<K extends string, V>(
   );
 }
 
-export type InferRecord<K extends Schema<string>, V extends Schema<unknown>> = Record<
-  Infer<K>,
-  Infer<V>
->;
+export type InferRecord<
+  K extends Schema<string>,
+  V extends Schema<unknown>,
+> = Record<Infer<K>, Infer<V>>;

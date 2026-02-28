@@ -19,9 +19,11 @@
     "build:api-mongoose-mongodb": "npm run build -w api-mongoose-mongodb",
     "build:api-events-redis": "npm run build -w api-events-redis",
     "build:api-events-rabbitmq": "npm run build -w api-events-rabbitmq",
-    "build:all": "npm run build:packages && npm run build:playground && npm run build:app-starter && npm run build:cron-example && npm run build:api-prisma-postgresql && npm run build:api-mongoose-mongodb && npm run build:api-events-redis && npm run build:api-events-rabbitmq",
     "build": "npm run build:packages",
-    "rebuild": "npm run clean && npm run build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "dev:playground": "npm run dev -w playground",
     "dev:app-starter": "npm run dev -w app-starter",
     "dev:cron-example": "npm run dev -w cron-example",
@@ -63,7 +65,12 @@
   ],
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.2.3",
-    "typescript": "^5.9.3"
+    "eslint": "^10.0.2",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
   }
 }
