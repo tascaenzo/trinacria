@@ -34,12 +34,11 @@ This document defines a 3-branch model to support daily development, continuous 
 1. Create feature branch from `unstable`.
 2. Open PR to `unstable` (add changeset if you touch published packages).
 3. Once `unstable` is stable, open PR `unstable` -> `develop`.
-4. From `develop`, run prerelease:
-   - `npm run version-packages:alpha`
-   - `npm run publish:libs:npm:alpha`
+4. From `develop`, run guided prerelease and select `alpha` tag:
+   - `npm run deploy:npm`
 5. After validation, open PR `develop` -> `main`.
-6. From `main`, run stable release:
-   - `npm run release:npm:stable`
+6. From `main`, run guided stable release and select `latest` tag:
+   - `npm run deploy:npm`
 
 ## Test cadence
 

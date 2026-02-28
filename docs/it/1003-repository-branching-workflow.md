@@ -34,12 +34,11 @@ Questo documento definisce un flusso a 3 branch per supportare sviluppo quotidia
 1. Crea branch feature da `unstable`.
 2. Apri PR verso `unstable` (con changeset se tocchi package pubblicati).
 3. Quando `unstable` e`stabile, apri PR`unstable`->`develop`.
-4. Da `develop`, esegui prerelease:
-   - `npm run version-packages:alpha`
-   - `npm run publish:libs:npm:alpha`
+4. Da `develop`, esegui prerelease guidata e seleziona tag `alpha`:
+   - `npm run deploy:npm`
 5. Dopo validazione, apri PR `develop` -> `main`.
-6. Da `main`, esegui release stabile:
-   - `npm run release:npm:stable`
+6. Da `main`, esegui release stabile guidata e seleziona tag `latest`:
+   - `npm run deploy:npm`
 
 ## Cadenza test
 

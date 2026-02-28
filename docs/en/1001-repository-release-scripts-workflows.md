@@ -135,7 +135,7 @@ If a required changeset is missing, update the PR.
 Release is executed with the guided command:
 
 ```bash
-npm run release:npm
+npm run deploy:npm
 ```
 
 What it does:

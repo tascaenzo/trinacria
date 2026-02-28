@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
@@ -11,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
 const PACKAGES_DIR = path.join(ROOT_DIR, "packages");
+const APPS_DIR = path.join(ROOT_DIR, "apps");
 const LOCAL_NPM_CACHE_DIR = path.join(ROOT_DIR, ".tmp/npm-cache");
 const NPM_REGISTRY = "https://registry.npmjs.org";
 const HELP_TEXT = `
@@ -19,7 +26,7 @@ Usage:
 
 Interactive flow:
   1) choose package from numeric menu
-  2) choose release tag (alpha/latest)
+  2) choose release tag (alpha/beta/rc/latest)
   3) choose bump strategy for latest
   4) choose suggested version or custom
   5) choose publish mode (publish/dry-run)
@@ -54,6 +61,52 @@ function run(cmd, args, { cwd = ROOT_DIR, capture = false } = {}) {
   };
 }
 
+function listWorkspacePackageJsonFiles() {
+  const roots = [PACKAGES_DIR, APPS_DIR];
+  const files = [];
+
+  for (const root of roots) {
+    if (!existsSync(root)) {
+      continue;
+    }
+
+    for (const entry of readdirSync(root, { withFileTypes: true })) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      files.push(path.join(root, entry.name, "package.json"));
+    }
+  }
+
+  files.push(path.join(ROOT_DIR, "package-lock.json"));
+  return files;
+}
+
+function snapshotFiles(paths) {
+  const snapshot = new Map();
+  for (const filePath of paths) {
+    snapshot.set(
+      filePath,
+      existsSync(filePath) ? readFileSync(filePath, "utf8") : null,
+    );
+  }
+  return snapshot;
+}
+
+function restoreSnapshot(snapshot) {
+  for (const [filePath, content] of snapshot.entries()) {
+    if (content === null) {
+      if (existsSync(filePath)) {
+        rmSync(filePath, { force: true });
+      }
+      continue;
+    }
+
+    writeFileSync(filePath, content, "utf8");
+  }
+}
+
 function getPublicPackages() {
   if (!existsSync(PACKAGES_DIR)) {
     throw new Error(`Directory not found: ${PACKAGES_DIR}`);
@@ -83,18 +136,32 @@ function getPublicPackages() {
 }
 
 function parseVersion(version) {
-  const match = version.match(
-    /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+)\.(\d+))?$/,
-  );
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
   if (!match) {
     throw new Error(`Unsupported version format: ${version}`);
   }
+
+  const preRaw = match[4] || "";
+  let preTag = "";
+  let preNum = null;
+  if (preRaw) {
+    const dotMatch = preRaw.match(/^([0-9A-Za-z-]+)\.(\d+)$/);
+    if (dotMatch) {
+      preTag = dotMatch[1];
+      preNum = Number(dotMatch[2]);
+    } else {
+      const hyphenMatch = preRaw.match(/^([0-9A-Za-z-]+)-\d+$/);
+      preTag = hyphenMatch ? hyphenMatch[1] : preRaw;
+    }
+  }
+
   return {
     major: Number(match[1]),
     minor: Number(match[2]),
     patch: Number(match[3]),
-    preTag: match[4] || "",
-    preNum: match[5] ? Number(match[5]) : null,
+    preRaw,
+    preTag,
+    preNum,
   };
 }
 
@@ -106,6 +173,9 @@ function stringifyVersion(v) {
 
 function bumpStable(version, bump) {
   const v = parseVersion(version);
+  if (v.preRaw && bump === "patch") {
+    return `${v.major}.${v.minor}.${v.patch}`;
+  }
   if (bump === "major") {
     return `${v.major + 1}.0.0`;
   }
@@ -115,12 +185,18 @@ function bumpStable(version, bump) {
   return `${v.major}.${v.minor}.${v.patch + 1}`;
 }
 
-function suggestAlpha(version) {
+function suggestPrerelease(version, tag) {
   const v = parseVersion(version);
-  if (v.preTag === "alpha" && typeof v.preNum === "number") {
+  if (v.preTag === tag && Number.isInteger(v.preNum)) {
     return stringifyVersion({ ...v, preNum: v.preNum + 1 });
   }
-  return `${v.major}.${v.minor}.${v.patch + 1}-alpha.0`;
+  if (v.preTag === tag) {
+    return `${v.major}.${v.minor}.${v.patch}-${tag}.0`;
+  }
+  if (v.preTag) {
+    return `${v.major}.${v.minor}.${v.patch}-${tag}.0`;
+  }
+  return `${v.major}.${v.minor}.${v.patch + 1}-${tag}.0`;
 }
 
 async function ask(rl, question, fallback = "") {
@@ -194,23 +270,26 @@ async function main() {
     const selected = packages[packageIndex];
     const packageName = selected.name;
 
-    const tagChoices = ["alpha", "latest"];
+    const tagChoices = ["alpha", "beta", "rc", "latest"];
     const tagIndex = await askChoice(rl, "Select release tag:", tagChoices, 0);
     const tag = tagChoices[tagIndex];
 
-    const bumpChoices = ["patch", "minor", "major"];
-    const bumpIndex = await askChoice(
-      rl,
-      "Select bump strategy for stable release:",
-      bumpChoices,
-      0,
-    );
-    const bump = bumpChoices[bumpIndex];
+    let bump = "patch";
+    if (tag === "latest") {
+      const bumpChoices = ["patch", "minor", "major"];
+      const bumpIndex = await askChoice(
+        rl,
+        "Select bump strategy for stable release:",
+        bumpChoices,
+        0,
+      );
+      bump = bumpChoices[bumpIndex];
+    }
 
     const suggestedVersion =
-      tag === "alpha"
-        ? suggestAlpha(selected.version)
-        : bumpStable(selected.version, bump);
+      tag === "latest"
+        ? bumpStable(selected.version, bump)
+        : suggestPrerelease(selected.version, tag);
     const versionChoices = [
       `Use suggested version: ${suggestedVersion}`,
       "Enter custom version",
@@ -244,6 +323,7 @@ async function main() {
     console.log(`- next: ${version}`);
     console.log(`- tag: ${tag}`);
     console.log(`- publish: ${shouldPublish ? "yes" : "no (dry-run)"}`);
+    console.log("- cli smoke gate: disabled");
 
     console.log("\nPre-check...");
     run("npm", ["whoami", "--registry", NPM_REGISTRY]);
@@ -258,8 +338,18 @@ async function main() {
       LOCAL_NPM_CACHE_DIR,
     ]);
 
+    const manifestFiles = listWorkspacePackageJsonFiles();
+    const manifestSnapshot = snapshotFiles(manifestFiles);
+
     console.log("\nUpdating local package version...");
-    run("npm", ["version", version, "-w", packageName, "--no-git-tag-version"]);
+    run("npm", [
+      "version",
+      version,
+      "-w",
+      packageName,
+      "--no-git-tag-version",
+      "--no-workspaces-update",
+    ]);
 
     const publishArgs = [
       "scripts/publish-libs.mjs",
@@ -280,23 +370,24 @@ async function main() {
     if (!shouldPublish) {
       publishArgs.push("--dry-run");
     }
+    publishArgs.push("--skip-cli-smoke");
 
-    run("node", publishArgs);
+    try {
+      run("node", publishArgs);
 
-    if (!shouldPublish) {
+      if (!shouldPublish) {
+        console.log(
+          "\nDry-run completed. Run the wizard again and choose publish to release.",
+        );
+      } else {
+        console.log("\nPublish completed.");
+      }
+    } finally {
+      restoreSnapshot(manifestSnapshot);
       console.log(
-        "\nDry-run completed. Run the wizard again and choose publish to release.",
+        "\nWorkspace manifests restored (package.json/package-lock.json).",
       );
-    } else {
-      console.log("\nPublish completed.");
     }
-
-    console.log(
-      `\nNote: ${packageName} was updated locally to version ${version}.`,
-    );
-    console.log(
-      "To revert local version changes: git restore packages/*/package.json package-lock.json",
-    );
   } finally {
     rl.close();
   }

@@ -79,9 +79,8 @@ Nel repository **non e` presente** un workflow GitHub `release.yml` automatico.
 
 La release avviene via script:
 
-- guidata: `npm run release:npm`
-- stabile: `npm run release:npm:stable`
-- alpha: `npm run publish:libs:npm:alpha`
+- guidata (entrypoint unico): `npm run deploy:npm`
+- stabile/prerelease si scelgono nel wizard tramite `tag` (`latest`, `alpha`, `beta`, `rc`)
 
 ## Flusso locale pre-commit reale
 

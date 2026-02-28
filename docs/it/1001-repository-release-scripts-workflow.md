@@ -135,7 +135,7 @@ Se manca il changeset per una modifica che impatta package pubblicati, la PR dov
 La release viene eseguita con il comando guidato:
 
 ```bash
-npm run release:npm
+npm run deploy:npm
 ```
 
 Cosa fa:
