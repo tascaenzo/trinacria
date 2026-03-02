@@ -5,7 +5,17 @@ export {
   type ValidationIssue,
   type Path,
 } from "./errors";
-export type { Schema, ParseResult, ParseOk, ParseFail, Infer } from "./core";
+export type {
+  Schema,
+  ParseResult,
+  ParseOk,
+  ParseFail,
+  ParseMode,
+  ParseOptions,
+  RefineIssue,
+  SuperRefineContext,
+  Infer,
+} from "./core";
 export type { OpenApiSchemaObject } from "./openapi";
 export { toOpenApi } from "./openapi";
 
@@ -15,6 +25,7 @@ import {
   date,
   dateString,
   dateTimeString,
+  registerStringValidator,
   defaultValue,
   enumSchema,
   literal,
@@ -35,6 +46,9 @@ import {
   type NumberOptions,
   type ObjectOptions,
   type SchemaShape,
+  type StringCustomValidatorFn,
+  type StringCustomValidatorInput,
+  type StringCustomValidatorResult,
   type StringOptions,
   type UnionOptions,
 } from "./builders";
@@ -42,6 +56,7 @@ import type { Infer, Schema } from "./core";
 
 export const s = {
   string,
+  registerStringValidator,
   number,
   boolean,
   date,
@@ -62,6 +77,7 @@ export const s = {
 
 export {
   string,
+  registerStringValidator,
   number,
   boolean,
   date,
@@ -89,6 +105,9 @@ export type {
   ObjectOptions,
   NumberOptions,
   StringOptions,
+  StringCustomValidatorInput,
+  StringCustomValidatorResult,
+  StringCustomValidatorFn,
   SchemaShape,
   UnionOptions,
 };

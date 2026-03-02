@@ -46,13 +46,15 @@ const user = UserSchema.parse({
 Ogni schema espone:
 
 - `parse(input)` -> ritorna il valore parsato o lancia `ValidationError`
-- `safeParse(input)` -> `{ success: true, data } | { success: false, error }`
+- `safeParse(input, options?)` -> `{ success: true, data } | { success: false, error }`
+  - `options.mode?: "first" | "all"` (`"first"` default, `"all"` colleziona più issue)
 - `toOpenApi()` -> oggetto schema OpenAPI
 - modificatori fluent:
   - `.optional()`
   - `.nullable()`
   - `.default(value)`
   - `.refine(check, message?, code?)`
+  - `.superRefine((value, ctx) => ctx.addIssue({ path?, message, code? }))`
 
 ## Builder
 
@@ -72,6 +74,7 @@ DSL principale:
 - `s.record(keySchema, valueSchema)`
 - `s.enum(["A", "B"] as const)`
 - `s.union([schemaA, schemaB] as const)`
+- `registerStringValidator(name, fn)`
 
 ### Opzioni stringa
 
@@ -97,6 +100,9 @@ Tutte le opzioni supportate da `s.string(...)`:
 - `uppercase?: boolean`
 - `ip?: true | "v4" | "v6" | "both"`
 - `hostname?: boolean`
+- `semver?: boolean`
+- `semverRange?: boolean | { allowOr?: boolean }`
+- `custom?: StringCustomValidatorInput | StringCustomValidatorInput[]`
 
 Esempi:
 
@@ -109,6 +115,8 @@ const ApiKey = s.string({ startsWith: "sk_", minLength: 20, ascii: true });
 const CountryCode = s.string({ uppercase: true, minLength: 2, maxLength: 2 });
 const ClientIp = s.string({ ip: "v4" });
 const Host = s.string({ hostname: true });
+const PluginVersion = s.string({ semver: true });
+const CoreRange = s.string({ semverRange: true });
 ```
 
 ### Opzioni number
@@ -183,6 +191,7 @@ Tutte le opzioni supportate da `s.array(...)`:
 - `maxItems?: number`
 - `nonEmpty?: boolean`
 - `unique?: boolean | ((item) => unknown)`
+- `coerce?: boolean | { separator?: string }`
 
 Esempi:
 
@@ -234,6 +243,39 @@ const EnvMap = s.record(
 const EvenPort = s
   .number({ coerce: true, int: true, min: 1, max: 65535 })
   .refine((value) => value % 2 === 0, "Port must be even", "not_even_port");
+```
+
+Refinement cross-field con path custom:
+
+```ts
+const Manifest = s
+  .object({
+    id: s.string(),
+    dependencies: s.array(s.object({ pluginId: s.string() })),
+  })
+  .superRefine((value, ctx) => {
+    value.dependencies.forEach((dep, index) => {
+      if (dep.pluginId === value.id) {
+        ctx.addIssue({
+          path: ["dependencies", index, "pluginId"],
+          message: "Plugin cannot depend on itself",
+          code: "self_dependency",
+        });
+      }
+    });
+  });
+```
+
+Validator stringa custom riusabili a livello progetto:
+
+```ts
+import { registerStringValidator, s } from "@trinacria/schema";
+
+registerStringValidator("plugin-id", (value) =>
+  /^[a-z0-9][a-z0-9-._/]*$/.test(value),
+);
+
+const PluginId = s.string({ custom: { name: "plugin-id" } });
 ```
 
 ## Modello errori

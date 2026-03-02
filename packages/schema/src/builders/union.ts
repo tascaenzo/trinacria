@@ -32,13 +32,13 @@ export function union<T extends readonly Schema<unknown>[]>(
 
   return createSchema<Infer<T[number]>>(
     "union",
-    (input, path) => {
+    (input, path, parseOptions) => {
       const nestedIssues: ValidationIssue[] = [];
       let truncated = false;
 
       for (const schema of internalSchemas) {
         try {
-          return schema.parseAtPath(input, path) as Infer<T[number]>;
+          return schema.parseAtPath(input, path, parseOptions) as Infer<T[number]>;
         } catch (error) {
           if (error instanceof ValidationError) {
             const remaining: number = maxIssues - nestedIssues.length;

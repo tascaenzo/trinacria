@@ -44,6 +44,16 @@ test("string constraints expose expected validation codes", () => {
     s.string({ hostname: true }).safeParse("bad host").success,
     false,
   );
+  assert.equal(s.string({ semver: true }).safeParse("1.2").success, false);
+  assert.equal(
+    s.string({ semverRange: true }).safeParse("^1.2.3 || >=2.0.0").success,
+    true,
+  );
+  assert.equal(
+    s.string({ semverRange: { allowOr: false } }).safeParse("^1.2.3 || >=2.0.0")
+      .success,
+    false,
+  );
 });
 
 test("number branches: coercion edge cases and sign constraints", () => {

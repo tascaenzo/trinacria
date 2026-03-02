@@ -8,7 +8,9 @@
 - normalize/coerce values when configured
 - support coercion for number/date/date-string/date-time and boolean-like env values
 - provide `safeParse` non-throwing API
-- support custom post-parse checks via `.refine(...)`
+- support custom post-parse checks via `.refine(...)` / `.superRefine(...)`
+- validate SemVer / SemVer ranges
+- support fail-fast and collect-all parse strategies (`safeParse(..., { mode: "all" })`)
 - emit OpenAPI-compatible schema objects
 
 ## Directory structure
@@ -46,6 +48,10 @@ Recent additions:
 - `record(keySchema, valueSchema)` for validated key/value dictionaries
 - `tuple([...])` for fixed-length arrays with per-index schemas
 - `.refine(check, message?, code?)` on all schemas
+- `.superRefine((value, ctx) => ctx.addIssue(...))` for cross-field path-aware errors
+- `s.string({ semver: true })` and `s.string({ semverRange: true })`
+- `registerStringValidator(...)` and `s.string({ custom: ... })` for reusable project validators
+- `safeParse(input, { mode: "all" })` to collect multiple validation issues
 
 Security hardening included in builders:
 

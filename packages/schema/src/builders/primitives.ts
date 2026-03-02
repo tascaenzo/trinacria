@@ -115,7 +115,43 @@ export interface StringOptions {
    * Enables hostname validation.
    */
   hostname?: boolean;
+  /**
+   * Enables SemVer version validation (`x.y.z` + prerelease/build metadata).
+   */
+  semver?: boolean;
+  /**
+   * Enables SemVer range validation (supports ^, ~, >=, <=, >, <, =, *, and `||` groups).
+   */
+  semverRange?: boolean | { allowOr?: boolean };
+  /**
+   * Runs one or more registered custom string validators.
+   */
+  custom?: StringCustomValidatorInput | StringCustomValidatorInput[];
 }
+
+export interface StringCustomValidatorInput {
+  name: string;
+  options?: unknown;
+  code?: string;
+  message?: string;
+}
+
+export interface StringCustomValidatorResult {
+  valid: boolean;
+  message?: string;
+  code?: string;
+}
+
+export type StringCustomValidatorFn = (
+  value: string,
+  options: unknown,
+) => boolean | StringCustomValidatorResult;
+
+const SEMVER_REGEX =
+  /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+const SEMVER_RANGE_TOKEN_REGEX =
+  /^(?:\*|(?:\^|~|>=|<=|>|<|=)?v?[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$/;
+const customStringValidators = new Map<string, StringCustomValidatorFn>();
 
 export interface BooleanOptions {
   /**
@@ -240,6 +276,52 @@ export function string(options: StringOptions = {}) {
         throwValidation(path, "Invalid hostname", "invalid_hostname");
       }
 
+      if (options.semver && !SEMVER_REGEX.test(value)) {
+        throwValidation(path, "Invalid semver version", "invalid_semver");
+      }
+
+      if (options.semverRange) {
+        const allowOr =
+          typeof options.semverRange === "object"
+            ? (options.semverRange.allowOr ?? true)
+            : true;
+
+        if (!isValidSemverRange(value, { allowOr })) {
+          throwValidation(path, "Invalid semver range", "invalid_semver_range");
+        }
+      }
+
+      if (options.custom) {
+        const validators = Array.isArray(options.custom)
+          ? options.custom
+          : [options.custom];
+
+        for (const validatorConfig of validators) {
+          const validator = customStringValidators.get(validatorConfig.name);
+          if (!validator) {
+            throwValidation(
+              path,
+              `Unknown custom string validator "${validatorConfig.name}"`,
+              "unknown_custom_validator",
+            );
+          }
+
+          const result = validator(value, validatorConfig.options);
+          const normalized =
+            typeof result === "boolean" ? { valid: result } : result;
+
+          if (!normalized.valid) {
+            throwValidation(
+              path,
+              validatorConfig.message ??
+                normalized.message ??
+                `String failed custom validator "${validatorConfig.name}"`,
+              validatorConfig.code ?? normalized.code ?? "invalid_custom",
+            );
+          }
+        }
+      }
+
       if (
         options.startsWith !== undefined &&
         !value.startsWith(options.startsWith)
@@ -343,12 +425,32 @@ export function string(options: StringOptions = {}) {
       if (options.hostname) {
         openApi.format = "hostname";
       }
+      if (options.semver) {
+        openApi.pattern = SEMVER_REGEX.source;
+      }
       if (options.pattern) {
         openApi.pattern = options.pattern.source;
       }
       return openApi;
     },
   );
+}
+
+/**
+ * Registers a reusable custom string validator.
+ */
+export function registerStringValidator(
+  name: string,
+  validator: StringCustomValidatorFn,
+): void {
+  const normalizedName = name.trim();
+  if (normalizedName.length === 0) {
+    throw new Error(
+      "registerStringValidator(): name must be a non-empty string",
+    );
+  }
+
+  customStringValidators.set(normalizedName, validator);
 }
 
 /**
@@ -564,5 +666,33 @@ function isValidHostname(value: string): boolean {
     }
 
     return /^[A-Za-z0-9-]+$/.test(label);
+  });
+}
+
+function isValidSemverRange(
+  value: string,
+  options: { allowOr: boolean },
+): boolean {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return false;
+  }
+
+  if (!options.allowOr && normalized.includes("||")) {
+    return false;
+  }
+
+  const groups = normalized.split("||").map((part) => part.trim());
+  if (groups.some((group) => group.length === 0)) {
+    return false;
+  }
+
+  return groups.every((group) => {
+    const tokens = group.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) {
+      return false;
+    }
+
+    return tokens.every((token) => SEMVER_RANGE_TOKEN_REGEX.test(token));
   });
 }

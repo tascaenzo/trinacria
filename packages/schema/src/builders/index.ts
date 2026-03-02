@@ -1,10 +1,14 @@
 export {
   string,
+  registerStringValidator,
   number,
   boolean,
   literal,
   type BooleanOptions,
   type NumberOptions,
+  type StringCustomValidatorFn,
+  type StringCustomValidatorInput,
+  type StringCustomValidatorResult,
   type StringOptions,
 } from "./primitives";
 export {

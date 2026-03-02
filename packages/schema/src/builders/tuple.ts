@@ -1,5 +1,16 @@
-import { asInternal, createSchema, type Infer, type Schema } from "../core";
-import { throwValidation } from "../errors";
+import {
+  asInternal,
+  createSchema,
+  type Infer,
+  type ParseOptions,
+  type Schema,
+} from "../core";
+import {
+  ValidationError,
+  throwValidation,
+  validationIssue,
+  type ValidationIssue,
+} from "../errors";
 
 type InferTuple<T extends readonly Schema<unknown>[]> = {
   [K in keyof T]: T[K] extends Schema<unknown> ? Infer<T[K]> : never;
@@ -17,22 +28,48 @@ export function tuple<T extends readonly Schema<unknown>[]>(schemas: T) {
 
   return createSchema<InferTuple<T>>(
     "tuple",
-    (input, path) => {
+    (input, path, parseOptions: ParseOptions = {}) => {
       if (!Array.isArray(input)) {
         throwValidation(path, "Expected array", "invalid_type");
       }
 
+      const isCollectAll = parseOptions.mode === "all";
+      const issues: ValidationIssue[] | null = isCollectAll ? [] : null;
+
       if (input.length !== internalSchemas.length) {
-        throwValidation(
-          path,
-          `Tuple must contain exactly ${internalSchemas.length} items`,
-          "invalid_tuple_length",
-        );
+        if (isCollectAll) {
+          issues?.push(
+            validationIssue(
+              path,
+              `Tuple must contain exactly ${internalSchemas.length} items`,
+              "invalid_tuple_length",
+            ),
+          );
+        } else {
+          throwValidation(
+            path,
+            `Tuple must contain exactly ${internalSchemas.length} items`,
+            "invalid_tuple_length",
+          );
+        }
       }
 
-      const result = internalSchemas.map((schema, index) =>
-        schema.parseAtPath(input[index], [...path, index]),
-      );
+      const result: unknown[] = [];
+      for (const [index, schema] of internalSchemas.entries()) {
+        try {
+          result.push(schema.parseAtPath(input[index], [...path, index], parseOptions));
+        } catch (error) {
+          if (isCollectAll && error instanceof ValidationError) {
+            issues?.push(...error.issues);
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (issues && issues.length > 0) {
+        throw new ValidationError(issues);
+      }
 
       return result as InferTuple<T>;
     },

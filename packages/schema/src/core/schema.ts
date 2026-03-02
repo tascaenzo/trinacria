@@ -18,6 +18,21 @@ export interface ParseFail {
 }
 
 export type ParseResult<T> = ParseOk<T> | ParseFail;
+export type ParseMode = "first" | "all";
+
+export interface ParseOptions {
+  mode?: ParseMode;
+}
+
+export interface RefineIssue {
+  path?: Path;
+  message: string;
+  code?: string;
+}
+
+export interface SuperRefineContext {
+  addIssue(issue: RefineIssue): void;
+}
 
 /**
  * Public schema contract.
@@ -29,7 +44,7 @@ export interface Schema<T> {
   readonly _type: T;
   readonly kind: string;
   parse(input: unknown): T;
-  safeParse(input: unknown): ParseResult<T>;
+  safeParse(input: unknown, options?: ParseOptions): ParseResult<T>;
   toOpenApi(): OpenApiSchemaObject;
   optional(): Schema<T | undefined>;
   nullable(): Schema<T | null>;
@@ -39,6 +54,7 @@ export interface Schema<T> {
     message?: string,
     code?: string,
   ): Schema<T>;
+  superRefine(check: (value: T, ctx: SuperRefineContext) => void): Schema<T>;
 }
 
 /**
@@ -51,7 +67,7 @@ export type Infer<T extends Schema<unknown>> = T["_type"];
  */
 export interface InternalSchema<T> extends Schema<T> {
   readonly acceptsUndefined: boolean;
-  parseAtPath(input: unknown, path: Path): T;
+  parseAtPath(input: unknown, path: Path, options?: ParseOptions): T;
 }
 
 interface CreateSchemaOptions {
@@ -63,7 +79,7 @@ interface CreateSchemaOptions {
  */
 export function createSchema<T>(
   kind: string,
-  parseAtPath: (input: unknown, path: Path) => T,
+  parseAtPath: (input: unknown, path: Path, options?: ParseOptions) => T,
   toOpenApi: () => OpenApiSchemaObject,
   options: CreateSchemaOptions = {},
 ): InternalSchema<T> {
@@ -72,11 +88,11 @@ export function createSchema<T>(
     kind,
     acceptsUndefined: options.acceptsUndefined ?? false,
     parse(input: unknown): T {
-      return parseAtPath(input, []);
+      return parseAtPath(input, [], { mode: "first" });
     },
-    safeParse(input: unknown): ParseResult<T> {
+    safeParse(input: unknown, parseOptions: ParseOptions = {}): ParseResult<T> {
       try {
-        return { success: true, data: parseAtPath(input, []) };
+        return { success: true, data: parseAtPath(input, [], parseOptions) };
       } catch (error) {
         if (error instanceof ValidationError) {
           return { success: false, error };
@@ -99,12 +115,12 @@ export function createSchema<T>(
     optional(): Schema<T | undefined> {
       return createSchema<T | undefined>(
         "optional",
-        (input, path) => {
+        (input, path, parseOptions) => {
           if (input === undefined) {
             return undefined;
           }
 
-          return parseAtPath(input, path);
+          return parseAtPath(input, path, parseOptions);
         },
         () => toOpenApi(),
         { acceptsUndefined: true },
@@ -113,12 +129,12 @@ export function createSchema<T>(
     nullable(): Schema<T | null> {
       return createSchema<T | null>(
         "nullable",
-        (input, path) => {
+        (input, path, parseOptions) => {
           if (input === null) {
             return null;
           }
 
-          return parseAtPath(input, path);
+          return parseAtPath(input, path, parseOptions);
         },
         () => ({
           anyOf: [toOpenApi(), { type: "null" }],
@@ -128,12 +144,12 @@ export function createSchema<T>(
     default(value: T): Schema<T> {
       return createSchema<T>(
         "default",
-        (input, path) => {
+        (input, path, parseOptions) => {
           if (input === undefined) {
             return value;
           }
 
-          return parseAtPath(input, path);
+          return parseAtPath(input, path, parseOptions);
         },
         () => ({
           ...toOpenApi(),
@@ -149,10 +165,42 @@ export function createSchema<T>(
     ): Schema<T> {
       return createSchema<T>(
         "refine",
-        (input, path) => {
-          const parsed = parseAtPath(input, path);
+        (input, path, parseOptions) => {
+          const parsed = parseAtPath(input, path, parseOptions);
           if (!check(parsed)) {
             throw new ValidationError([validationIssue(path, message, code)]);
+          }
+
+          return parsed;
+        },
+        () => toOpenApi(),
+        { acceptsUndefined: options.acceptsUndefined ?? false },
+      );
+    },
+    superRefine(check: (value: T, ctx: SuperRefineContext) => void): Schema<T> {
+      return createSchema<T>(
+        "super_refine",
+        (input, path, parseOptions) => {
+          const parsed = parseAtPath(input, path, parseOptions);
+          const issues: ReturnType<typeof validationIssue>[] = [];
+          const ctx: SuperRefineContext = {
+            addIssue: (issue) => {
+              const issuePath =
+                issue.path === undefined ? path : [...path, ...issue.path];
+              issues.push(
+                validationIssue(
+                  issuePath,
+                  issue.message,
+                  issue.code ?? "invalid_refinement",
+                ),
+              );
+            },
+          };
+
+          check(parsed, ctx);
+
+          if (issues.length > 0) {
+            throw new ValidationError(issues);
           }
 
           return parsed;

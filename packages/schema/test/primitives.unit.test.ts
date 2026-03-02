@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { s, ValidationError } from "../src/index.ts";
+import { registerStringValidator, s, ValidationError } from "../src/index.ts";
 
 test("string applies trim and case transforms before constraints", () => {
   const schema = s.string({
@@ -43,6 +43,63 @@ test("string validates ip and hostname formats", () => {
   );
   assert.throws(
     () => s.string({ hostname: true }).parse("-bad-host"),
+    ValidationError,
+  );
+});
+
+test("string validates semver and semver ranges", () => {
+  assert.equal(s.string({ semver: true }).parse("1.2.3"), "1.2.3");
+  assert.throws(() => s.string({ semver: true }).parse("1.2"), ValidationError);
+
+  assert.equal(
+    s.string({ semverRange: true }).parse("^1.2.3 || >=2.0.0 <3.0.0"),
+    "^1.2.3 || >=2.0.0 <3.0.0",
+  );
+  assert.throws(
+    () => s.string({ semverRange: true }).parse("^1.2"),
+    ValidationError,
+  );
+  assert.throws(
+    () =>
+      s
+        .string({ semverRange: { allowOr: false } })
+        .parse("^1.2.3 || >=2.0.0 <3.0.0"),
+    ValidationError,
+  );
+});
+
+test("custom string validator registry supports reusable checks", () => {
+  registerStringValidator("starts-with-team", (value, options) => {
+    const prefix = String(options ?? "team/");
+    return {
+      valid: value.startsWith(prefix),
+      message: `String must start with "${prefix}"`,
+      code: "invalid_team_prefix",
+    };
+  });
+
+  assert.equal(
+    s
+      .string({
+        custom: {
+          name: "starts-with-team",
+          options: "team/",
+        },
+      })
+      .parse("team/plugin"),
+    "team/plugin",
+  );
+
+  assert.throws(
+    () =>
+      s
+        .string({
+          custom: {
+            name: "starts-with-team",
+            options: "team/",
+          },
+        })
+        .parse("org/plugin"),
     ValidationError,
   );
 });
