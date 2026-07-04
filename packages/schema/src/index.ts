@@ -1,4 +1,10 @@
-export { ValidationError, type ValidationIssue, type Path } from "./errors";
+export {
+  ValidationError,
+  formatValidationError,
+  type FormatValidationErrorOptions,
+  type ValidationIssue,
+  type Path,
+} from "./errors";
 export type { Schema, ParseResult, ParseOk, ParseFail, Infer } from "./core";
 export type { OpenApiSchemaObject } from "./openapi";
 export { toOpenApi } from "./openapi";
@@ -17,9 +23,12 @@ import {
   object,
   objectOf,
   optional,
+  record,
   string,
+  tuple,
   union,
   type ArrayOptions,
+  type BooleanOptions,
   type DateOptions,
   type DateStringOptions,
   type DateTimeStringOptions,
@@ -27,6 +36,7 @@ import {
   type ObjectOptions,
   type SchemaShape,
   type StringOptions,
+  type UnionOptions,
 } from "./builders";
 import type { Infer, Schema } from "./core";
 
@@ -39,8 +49,10 @@ export const s = {
   dateTimeString,
   literal,
   array,
+  tuple,
   object,
   objectOf,
+  record,
   optional,
   nullable,
   default: defaultValue,
@@ -57,8 +69,10 @@ export {
   dateTimeString,
   literal,
   array,
+  tuple,
   object,
   objectOf,
+  record,
   optional,
   nullable,
   defaultValue as default,
@@ -71,10 +85,12 @@ export type {
   DateOptions,
   DateStringOptions,
   DateTimeStringOptions,
+  BooleanOptions,
   ObjectOptions,
   NumberOptions,
   StringOptions,
   SchemaShape,
+  UnionOptions,
 };
 
 export type InferObject<T extends Record<string, Schema<unknown>>> = {

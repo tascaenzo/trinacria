@@ -18,6 +18,16 @@ export interface ObjectOptions {
   minProperties?: number;
 }
 
+const FORBIDDEN_OBJECT_KEYS = new Set([
+  "__proto__",
+  "prototype",
+  "constructor",
+]);
+
+function isSafeObjectKey(key: string): boolean {
+  return !FORBIDDEN_OBJECT_KEYS.has(key);
+}
+
 type Shape = Record<string, Schema<unknown>>;
 export type SchemaShape<T extends object> = {
   [K in keyof T]-?: Schema<T[K]>;
@@ -39,12 +49,25 @@ type InferShape<T extends Shape> = {
  * Creates an object schema from a shape definition.
  */
 export function object<T extends Shape>(shape: T, options: ObjectOptions = {}) {
+  const minProperties = options.minProperties;
+  if (
+    minProperties !== undefined &&
+    (!Number.isInteger(minProperties) || minProperties < 0)
+  ) {
+    throw new Error("object(): minProperties must be a non-negative integer");
+  }
+
+  for (const key of Object.keys(shape)) {
+    if (!isSafeObjectKey(key)) {
+      throw new Error(`object(): forbidden key "${key}" in schema shape`);
+    }
+  }
+
   const internalShape = Object.fromEntries(
     Object.entries(shape).map(([key, schema]) => [key, asInternal(schema)]),
   ) as Record<string, ReturnType<typeof asInternal>>;
 
   const strict = options.strict ?? false;
-  const minProperties = options.minProperties;
 
   return createSchema<InferShape<T>>(
     "object",
@@ -53,10 +76,10 @@ export function object<T extends Shape>(shape: T, options: ObjectOptions = {}) {
         throwValidation(path, "Expected object", "invalid_type");
       }
 
-      const result: Record<string, unknown> = {};
+      const result = Object.create(null) as Record<string, unknown>;
 
       for (const [key, schema] of Object.entries(internalShape)) {
-        const hasKey = key in input;
+        const hasKey = Object.hasOwn(input, key);
 
         if (!hasKey && !schema.acceptsUndefined) {
           throwValidation([...path, key], "Required field", "required");
@@ -66,6 +89,13 @@ export function object<T extends Shape>(shape: T, options: ObjectOptions = {}) {
         const parsedValue = schema.parseAtPath(value, [...path, key]);
 
         if (hasKey || parsedValue !== undefined) {
+          if (!isSafeObjectKey(key)) {
+            throwValidation(
+              [...path, key],
+              `Forbidden object key "${key}"`,
+              "forbidden_key",
+            );
+          }
           result[key] = parsedValue;
         }
       }

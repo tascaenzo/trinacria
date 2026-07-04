@@ -17,6 +17,8 @@ export type MaybePromise<T> = T | Promise<T>;
 export interface BaseProvider<T = unknown> {
   readonly token: Token<T>;
   readonly kind?: ProviderKind<T>;
+  readonly eager?: boolean;
+  readonly lifecycle?: "managed" | "external";
 }
 
 /**

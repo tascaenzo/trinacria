@@ -52,6 +52,7 @@ All schema instances expose:
   - `.optional()`
   - `.nullable()`
   - `.default(value)`
+  - `.refine(check, message?, code?)`
 
 ## Builders
 
@@ -59,14 +60,16 @@ Main DSL:
 
 - `s.string(options?)`
 - `s.number(options?)`
-- `s.boolean()`
+- `s.boolean(options?)`
 - `s.date(options?)`
 - `s.dateString(options?)`
 - `s.dateTimeString(options?)`
 - `s.literal(value)`
 - `s.array(itemSchema, options?)`
+- `s.tuple([schemaA, schemaB, ...] as const)`
 - `s.object(shape, options?)`
 - `s.objectOf<Type>()(shape, options?)` (model-first with interface/type)
+- `s.record(keySchema, valueSchema)`
 - `s.enum(["A", "B"] as const)`
 - `s.union([schemaA, schemaB] as const)`
 
@@ -92,6 +95,8 @@ All options currently supported by `s.string(...)`:
 - `ascii?: boolean`
 - `lowercase?: boolean`
 - `uppercase?: boolean`
+- `ip?: true | "v4" | "v6" | "both"`
+- `hostname?: boolean`
 
 Examples:
 
@@ -102,6 +107,8 @@ const UuidV4 = s.string({ uuid: "4" });
 const Slug = s.string({ pattern: /^[a-z0-9-]+$/, minLength: 3, maxLength: 64 });
 const ApiKey = s.string({ startsWith: "sk_", minLength: 20, ascii: true });
 const CountryCode = s.string({ uppercase: true, minLength: 2, maxLength: 2 });
+const ClientIp = s.string({ ip: "v4" });
+const Host = s.string({ hostname: true });
 ```
 
 ### Number options
@@ -122,6 +129,19 @@ Examples:
 const Port = s.number({ coerce: true, int: true, min: 1, max: 65535 });
 const Price = s.number({ min: 0, multipleOf: 0.01 });
 const Delta = s.number({ negative: true });
+```
+
+### Boolean options
+
+All options currently supported by `s.boolean(...)`:
+
+- `coerce?: boolean` (`"true"`, `"false"`, `"1"`, `"0"`, `1`, `0`)
+
+Examples:
+
+```ts
+const OpenApiEnabled = s.boolean({ coerce: true }).default(false);
+const TrustProxy = s.boolean({ coerce: true }).default(false);
 ```
 
 ### Date options
@@ -198,6 +218,24 @@ const PatchUser = s.object(
 );
 ```
 
+### Tuple and Record
+
+```ts
+const Coordinates = s.tuple([s.number(), s.number()] as const);
+const EnvMap = s.record(
+  s.string({ pattern: /^[A-Z_][A-Z0-9_]*$/ }),
+  s.string(),
+);
+```
+
+### Custom refinement
+
+```ts
+const EvenPort = s
+  .number({ coerce: true, int: true, min: 1, max: 65535 })
+  .refine((value) => value % 2 === 0, "Port must be even", "not_even_port");
+```
+
 ## Error model
 
 `ValidationError` contains one or more issues:
@@ -222,6 +260,8 @@ Mapping highlights:
 
 - primitives -> `type`
 - object -> `properties` + `required`
+- record -> `propertyNames` + `additionalProperties`
+- tuple -> `prefixItems` + fixed `minItems/maxItems`
 - `strict: true` -> `additionalProperties: false`
 - union -> `oneOf`
 - enum -> `enum`
@@ -246,13 +286,36 @@ const CreateUserSchema = s.object(
 ```ts
 const EnvSchema = s.object(
   {
+    ENV: s
+      .enum(["development", "staging", "production"])
+      .default("development"),
     HOST: s.string({ trim: true, minLength: 1 }).default("0.0.0.0"),
     PORT: s
       .number({ coerce: true, int: true, min: 1, max: 65535 })
       .default(3000),
+    OPENAPI_ENABLED: s.boolean({ coerce: true }).default(false),
+    CORS_ALLOWED_ORIGINS: s.array(s.string(), { coerce: true }).default([]),
   },
   { strict: false },
 );
+```
+
+Validation errors can be formatted consistently:
+
+```ts
+import { formatValidationError, ValidationError } from "@trinacria/schema";
+
+try {
+  EnvSchema.parse(process.env);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error(
+      formatValidationError(error, {
+        prefix: "Invalid environment configuration:",
+      }),
+    );
+  }
+}
 ```
 
 ### 3) Event payload validation

@@ -1,5 +1,6 @@
 import { createSchema } from "../core";
 import { throwValidation } from "../errors";
+import { isIP } from "node:net";
 
 export interface NumberOptions {
   /**
@@ -105,12 +106,51 @@ export interface StringOptions {
    * Requires the final value to be uppercase.
    */
   uppercase?: boolean;
+  /**
+   * Enables IP validation.
+   * Use "v4", "v6", or "both" (`true` maps to "both").
+   */
+  ip?: "v4" | "v6" | "both" | true;
+  /**
+   * Enables hostname validation.
+   */
+  hostname?: boolean;
+}
+
+export interface BooleanOptions {
+  /**
+   * Converts common boolean-like strings ("true"/"false"/"1"/"0")
+   * and numbers (1/0) before validation.
+   */
+  coerce?: boolean;
 }
 
 /**
  * Creates a string schema with optional normalization and constraints.
  */
 export function string(options: StringOptions = {}) {
+  if (
+    options.minLength !== undefined &&
+    (!Number.isInteger(options.minLength) || options.minLength < 0)
+  ) {
+    throw new Error("string(): minLength must be a non-negative integer");
+  }
+
+  if (
+    options.maxLength !== undefined &&
+    (!Number.isInteger(options.maxLength) || options.maxLength < 0)
+  ) {
+    throw new Error("string(): maxLength must be a non-negative integer");
+  }
+
+  if (
+    options.minLength !== undefined &&
+    options.maxLength !== undefined &&
+    options.minLength > options.maxLength
+  ) {
+    throw new Error("string(): minLength cannot be greater than maxLength");
+  }
+
   return createSchema(
     "string",
     (input, path) => {
@@ -181,6 +221,25 @@ export function string(options: StringOptions = {}) {
         }
       }
 
+      if (options.ip) {
+        const version = options.ip === true ? "both" : options.ip;
+        const detected = isIP(value);
+        const isValid =
+          version === "both"
+            ? detected !== 0
+            : version === "v4"
+              ? detected === 4
+              : detected === 6;
+
+        if (!isValid) {
+          throwValidation(path, "Invalid IP address", "invalid_ip");
+        }
+      }
+
+      if (options.hostname && !isValidHostname(value)) {
+        throwValidation(path, "Invalid hostname", "invalid_hostname");
+      }
+
       if (
         options.startsWith !== undefined &&
         !value.startsWith(options.startsWith)
@@ -209,8 +268,11 @@ export function string(options: StringOptions = {}) {
       }
 
       if (options.pattern !== undefined) {
-        options.pattern.lastIndex = 0;
-        if (!options.pattern.test(value)) {
+        const pattern = new RegExp(
+          options.pattern.source,
+          options.pattern.flags,
+        );
+        if (!pattern.test(value)) {
           throwValidation(
             path,
             "String does not match required pattern",
@@ -270,6 +332,17 @@ export function string(options: StringOptions = {}) {
       if (options.uuid) {
         openApi.format = "uuid";
       }
+      if (options.ip) {
+        const version = options.ip === true ? "both" : options.ip;
+        if (version === "v4") {
+          openApi.format = "ipv4";
+        } else if (version === "v6") {
+          openApi.format = "ipv6";
+        }
+      }
+      if (options.hostname) {
+        openApi.format = "hostname";
+      }
       if (options.pattern) {
         openApi.pattern = options.pattern.source;
       }
@@ -282,6 +355,28 @@ export function string(options: StringOptions = {}) {
  * Creates a number schema (with optional string coercion).
  */
 export function number(options: NumberOptions = {}) {
+  if (options.min !== undefined && !Number.isFinite(options.min)) {
+    throw new Error("number(): min must be a finite number");
+  }
+
+  if (options.max !== undefined && !Number.isFinite(options.max)) {
+    throw new Error("number(): max must be a finite number");
+  }
+
+  if (
+    options.min !== undefined &&
+    options.max !== undefined &&
+    options.min > options.max
+  ) {
+    throw new Error("number(): min cannot be greater than max");
+  }
+
+  if (options.multipleOf !== undefined) {
+    if (!Number.isFinite(options.multipleOf) || options.multipleOf <= 0) {
+      throw new Error("number(): multipleOf must be a finite number > 0");
+    }
+  }
+
   return createSchema(
     "number",
     (input, path) => {
@@ -352,15 +447,34 @@ export function number(options: NumberOptions = {}) {
 /**
  * Creates a boolean schema.
  */
-export function boolean() {
+export function boolean(options: BooleanOptions = {}) {
   return createSchema(
     "boolean",
     (input, path) => {
-      if (typeof input !== "boolean") {
+      let value = input;
+
+      if (options.coerce) {
+        if (typeof value === "string") {
+          const normalized = value.trim().toLowerCase();
+          if (normalized === "true" || normalized === "1") {
+            value = true;
+          } else if (normalized === "false" || normalized === "0") {
+            value = false;
+          }
+        } else if (typeof value === "number") {
+          if (value === 1) {
+            value = true;
+          } else if (value === 0) {
+            value = false;
+          }
+        }
+      }
+
+      if (typeof value !== "boolean") {
         throwValidation(path, "Expected boolean", "invalid_type");
       }
 
-      return input;
+      return value;
     },
     () => ({ type: "boolean" }),
   );
@@ -428,4 +542,27 @@ function isMultipleOf(value: number, divisor: number): boolean {
 
   const quotient = value / divisor;
   return Math.abs(quotient - Math.round(quotient)) < Number.EPSILON;
+}
+
+function isValidHostname(value: string): boolean {
+  if (value.length === 0 || value.length > 253) {
+    return false;
+  }
+
+  const labels = value.split(".");
+  if (labels.length === 0) {
+    return false;
+  }
+
+  return labels.every((label) => {
+    if (label.length === 0 || label.length > 63) {
+      return false;
+    }
+
+    if (label.startsWith("-") || label.endsWith("-")) {
+      return false;
+    }
+
+    return /^[A-Za-z0-9-]+$/.test(label);
+  });
 }

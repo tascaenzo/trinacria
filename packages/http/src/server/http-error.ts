@@ -1,10 +1,11 @@
 import { HttpException, type HttpExceptionOptions } from "../errors";
+import type { HttpHeaderValue } from "../response/http-response";
 export type { SerializedHttpError } from "../errors";
 
 export interface HttpErrorOptions {
   code?: string;
   details?: unknown;
-  headers?: Record<string, string>;
+  headers?: Record<string, HttpHeaderValue>;
   cause?: unknown;
 }
 

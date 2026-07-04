@@ -281,6 +281,11 @@ plugin.onInit()
 
 All providers are instantiated asynchronously and deterministically.
 
+Startup safety notes:
+
+- startup state is tracked (`idle | starting | started | failed`)
+- if startup fails, the app enters `failed` state and should be recreated before retrying `start()`
+
 ---
 
 ### 3️⃣ Runtime
@@ -298,11 +303,11 @@ All providers are instantiated asynchronously and deterministically.
 
 ### 4️⃣ shutdown()
 
-```text
-plugin.onDestroy()
-```
+`shutdown()` is fail-safe:
 
-Used for graceful resource cleanup.
+1. runs `plugin.onDestroy()` for every plugin (collecting errors)
+2. always attempts registry/container destroy
+3. throws aggregated errors only after cleanup attempt completes
 
 ---
 
@@ -338,7 +343,7 @@ This keeps runtime state consistent even during partial plugin failures.
 
 1. validation that no other module imports the target module
 2. module provider `onDestroy()` hooks (reverse creation order)
-3. exported token removal from root visibility
+3. exported token aliases removal from root visibility
 4. provider-kind reference cleanup used by plugin discovery
 5. plugin notification through `onModuleUnregistered`
 
@@ -358,6 +363,12 @@ Behavior:
 - `onInit` runs after provider instantiation
 - `onDestroy` runs during module unregistration and application shutdown
 - destroy order is reverse-instantiation order to minimize dependency tear-down issues
+
+Additional runtime behavior:
+
+- exported module tokens are re-exposed to root through lazy alias providers
+- alias providers do not execute duplicate `onInit/onDestroy`; lifecycle remains owned by module instances
+- failed provider instantiation is not permanently cached, so a future resolve can retry
 
 ---
 

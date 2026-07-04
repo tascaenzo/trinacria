@@ -46,10 +46,29 @@ export interface DateTimeStringOptions {
   max?: Date;
 }
 
+const ISO_DATE_TIME_REGEX =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
+
 /**
  * Creates a schema for JavaScript Date values.
  */
 export function date(options: DateOptions = {}) {
+  if (options.min && Number.isNaN(options.min.getTime())) {
+    throw new Error("date(): min must be a valid Date");
+  }
+
+  if (options.max && Number.isNaN(options.max.getTime())) {
+    throw new Error("date(): max must be a valid Date");
+  }
+
+  if (
+    options.min &&
+    options.max &&
+    options.min.getTime() > options.max.getTime()
+  ) {
+    throw new Error("date(): min cannot be greater than max");
+  }
+
   return createSchema(
     "date",
     (input, path) => {
@@ -95,6 +114,18 @@ export function date(options: DateOptions = {}) {
  * Creates a schema for date-only strings in YYYY-MM-DD format.
  */
 export function dateString(options: DateStringOptions = {}) {
+  if (options.min && !isValidDateOnly(options.min)) {
+    throw new Error("dateString(): min must be in YYYY-MM-DD format");
+  }
+
+  if (options.max && !isValidDateOnly(options.max)) {
+    throw new Error("dateString(): max must be in YYYY-MM-DD format");
+  }
+
+  if (options.min && options.max && options.min > options.max) {
+    throw new Error("dateString(): min cannot be greater than max");
+  }
+
   return createSchema(
     "date_string",
     (input, path) => {
@@ -145,6 +176,22 @@ export function dateString(options: DateStringOptions = {}) {
  * Creates a schema for date-time strings.
  */
 export function dateTimeString(options: DateTimeStringOptions = {}) {
+  if (options.min && Number.isNaN(options.min.getTime())) {
+    throw new Error("dateTimeString(): min must be a valid Date");
+  }
+
+  if (options.max && Number.isNaN(options.max.getTime())) {
+    throw new Error("dateTimeString(): max must be a valid Date");
+  }
+
+  if (
+    options.min &&
+    options.max &&
+    options.min.getTime() > options.max.getTime()
+  ) {
+    throw new Error("dateTimeString(): min cannot be greater than max");
+  }
+
   return createSchema(
     "date_time_string",
     (input, path) => {
@@ -163,6 +210,14 @@ export function dateTimeString(options: DateTimeStringOptions = {}) {
 
       if (typeof value !== "string") {
         throwValidation(path, "Expected date-time string", "invalid_type");
+      }
+
+      if (!ISO_DATE_TIME_REGEX.test(value)) {
+        throwValidation(
+          path,
+          "Expected ISO-8601 date-time string",
+          "invalid_date_format",
+        );
       }
 
       const parsed = new Date(value);

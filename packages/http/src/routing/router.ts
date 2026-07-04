@@ -25,6 +25,15 @@ export class Router {
   private readonly trees = new Map<HttpMethod, RadixNode>();
 
   constructor() {
+    this.resetTrees();
+  }
+
+  clear(): void {
+    this.resetTrees();
+  }
+
+  private resetTrees(): void {
+    this.trees.clear();
     for (const method of HTTP_METHODS) {
       this.trees.set(method, this.createNode(""));
     }

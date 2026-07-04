@@ -6,17 +6,24 @@ import type { ResolvedConfig, TrinacriaConfig } from "./config.contract";
 
 export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
   const configFlagIndex = args.indexOf("--config");
+  const hasExplicitConfig = configFlagIndex !== -1;
 
   let configPath: string | null;
 
-  if (configFlagIndex !== -1 && args[configFlagIndex + 1]) {
+  if (hasExplicitConfig && args[configFlagIndex + 1]) {
     configPath = path.resolve(args[configFlagIndex + 1]);
+  } else if (hasExplicitConfig) {
+    throw new Error("Missing value for --config <path>.");
   } else {
     configPath = resolveDefaultConfigPath();
   }
 
+  if (hasExplicitConfig && configPath && !fs.existsSync(configPath)) {
+    throw new Error(`Config file not found: ${configPath}`);
+  }
+
   if (!configPath || !fs.existsSync(configPath)) {
-    return defaultConfig;
+    return normalizeConfig(defaultConfig);
   }
 
   try {
@@ -24,26 +31,48 @@ export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
     const required = require(configPath);
     const userConfig: TrinacriaConfig = required.default ?? required;
 
-    return {
+    return normalizeConfig({
       ...defaultConfig,
       ...userConfig,
-    };
+    });
   } catch (err: any) {
     // 🔵 Se è errore ESM → fallback a dynamic import
     if (err.code === "ERR_REQUIRE_ESM") {
       const module = await import(pathToFileURL(configPath).href);
       const userConfig: TrinacriaConfig = module.default ?? module;
 
-      return {
+      return normalizeConfig({
         ...defaultConfig,
         ...userConfig,
-      };
+      });
     }
 
-    console.error("Failed to load config file:", configPath);
-    console.error(err);
-    process.exit(1);
+    throw new Error(
+      `Failed to load config file "${configPath}": ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
   }
+}
+
+function normalizeConfig(config: ResolvedConfig): ResolvedConfig {
+  const crashLoopWindowMs = Number(config.crashLoopWindowMs);
+  const maxConsecutiveCrashRestarts = Number(
+    config.maxConsecutiveCrashRestarts,
+  );
+
+  return {
+    ...config,
+    crashLoopWindowMs:
+      Number.isFinite(crashLoopWindowMs) && crashLoopWindowMs > 0
+        ? Math.floor(crashLoopWindowMs)
+        : defaultConfig.crashLoopWindowMs,
+    maxConsecutiveCrashRestarts:
+      Number.isFinite(maxConsecutiveCrashRestarts) &&
+      maxConsecutiveCrashRestarts >= 1
+        ? Math.floor(maxConsecutiveCrashRestarts)
+        : defaultConfig.maxConsecutiveCrashRestarts,
+  };
 }
 
 function resolveDefaultConfigPath(): string | null {

@@ -1,5 +1,5 @@
 import type { ModuleDefinition } from "./module-definition";
-import type { Provider } from "../di/provider-types";
+import type { FactoryProvider, Provider } from "../di/provider-types";
 import type { Token } from "../token";
 import { Container } from "../di/container";
 import type { ProviderKind } from "../di";
@@ -56,6 +56,9 @@ export class ModuleRegistry {
   registerGlobalProvider(provider: Provider): void {
     this.root.register(provider);
     this.globalTokens.add(provider.token.key);
+    if (provider.kind) {
+      this.indexProviderByKind(provider);
+    }
   }
 
   build(rootModule: ModuleDefinition): void {
@@ -94,9 +97,13 @@ export class ModuleRegistry {
       await this.root.unregisterAndDestroy(exportedToken, true);
     }
 
-    // Remove local providers from ProviderKind discovery index.
-    for (const provider of container.getProviders()) {
+    // Remove module providers from ProviderKind discovery index.
+    for (const provider of module.providers ?? []) {
       this.unindexProviderByKind(provider);
+    }
+
+    // Remove non-exported providers from the module container.
+    for (const provider of container.getProviders()) {
       container.unregister(provider.token, true);
     }
 
@@ -122,8 +129,12 @@ export class ModuleRegistry {
     // 1) Initialize root container first.
     await this.root.init();
 
-    // 2) Initialize each module container.
-    for (const container of this.moduleContainers.values()) {
+    // 2) Initialize module containers in import-first order.
+    const initializationOrder = this.computeModuleInitializationOrder();
+    for (const module of initializationOrder) {
+      const container = this.moduleContainers.get(module);
+      if (!container) continue;
+
       await container.init();
     }
 
@@ -140,7 +151,12 @@ export class ModuleRegistry {
   async destroy(): Promise<void> {
     const errors: unknown[] = [];
 
-    for (const container of this.moduleContainers.values()) {
+    const destructionOrder = this.computeModuleInitializationOrder().reverse();
+
+    for (const module of destructionOrder) {
+      const container = this.moduleContainers.get(module);
+      if (!container) continue;
+
       try {
         await container.destroy();
       } catch (error) {
@@ -221,9 +237,9 @@ export class ModuleRegistry {
     }
 
     // 4) Validate dependency visibility boundaries.
-    this.validateModuleDependencies(module, moduleContainer, importedModules);
+    this.validateModuleDependencies(module, providers, importedModules);
 
-    // 5) Re-export selected tokens into the root container.
+    // 5) Re-export selected tokens into the root container via lazy aliases.
     const exports = module.exports ?? [];
     for (const exportedToken of exports) {
       const provider = this.findLocalProvider(moduleContainer, exportedToken);
@@ -242,8 +258,17 @@ export class ModuleRegistry {
         );
       }
 
+      const rootAliasProvider: FactoryProvider<any> = {
+        token: exportedToken,
+        kind: provider.kind,
+        deps: [],
+        useFactory: () => moduleContainer.resolve(exportedToken),
+        eager: false,
+        lifecycle: "external",
+      };
+
       // Root container can already be initialized when modules are added at runtime.
-      this.root.register(provider, true);
+      this.root.register(rootAliasProvider, true);
     }
 
     return moduleContainer;
@@ -295,13 +320,13 @@ export class ModuleRegistry {
 
   private validateModuleDependencies(
     module: ModuleDefinition,
-    container: Container,
+    moduleProviders: readonly Provider[],
     importedModules: readonly ModuleDefinition[],
   ): void {
     const visibleTokens = new Set<symbol>();
 
     // Local providers are always visible inside their own module.
-    for (const provider of container.getProviders()) {
+    for (const provider of moduleProviders) {
       visibleTokens.add(provider.token.key);
     }
 
@@ -319,7 +344,7 @@ export class ModuleRegistry {
     }
 
     // Verify that each declared dependency is visible in module scope.
-    for (const provider of container.getProviders()) {
+    for (const provider of moduleProviders) {
       if (!("deps" in provider) || !provider.deps) continue;
 
       for (const dep of provider.deps) {
@@ -339,6 +364,44 @@ export class ModuleRegistry {
     token: Token<any>,
   ): Provider<any> | undefined {
     return container.getProviders().find((p) => p.token.key === token.key);
+  }
+
+  /**
+   * Returns modules sorted so that imported modules are initialized first.
+   */
+  private computeModuleInitializationOrder(): ModuleDefinition[] {
+    const order: ModuleDefinition[] = [];
+    const visited = new Set<ModuleDefinition>();
+    const visiting = new Set<ModuleDefinition>();
+
+    const visit = (module: ModuleDefinition): void => {
+      if (visited.has(module)) {
+        return;
+      }
+
+      if (visiting.has(module)) {
+        // Cycles are tolerated by current registry semantics.
+        return;
+      }
+
+      visiting.add(module);
+
+      for (const imported of module.imports ?? []) {
+        if (this.moduleContainers.has(imported)) {
+          visit(imported);
+        }
+      }
+
+      visiting.delete(module);
+      visited.add(module);
+      order.push(module);
+    };
+
+    for (const module of this.moduleContainers.keys()) {
+      visit(module);
+    }
+
+    return order;
   }
 
   // --------------------------------------------------

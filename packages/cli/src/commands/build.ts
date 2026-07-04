@@ -45,6 +45,14 @@ export async function build(config: ResolvedConfig) {
   }
 
   const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
+  if (configFile.error) {
+    const message = ts.formatDiagnosticsWithColorAndContext(
+      [configFile.error],
+      formatHost(),
+    );
+    error(message);
+    process.exit(1);
+  }
 
   const parsed = ts.parseJsonConfigFileContent(
     configFile.config,
@@ -69,8 +77,8 @@ export async function build(config: ResolvedConfig) {
   const emitResult = program.emit();
 
   const diagnostics = ts
-    .getPreEmitDiagnostics(program)
-    .concat(emitResult.diagnostics);
+    .getConfigFileParsingDiagnostics(parsed)
+    .concat(ts.getPreEmitDiagnostics(program), emitResult.diagnostics);
 
   let errorCount = 0;
   let warningCount = 0;
@@ -128,4 +136,12 @@ export async function build(config: ResolvedConfig) {
   console.log(
     `${color.dim}Files compiled:${color.reset} ${sourceFiles.length}\n`,
   );
+}
+
+function formatHost(): ts.FormatDiagnosticsHost {
+  return {
+    getCanonicalFileName: (fileName) => fileName,
+    getCurrentDirectory: () => process.cwd(),
+    getNewLine: () => "\n",
+  };
 }

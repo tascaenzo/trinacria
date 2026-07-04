@@ -37,6 +37,8 @@ Thumbs.db
 # Playground runtime artifacts
 apps/**/dist/
 packages/**/dist/
+apps/playground/prisma/*.db
+apps/playground/prisma/*.db-*
 
 # Cache
 .cache/

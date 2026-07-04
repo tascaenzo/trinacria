@@ -281,6 +281,11 @@ plugin.onInit()
 
 Tutti i provider vengono istanziati in modo asincrono e deterministico.
 
+Note di sicurezza startup:
+
+- lo startup mantiene uno stato interno (`idle | starting | started | failed`)
+- se lo startup fallisce, l'app entra in stato `failed` e va ricreata prima di ritentare `start()`
+
 ---
 
 ### 3️⃣ Runtime
@@ -298,11 +303,11 @@ Tutti i provider vengono istanziati in modo asincrono e deterministico.
 
 ### 4️⃣ shutdown()
 
-```text
-plugin.onDestroy()
-```
+`shutdown()` e fail-safe:
 
-Serve per il rilascio pulito delle risorse.
+1. esegue `plugin.onDestroy()` su tutti i plugin (collezionando errori)
+2. prova sempre a distruggere registry/container
+3. lancia errori aggregati solo dopo aver completato il tentativo di cleanup
 
 ---
 
@@ -338,7 +343,7 @@ Questo mantiene lo stato runtime coerente anche in caso di failure parziali dei 
 
 1. validazione che nessun altro modulo importi il modulo target
 2. esecuzione hook `onDestroy()` dei provider modulo (ordine inverso di creazione)
-3. rimozione token esportati dalla visibilità root
+3. rimozione alias dei token esportati dalla visibilità root
 4. pulizia riferimenti provider-kind usati dalla discovery plugin
 5. notifica plugin via `onModuleUnregistered`
 
@@ -358,6 +363,12 @@ Comportamento:
 - `onInit` viene invocato dopo l’istanziazione del provider
 - `onDestroy` viene invocato in unregistration modulo e shutdown applicativo
 - l’ordine di destroy è inverso all’ordine di istanziazione per minimizzare problemi di teardown dipendenze
+
+Comportamento runtime aggiuntivo:
+
+- i token esportati da modulo sono riesposti sul root tramite provider alias lazy
+- i provider alias non rieseguono `onInit/onDestroy`; il lifecycle resta in carico alle istanze del modulo
+- il fallimento di istanziazione di un provider non resta cached per sempre, quindi un resolve futuro puo ritentare
 
 ---
 

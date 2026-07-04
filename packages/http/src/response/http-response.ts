@@ -1,4 +1,5 @@
-export type HttpResponseHeaders = Record<string, string>;
+export type HttpHeaderValue = string | readonly string[];
+export type HttpResponseHeaders = Record<string, HttpHeaderValue>;
 
 /**
  * Explicit HTTP response envelope returned by handlers when status/headers must be controlled.

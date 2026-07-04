@@ -1,5 +1,6 @@
 import { STATUS_CODES } from "node:http";
 import type { HttpContext } from "../server/http-context";
+import type { HttpHeaderValue } from "../response/http-response";
 import { HttpException } from "./http-exception";
 import {
   BadRequestException,
@@ -8,7 +9,7 @@ import {
 
 export interface SerializedHttpError {
   status: number;
-  headers?: Record<string, string>;
+  headers?: Record<string, HttpHeaderValue>;
   body: unknown;
 }
 
@@ -26,6 +27,12 @@ export type HttpExceptionHandler = (
 export const defaultExceptionHandler: HttpExceptionHandler = (error) => {
   if (error instanceof HttpException) {
     return serializeHttpException(error);
+  }
+
+  if (isValidationErrorLike(error)) {
+    return serializeHttpException(
+      new BadRequestException(formatValidationErrorMessage(error)),
+    );
   }
 
   if (error instanceof URIError) {
@@ -63,4 +70,39 @@ function serializeHttpException(exception: HttpException): SerializedHttpError {
       details: exception.details,
     },
   };
+}
+
+interface ValidationIssueLike {
+  path?: Array<string | number>;
+  message?: string;
+}
+
+interface ValidationErrorLike {
+  name: string;
+  issues: ValidationIssueLike[];
+}
+
+function isValidationErrorLike(error: unknown): error is ValidationErrorLike {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as Partial<ValidationErrorLike>;
+  return (
+    candidate.name === "ValidationError" && Array.isArray(candidate.issues)
+  );
+}
+
+function formatValidationErrorMessage(error: ValidationErrorLike): string {
+  const firstIssue = error.issues[0];
+  if (!firstIssue) {
+    return "Validation failed";
+  }
+
+  const path =
+    Array.isArray(firstIssue.path) && firstIssue.path.length > 0
+      ? firstIssue.path.map(String).join(".")
+      : "";
+  const message = firstIssue.message ?? "Invalid value";
+  return path ? `Invalid "${path}": ${message}` : message;
 }

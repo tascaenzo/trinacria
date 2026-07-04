@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: apps/cron-example/Dockerfile
+    environment:
+      ENV: production
+      CRON_ENABLED: ${DOCKER_CRON_ENABLED}
+      CRON_TICK_MS: ${DOCKER_CRON_TICK_MS}
+      HEARTBEAT_INTERVAL_MS: ${DOCKER_HEARTBEAT_INTERVAL_MS}
+    restart: unless-stopped

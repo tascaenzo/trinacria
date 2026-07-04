@@ -9,20 +9,65 @@ const log = new ConsoleLogger(context);
 const RESTART_DEBOUNCE_MS = 100;
 const STOP_TIMEOUT_MS = 3000;
 const NON_RESTARTABLE_EXIT_CODES = new Set([78]);
+let tsxCliEntryCache: string | null = null;
 
-export async function dev(config: ResolvedConfig) {
+interface DevDeps {
+  watch: (watchDir: string) => {
+    on(event: "all", listener: () => void): void;
+    close(): Promise<void>;
+  };
+  startApp: (entry: string) => ChildProcess;
+  stopChild: (child: ChildProcess) => Promise<void>;
+  setTimeoutFn: typeof setTimeout;
+  clearTimeoutFn: typeof clearTimeout;
+  now: () => number;
+  onSignal: (signal: NodeJS.Signals, handler: () => void) => void;
+  exit: (code: number) => void;
+  info: (message: string) => void;
+  error: (message: string) => void;
+}
+
+const defaultDevDeps: DevDeps = {
+  watch: (watchDir) =>
+    chokidar.watch(watchDir, {
+      ignoreInitial: true,
+    }),
+  startApp,
+  stopChild,
+  setTimeoutFn: setTimeout,
+  clearTimeoutFn: clearTimeout,
+  now: () => Date.now(),
+  onSignal: (signal, handler) => {
+    process.once(signal, handler);
+  },
+  exit: (code) => {
+    process.exit(code);
+  },
+  info: (message) => {
+    log.info(message, context);
+  },
+  error: (message) => {
+    log.error(message, context);
+  },
+};
+
+export async function runDev(
+  config: ResolvedConfig,
+  deps: DevDeps = defaultDevDeps,
+) {
   const entry = path.resolve(config.entry);
+  const crashLoopWindowMs = config.crashLoopWindowMs;
+  const maxConsecutiveCrashRestarts = config.maxConsecutiveCrashRestarts;
 
-  log.info("Starting in dev mode", context);
-
-  const watcher = chokidar.watch(config.watchDir, {
-    ignoreInitial: true,
-  });
+  deps.info("Starting in dev mode");
+  const watcher = deps.watch(config.watchDir);
 
   let restarting = false;
   let pendingRestart = false;
   let stopping = false;
-  let restartTimeout: NodeJS.Timeout | null = null;
+  let crashCount = 0;
+  let crashWindowStartedAt = 0;
+  let restartTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const handleChildExit = (code: number | null) => {
     if (stopping || restarting) {
@@ -31,9 +76,17 @@ export async function dev(config: ResolvedConfig) {
 
     if (code !== 0) {
       if (code !== null && NON_RESTARTABLE_EXIT_CODES.has(code)) {
-        log.error(
+        deps.error(
           `Application stopped with non-restartable exit code ${code}. Waiting for source changes...`,
-          context,
+        );
+        return;
+      }
+
+      if (isCrashLoop()) {
+        deps.error(
+          `Application crashed ${maxConsecutiveCrashRestarts} times in ${Math.floor(
+            crashLoopWindowMs / 1000,
+          )}s. Waiting for source changes...`,
         );
         return;
       }
@@ -43,8 +96,17 @@ export async function dev(config: ResolvedConfig) {
   };
 
   const createTrackedChild = () => {
-    const next = startApp(entry);
+    const next = deps.startApp(entry);
     next.on("exit", handleChildExit);
+    next.on("error", (err) => {
+      if (!stopping) {
+        scheduleRestart(
+          `App process failed to start: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    });
     return next;
   };
 
@@ -52,10 +114,10 @@ export async function dev(config: ResolvedConfig) {
 
   const scheduleRestart = (reason: string) => {
     if (restartTimeout) {
-      clearTimeout(restartTimeout);
+      deps.clearTimeoutFn(restartTimeout);
     }
 
-    restartTimeout = setTimeout(() => {
+    restartTimeout = deps.setTimeoutFn(() => {
       void restart(reason);
     }, RESTART_DEBOUNCE_MS);
   };
@@ -74,8 +136,8 @@ export async function dev(config: ResolvedConfig) {
       do {
         pendingRestart = false;
 
-        log.info(`${reason} — restarting application`, context);
-        await stopChild(child);
+        deps.info(`${reason} — restarting application`);
+        await deps.stopChild(child);
         child = createTrackedChild();
       } while (pendingRestart);
     } finally {
@@ -84,6 +146,8 @@ export async function dev(config: ResolvedConfig) {
   };
 
   watcher.on("all", () => {
+    crashCount = 0;
+    crashWindowStartedAt = 0;
     scheduleRestart("Source changed");
   });
 
@@ -91,28 +155,69 @@ export async function dev(config: ResolvedConfig) {
     stopping = true;
 
     if (restartTimeout) {
-      clearTimeout(restartTimeout);
+      deps.clearTimeoutFn(restartTimeout);
       restartTimeout = null;
     }
 
     await watcher.close();
-    await stopChild(child);
-    process.exit(signal === "SIGINT" ? 130 : 143);
+    await deps.stopChild(child);
+    deps.exit(signal === "SIGINT" ? 130 : 143);
   };
 
-  process.once("SIGINT", () => {
+  deps.onSignal("SIGINT", () => {
     void cleanup("SIGINT");
   });
 
-  process.once("SIGTERM", () => {
+  deps.onSignal("SIGTERM", () => {
     void cleanup("SIGTERM");
   });
+
+  function isCrashLoop(): boolean {
+    const now = deps.now();
+
+    if (
+      crashWindowStartedAt === 0 ||
+      now - crashWindowStartedAt > crashLoopWindowMs
+    ) {
+      crashWindowStartedAt = now;
+      crashCount = 1;
+      return false;
+    }
+
+    crashCount += 1;
+    return crashCount >= maxConsecutiveCrashRestarts;
+  }
+}
+
+export async function dev(config: ResolvedConfig) {
+  await runDev(config);
 }
 
 function startApp(entry: string): ChildProcess {
-  return spawn(process.platform === "win32" ? "tsx.cmd" : "tsx", [entry], {
+  return spawn(process.execPath, [resolveTsxCliPath(), entry], {
     stdio: "inherit",
   });
+}
+
+function resolveTsxCliPath(): string {
+  if (tsxCliEntryCache) {
+    return tsxCliEntryCache;
+  }
+
+  try {
+    tsxCliEntryCache = require.resolve("tsx/cli");
+    return tsxCliEntryCache;
+  } catch (error) {
+    throw new Error(
+      `Unable to resolve tsx CLI entry. Ensure \"tsx\" is installed. ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
+
+function resetTsxCliEntryCacheForTests(): void {
+  tsxCliEntryCache = null;
 }
 
 function stopChild(child: ChildProcess): Promise<void> {
@@ -137,3 +242,9 @@ function stopChild(child: ChildProcess): Promise<void> {
     child.kill("SIGTERM");
   });
 }
+
+export const __devTestUtils = {
+  resolveTsxCliPath,
+  stopChild,
+  resetTsxCliEntryCacheForTests,
+};

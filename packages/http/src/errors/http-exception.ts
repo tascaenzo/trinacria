@@ -1,11 +1,12 @@
 import { STATUS_CODES } from "node:http";
+import type { HttpHeaderValue } from "../response/http-response";
 
 export type HttpExceptionResponse = string | Record<string, unknown>;
 
 export interface HttpExceptionOptions {
   code?: string;
   details?: unknown;
-  headers?: Record<string, string>;
+  headers?: Record<string, HttpHeaderValue>;
   cause?: unknown;
 }
 
@@ -15,7 +16,7 @@ export interface HttpExceptionOptions {
 export class HttpException extends Error {
   readonly code?: string;
   readonly details?: unknown;
-  readonly headers?: Record<string, string>;
+  readonly headers?: Record<string, HttpHeaderValue>;
 
   constructor(
     private readonly response: HttpExceptionResponse,
