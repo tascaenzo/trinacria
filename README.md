@@ -272,11 +272,29 @@ Contributions are welcome.
 Common commands:
 
 ```bash
-npm run build:packages
-npm run test:packages
+npm run format:check
+npm run check
+npm run build
+npm test
 npm run coverage:all
-npm run precommit:check
+npm audit --audit-level=high
 ```
+
+### TypeScript toolchain
+
+Framework packages are compiled with the native TypeScript 7 compiler. The
+The root `typescript` dependency provides the native TypeScript 7 compiler. The
+CLI intentionally keeps a local `@typescript/typescript6` alias because its
+build and start commands require the legacy Compiler API, which is not exposed
+by TypeScript 7. Run `npm run toolchain:check` to verify both sides of this
+supported compatibility setup.
+
+### Code quality toolchain
+
+Biome performs JavaScript/TypeScript/JSON linting, formatting, and import
+organization from the root [biome.json](./biome.json). Prettier is intentionally
+retained only for Markdown and YAML because those formats are outside Biome's
+current stable formatter coverage.
 
 Repository documentation:
 
@@ -288,7 +306,7 @@ Repository documentation:
 
 Release channels:
 
-- publish flow via `npm run release:npm` (guided)
+- publish flow via `npm run deploy:npm` (guided)
 - CLI template smoke workflow: `.github/workflows/cli-template-smoke.yml`
 
 ## License

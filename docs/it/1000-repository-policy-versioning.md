@@ -28,9 +28,16 @@ npm run changeset
 
 ## Flusso release su `main`
 
-1. Il workflow `Release` gira a ogni push su `main`.
-2. Se ci sono changeset pendenti, apre/aggiorna una release PR (`chore: release packages`).
-3. Il merge della release PR pubblica su npm e crea i tag.
+Attualmente non esiste un workflow di release automatico. Quando i controlli su
+`main` sono verdi, un maintainer autorizzato avvia il comando guidato:
+
+```bash
+npm run deploy:npm
+```
+
+Il wizard verifica identità, build, test, package dry-run e smoke test dei
+template prima della pubblicazione. Il canale stabile o prerelease viene scelto
+esplicitamente.
 
 ## Script
 

@@ -1,5 +1,5 @@
 ---
-"@trinacria/schema": minor
+"@trinacria/schema": patch
 ---
 
 Add platform-contract validation improvements and parser ergonomics for schema consumers.

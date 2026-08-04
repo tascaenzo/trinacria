@@ -19,7 +19,7 @@ Questa sezione raccoglie la documentazione ufficiale in italiano.
 - [1001 - Repository: Script e Workflow Release](./1001-repository-release-scripts-workflow.md)
 - [1002 - Repository: Publish librerie e artifact npm](./1002-repository-publish-artifacts.md)
 - [1003 - Repository: Workflow Branching (`unstable` -> `develop` -> `main`)](./1003-repository-branching-workflow.md)
-- [1004 - Repository: Valutazione ESLint + Prettier](./1004-eslint-prettier-evaluation.md)
+- [1004 - Repository: Toolchain Biome](./1004-biome-toolchain.md)
 - [1005 - Repository: Flussi reali attivi](./1005-repository-real-workflows.md)
 - [1006 - Repository: Auto-update dipendenze (SemVer)](./1006-repository-dependency-auto-update.md)
 

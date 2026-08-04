@@ -90,7 +90,7 @@ Hook:
 
 Current checks:
 
-1. ESLint static check on staged code files (`*.ts, *.js, ...`)
+1. Biome static check on staged code files (`*.ts, *.js, ...`)
 2. build for touched workspaces
 3. test for touched workspaces
 4. when global/script files change, checks expand across `packages/*`

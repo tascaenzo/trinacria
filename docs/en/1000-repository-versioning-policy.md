@@ -28,9 +28,15 @@ npm run changeset
 
 ## Release flow on `main`
 
-1. The `Release` workflow runs on pushes to `main`.
-2. If pending changesets exist, it opens/updates a release PR (`chore: release packages`).
-3. Merging that PR publishes packages to npm and creates tags.
+There is currently no automatic release workflow. After the `main` checks are
+green, an authorized maintainer runs the guided release command:
+
+```bash
+npm run deploy:npm
+```
+
+The wizard performs identity, build, test, package dry-run, and template smoke
+checks before publishing. Stable or prerelease channels are selected explicitly.
 
 ## Scripts
 

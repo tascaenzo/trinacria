@@ -90,7 +90,7 @@ Hook:
 
 Controlli effettivi:
 
-1. ESLint static check sui file staged codice (`*.ts, *.js, ...`)
+1. controllo statico Biome sui file di codice staged (`*.ts, *.js, ...`)
 2. build workspace toccati
 3. test workspace toccati
 4. se tocchi file globali/script, estende i check ai package `packages/*`
@@ -98,4 +98,4 @@ Controlli effettivi:
 ## Note pratiche
 
 - `apps/*` non entrano nel pre-commit build/test automatico (lo script oggi scopre solo `packages/*`).
-- Il gate changeset in CI e` basato su `origin/main`.
+- Il gate changeset in CI e`basato su`origin/main`.
