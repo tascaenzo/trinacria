@@ -1,6 +1,6 @@
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import { ConsoleLogger } from "@trinacria/core";
 
 const context = "TrinacriaCLI";
@@ -277,7 +277,10 @@ function resolveCurrentCliVersion(): string {
     version?: unknown;
   };
 
-  if (typeof packageJson.version === "string" && packageJson.version.length > 0) {
+  if (
+    typeof packageJson.version === "string" &&
+    packageJson.version.length > 0
+  ) {
     return packageJson.version;
   }
 
@@ -432,7 +435,10 @@ function resolveWorkspacePackageVersion(pkgName: string): string | null {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as {
     version?: unknown;
   };
-  if (typeof packageJson.version !== "string" || packageJson.version.length === 0) {
+  if (
+    typeof packageJson.version !== "string" ||
+    packageJson.version.length === 0
+  ) {
     return null;
   }
 

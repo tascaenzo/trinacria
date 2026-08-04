@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import type { ResolvedConfig } from "../src/config/config.contract";
+import test from "node:test";
 import { main, printHelp, runCli } from "../src/cli";
+import type { ResolvedConfig } from "../src/config/config.contract";
 
 function createConfig(): ResolvedConfig {
   return {

@@ -1,10 +1,10 @@
 import { KNOWN_PERMISSIONS_POLICY_FEATURES } from "./constants";
-import { assertNoCrlf } from "./validation";
 import type {
   PermissionsPolicyValue,
   TrinacriaSecurityMode,
   ValidationMode,
 } from "./types";
+import { assertNoCrlf } from "./validation";
 
 export function buildPermissionsPolicyHeader(
   value: PermissionsPolicyValue,

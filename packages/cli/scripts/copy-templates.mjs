@@ -26,7 +26,11 @@ function getWorkspaceVersions() {
   const packageDirs = fs.readdirSync(packagesRoot, { withFileTypes: true });
   for (const entry of packageDirs) {
     if (!entry.isDirectory()) continue;
-    const packageJsonPath = path.resolve(packagesRoot, entry.name, "package.json");
+    const packageJsonPath = path.resolve(
+      packagesRoot,
+      entry.name,
+      "package.json",
+    );
     if (!fs.existsSync(packageJsonPath)) continue;
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
     if (
@@ -53,7 +57,10 @@ function pinTrinacriaDeps(packageJsonPath, versions) {
       deps[depName] = version;
     }
   }
-  fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+  fs.writeFileSync(
+    packageJsonPath,
+    `${JSON.stringify(packageJson, null, 2)}\n`,
+  );
 }
 
 const workspaceVersions = getWorkspaceVersions();

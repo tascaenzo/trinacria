@@ -1,19 +1,19 @@
-import { ModuleRegistry } from "../module/module-registry";
-import type { ModuleDefinition } from "../module/module-definition";
-import type { Plugin } from "../plugin/plugin-lifecycle";
-import type { ApplicationContext } from "./application-context";
-import type { Token } from "../token";
-import type { Provider } from "../di/provider-types";
 import type { ProviderKind } from "../di/provider-kind";
-import { ApplicationBuilder } from "./application-builder";
-import { CoreLog } from "../logger/core-logger";
+import type { Provider } from "../di/provider-types";
 import {
   ApplicationStateError,
   ModuleRegistrationError,
   ModuleRegistrationRollbackError,
   ModuleUnregistrationError,
 } from "../errors";
+import { CoreLog } from "../logger/core-logger";
 import type { ModuleGraphSnapshot } from "../module";
+import type { ModuleDefinition } from "../module/module-definition";
+import { ModuleRegistry } from "../module/module-registry";
+import type { Plugin } from "../plugin/plugin-lifecycle";
+import type { Token } from "../token";
+import type { ApplicationBuilder } from "./application-builder";
+import type { ApplicationContext } from "./application-context";
 
 /**
  * Main orchestrator for Trinacria runtime lifecycle.

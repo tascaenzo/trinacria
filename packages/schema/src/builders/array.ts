@@ -1,9 +1,14 @@
-import { asInternal, createSchema, type ParseOptions, type Schema } from "../core";
 import {
-  ValidationError,
+  asInternal,
+  createSchema,
+  type ParseOptions,
+  type Schema,
+} from "../core";
+import {
   throwValidation,
-  validationIssue,
+  ValidationError,
   type ValidationIssue,
+  validationIssue,
 } from "../errors";
 
 export interface ArrayOptions<T> {
@@ -124,7 +129,9 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
       const parsed: T[] = [];
       for (const [index, value] of normalizedInput.entries()) {
         try {
-          parsed.push(internalItem.parseAtPath(value, [...path, index], parseOptions));
+          parsed.push(
+            internalItem.parseAtPath(value, [...path, index], parseOptions),
+          );
         } catch (error) {
           if (isCollectAll && error instanceof ValidationError) {
             issues?.push(...error.issues);

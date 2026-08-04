@@ -1,5 +1,5 @@
 import { createProviderKind } from "@trinacria/core";
-import { HttpController } from "./base-controller";
+import type { HttpController } from "./base-controller";
 
 /**
  * ProviderKind marker used by the HTTP plugin to discover controller providers.

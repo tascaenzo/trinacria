@@ -1,4 +1,4 @@
-import { PrismaService } from "../../global-service/prisma.service";
+import type { PrismaService } from "../../global-service/prisma.service";
 
 export interface AcquiredCronLock {
   readonly lockToken: string;

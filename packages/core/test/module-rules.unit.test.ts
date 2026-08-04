@@ -1,14 +1,14 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { TrinacriaApp } from "../src/application/trinacria-app.ts";
 import { classProvider, valueProvider } from "../src/di/provider.ts";
-import { createToken } from "../src/token/token.ts";
-import { defineModule } from "../src/module/module.ts";
 import {
   ApplicationStateError,
   ModuleDependencyError,
   TokenConflictError,
 } from "../src/errors/core-errors.ts";
+import { defineModule } from "../src/module/module.ts";
+import { createToken } from "../src/token/token.ts";
 
 test("start fails when two modules export the same token", async () => {
   const SHARED = createToken<{ name: string }>("SHARED");

@@ -1,5 +1,5 @@
 import { factoryProvider, type Token } from "@trinacria/core";
-import { type Model, type Schema } from "mongoose";
+import type { Model, Schema } from "mongoose";
 import { MONGOOSE_SERVICE, type MongooseService } from "./mongoose.service";
 
 export function createMongooseSchemaProvider<

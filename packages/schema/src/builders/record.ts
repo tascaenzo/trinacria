@@ -1,16 +1,16 @@
 import {
   asInternal,
   createSchema,
-  isRecord,
   type Infer,
+  isRecord,
   type ParseOptions,
   type Schema,
 } from "../core";
 import {
-  ValidationError,
   throwValidation,
-  validationIssue,
+  ValidationError,
   type ValidationIssue,
+  validationIssue,
 } from "../errors";
 
 const FORBIDDEN_OBJECT_KEYS = new Set([
@@ -62,8 +62,16 @@ export function record<K extends string, V>(
         let parsedKey: K;
         let parsedValue: V;
         try {
-          parsedKey = internalKey.parseAtPath(rawKey, [...path, rawKey], parseOptions);
-          parsedValue = internalValue.parseAtPath(rawValue, [...path, rawKey], parseOptions);
+          parsedKey = internalKey.parseAtPath(
+            rawKey,
+            [...path, rawKey],
+            parseOptions,
+          );
+          parsedValue = internalValue.parseAtPath(
+            rawValue,
+            [...path, rawKey],
+            parseOptions,
+          );
         } catch (error) {
           if (isCollectAll && error instanceof ValidationError) {
             issues?.push(...error.issues);

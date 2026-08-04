@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { s, toOpenApi, ValidationError } from "../src/index.ts";
+import test from "node:test";
 import { createSchema } from "../src/core/schema.ts";
+import { s, toOpenApi, ValidationError } from "../src/index.ts";
 
 test("toOpenApi maps object required/additionalProperties/minProperties", () => {
   const schema = s.object(

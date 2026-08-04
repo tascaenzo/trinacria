@@ -1,7 +1,7 @@
 import * as argon2 from "argon2";
-import type { Prisma } from "@prisma/client";
-import { PrismaService } from "../../global-service/prisma.service";
-import { CreateUserDto, UpdateUserDto } from "./dto";
+import type { Prisma } from "../../generated/prisma/client";
+import type { PrismaService } from "../../global-service/prisma.service";
+import type { CreateUserDto, UpdateUserDto } from "./dto";
 
 const publicUserSelect = {
   id: true,

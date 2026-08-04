@@ -1,8 +1,8 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import test from "node:test";
 import { __newTestUtils, createNewApp } from "../src/commands/new";
 
 const CLI_PACKAGE_VERSION = (
@@ -135,7 +135,10 @@ test("createNewApp uses last path segment as package name", async () => {
       await createNewApp(["apps/my-service", "--no-install", "--no-git"]);
 
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(dir, "apps", "my-service", "package.json"), "utf8"),
+        fs.readFileSync(
+          path.join(dir, "apps", "my-service", "package.json"),
+          "utf8",
+        ),
       ) as { name: string };
       assert.equal(packageJson.name, "my-service");
     } finally {

@@ -39,6 +39,7 @@ apps/**/dist/
 packages/**/dist/
 apps/playground/prisma/*.db
 apps/playground/prisma/*.db-*
+apps/*/src/generated/prisma/
 
 # Cache
 .cache/

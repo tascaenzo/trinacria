@@ -1,6 +1,6 @@
+import { isIP } from "node:net";
 import { createSchema } from "../core";
 import { throwValidation } from "../errors";
-import { isIP } from "node:net";
 
 export interface NumberOptions {
   /**

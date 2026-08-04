@@ -1,16 +1,16 @@
 import {
   asInternal,
   createSchema,
+  type Infer,
   isRecord,
   type ParseOptions,
-  type Infer,
   type Schema,
 } from "../core";
 import {
-  ValidationError,
   throwValidation,
-  validationIssue,
+  ValidationError,
   type ValidationIssue,
+  validationIssue,
 } from "../errors";
 
 export interface ObjectOptions {

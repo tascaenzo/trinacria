@@ -8,6 +8,8 @@ export interface RateLimitOptions {
   trustProxy?: boolean;
   keyGenerator?: (ctx: HttpContext) => string;
   store?: RateLimitStore;
+  /** Maximum number of keys retained by the built-in memory store. */
+  memoryStoreMaxEntries?: number;
 }
 
 interface Counter {
@@ -16,8 +18,12 @@ interface Counter {
 }
 
 export interface RateLimitStore {
-  increment(key: string, now: number, windowMs: number): Counter;
-  prune?(now: number): void;
+  increment(
+    key: string,
+    now: number,
+    windowMs: number,
+  ): Counter | Promise<Counter>;
+  prune?(now: number): void | Promise<void>;
 }
 
 const DEFAULT_WINDOW_MS = 60_000;
@@ -27,7 +33,8 @@ export function rateLimit(options: RateLimitOptions = {}): HttpMiddleware {
   const windowMs = options.windowMs ?? DEFAULT_WINDOW_MS;
   const max = options.max ?? DEFAULT_MAX;
   const trustProxy = options.trustProxy ?? false;
-  const store = options.store ?? createMemoryRateLimitStore();
+  const store =
+    options.store ?? createMemoryRateLimitStore(options.memoryStoreMaxEntries);
   const keyGenerator =
     options.keyGenerator ??
     ((ctx: HttpContext) => getClientAddress(ctx, trustProxy));
@@ -46,7 +53,7 @@ export function rateLimit(options: RateLimitOptions = {}): HttpMiddleware {
   return async (ctx, next) => {
     const now = Date.now();
     const key = keyGenerator(ctx);
-    const counter = store.increment(key, now, roundedWindow);
+    const counter = await store.increment(key, now, roundedWindow);
     const remaining = Math.max(0, roundedMax - counter.count);
 
     ctx.res.setHeader("x-ratelimit-limit", String(roundedMax));
@@ -56,7 +63,7 @@ export function rateLimit(options: RateLimitOptions = {}): HttpMiddleware {
       String(Math.ceil(counter.resetAt / 1000)),
     );
 
-    store.prune?.(now);
+    await store.prune?.(now);
 
     if (counter.count > roundedMax) {
       const retryAfter = Math.max(1, Math.ceil((counter.resetAt - now) / 1000));
@@ -88,14 +95,39 @@ function getClientAddress(ctx: HttpContext, trustProxy: boolean): string {
   return ctx.req.socket.remoteAddress || "unknown";
 }
 
-function createMemoryRateLimitStore(): RateLimitStore {
+export function createMemoryRateLimitStore(
+  maxEntries = 10_000,
+): RateLimitStore {
+  if (!Number.isInteger(maxEntries) || maxEntries < 1) {
+    throw new RangeError("rateLimit.memoryStoreMaxEntries must be >= 1");
+  }
+
   const map = new Map<string, Counter>();
+
+  const deleteExpired = (now: number): void => {
+    for (const [storedKey, value] of map.entries()) {
+      if (value.resetAt <= now) {
+        map.delete(storedKey);
+      }
+    }
+  };
+
+  const enforceBound = (now: number): void => {
+    if (map.size < maxEntries) return;
+    deleteExpired(now);
+    while (map.size >= maxEntries) {
+      const oldestKey = map.keys().next().value as string | undefined;
+      if (!oldestKey) break;
+      map.delete(oldestKey);
+    }
+  };
 
   return {
     increment(key: string, now: number, windowMs: number): Counter {
       const current = map.get(key);
 
       if (!current || current.resetAt <= now) {
+        enforceBound(now);
         const nextCounter = { count: 1, resetAt: now + windowMs };
         map.set(key, nextCounter);
         return nextCounter;
@@ -105,14 +137,8 @@ function createMemoryRateLimitStore(): RateLimitStore {
       return current;
     },
     prune(now: number): void {
-      if (map.size <= 10_000) {
-        return;
-      }
-
-      for (const [storedKey, value] of map.entries()) {
-        if (value.resetAt <= now) {
-          map.delete(storedKey);
-        }
+      if (map.size >= Math.max(100, Math.floor(maxEntries * 0.8))) {
+        deleteExpired(now);
       }
     },
   };

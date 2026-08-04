@@ -1,9 +1,9 @@
 import {
-  HttpMiddleware,
+  type HttpMiddleware,
   rateLimit,
   resolveClientAddress,
 } from "@trinacria/http";
-import { AuthConfig } from "./auth.config";
+import type { AuthConfig } from "./auth.config";
 
 /**
  * Brute-force protection for login.

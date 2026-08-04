@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { s, ValidationError } from "../src/index.ts";
+import test from "node:test";
 import { createSchema } from "../src/core/schema.ts";
+import { s, ValidationError } from "../src/index.ts";
 
 test("string constraints expose expected validation codes", () => {
   assert.equal(s.string({ email: true }).safeParse("not-email").success, false);

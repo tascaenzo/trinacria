@@ -6,10 +6,10 @@ import {
   type Schema,
 } from "../core";
 import {
-  ValidationError,
   throwValidation,
-  validationIssue,
+  ValidationError,
   type ValidationIssue,
+  validationIssue,
 } from "../errors";
 
 type InferTuple<T extends readonly Schema<unknown>[]> = {
@@ -57,7 +57,9 @@ export function tuple<T extends readonly Schema<unknown>[]>(schemas: T) {
       const result: unknown[] = [];
       for (const [index, schema] of internalSchemas.entries()) {
         try {
-          result.push(schema.parseAtPath(input[index], [...path, index], parseOptions));
+          result.push(
+            schema.parseAtPath(input[index], [...path, index], parseOptions),
+          );
         } catch (error) {
           if (isCollectAll && error instanceof ValidationError) {
             issues?.push(...error.issues);

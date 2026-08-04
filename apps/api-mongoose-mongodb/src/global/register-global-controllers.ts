@@ -1,6 +1,6 @@
-import { TrinacriaApp } from "@trinacria/core";
+import type { TrinacriaApp } from "@trinacria/core";
 import { httpProvider } from "@trinacria/http";
-import { ConfigService, CONFIG_SERVICE } from "./config.service";
+import { CONFIG_SERVICE, type ConfigService } from "./config.service";
 import {
   SWAGGER_DOCS_CONTROLLER,
   SwaggerDocsController,

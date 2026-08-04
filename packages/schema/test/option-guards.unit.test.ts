@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { s } from "../src/index.ts";
 
 test("string guardrails reject invalid length options", () => {

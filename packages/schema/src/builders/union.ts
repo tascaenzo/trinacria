@@ -1,8 +1,8 @@
 import { asInternal, createSchema, type Infer, type Schema } from "../core";
 import {
   ValidationError,
-  validationIssue,
   type ValidationIssue,
+  validationIssue,
 } from "../errors";
 
 export interface UnionOptions {
@@ -38,7 +38,9 @@ export function union<T extends readonly Schema<unknown>[]>(
 
       for (const schema of internalSchemas) {
         try {
-          return schema.parseAtPath(input, path, parseOptions) as Infer<T[number]>;
+          return schema.parseAtPath(input, path, parseOptions) as Infer<
+            T[number]
+          >;
         } catch (error) {
           if (error instanceof ValidationError) {
             const remaining: number = maxIssues - nestedIssues.length;

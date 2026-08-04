@@ -1,6 +1,10 @@
-import { classProvider, DependencyList, Token } from "@trinacria/core";
+import {
+  classProvider,
+  type DependencyList,
+  type Token,
+} from "@trinacria/core";
+import type { HttpController } from "./base-controller";
 import { HTTP_CONTROLLER_KIND } from "./kind";
-import { HttpController } from "./base-controller";
 
 /**
  * Registers a controller class provider tagged as HTTP controller.

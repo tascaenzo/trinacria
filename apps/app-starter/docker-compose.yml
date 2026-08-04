@@ -1,5 +1,8 @@
 services:
   app:
+    init: true
+    security_opt:
+      - no-new-privileges:true
     build:
       context: ../..
       dockerfile: apps/app-starter/Dockerfile

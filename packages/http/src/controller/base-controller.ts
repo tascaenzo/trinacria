@@ -1,5 +1,5 @@
-import type { RouteDefinition } from "../routing/route-definition";
 import { RouteBuilder } from "../routing/route-builder";
+import type { RouteDefinition } from "../routing/route-definition";
 
 /**
  * Base class for HTTP controllers.

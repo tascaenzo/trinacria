@@ -1,18 +1,20 @@
 import { createToken } from "@trinacria/core";
 import {
   ForbiddenException,
-  HttpMiddleware,
-  UnauthorizedException,
+  type HttpMiddleware,
   isSafeHttpMethod,
   parseBearerToken,
   readHeaderValue,
+  UnauthorizedException,
 } from "@trinacria/http";
 import {
   CSRF_TOKEN_HEADER_NAME,
   readAccessTokenFromCookieHeader,
   readCsrfTokenFromCookieHeader,
+  readRefreshTokenFromCookieHeader,
 } from "./auth.cookie";
-import { AuthService } from "./auth.service";
+import type { AuthService } from "./auth.service";
+import type { JwtClaims } from "./jwt";
 
 export const AUTH_GUARD_FACTORY =
   createToken<AuthGuardFactory>("AUTH_GUARD_FACTORY");
@@ -48,9 +50,11 @@ export class AuthGuardFactory {
           ctx.req.headers[CSRF_TOKEN_HEADER_NAME],
         );
 
-        if (!cookieToken || !headerValue || cookieToken !== headerValue) {
-          throw new ForbiddenException("Invalid CSRF token");
-        }
+        await this.authService.verifySessionCsrf(
+          claims.sid,
+          cookieToken,
+          headerValue,
+        );
       }
 
       return next();
@@ -80,11 +84,25 @@ export class AuthGuardFactory {
     };
   }
 
+  requireRoles(...roles: string[]): HttpMiddleware {
+    const allowed = new Set(roles);
+    return async (ctx, next) => {
+      const claims = ctx.state.auth as JwtClaims | undefined;
+      if (!claims) {
+        throw new UnauthorizedException("Authentication state is missing");
+      }
+      if (!allowed.has(claims.role)) {
+        throw new ForbiddenException("Insufficient permissions");
+      }
+      return next();
+    };
+  }
+
   /**
    * CSRF only check, typically used on auth mutation endpoints
    * where session cookie is already expected.
    */
-  requireCsrf(): HttpMiddleware {
+  requireRefreshCsrf(): HttpMiddleware {
     return async (ctx, next) => {
       if (isSafeHttpMethod(ctx.req.method)) {
         return next();
@@ -95,9 +113,14 @@ export class AuthGuardFactory {
         ctx.req.headers[CSRF_TOKEN_HEADER_NAME],
       );
 
-      if (!cookieToken || !headerValue || cookieToken !== headerValue) {
-        throw new ForbiddenException("Invalid CSRF token");
-      }
+      const refreshToken = readRefreshTokenFromCookieHeader(
+        ctx.req.headers.cookie,
+      );
+      await this.authService.verifyRefreshRequest(
+        refreshToken,
+        cookieToken,
+        headerValue,
+      );
 
       return next();
     };

@@ -1,5 +1,5 @@
-import { HttpMiddleware } from "./middleware-definition";
-import { HttpContext } from "../server/http-context";
+import type { HttpContext } from "../server/http-context";
+import type { HttpMiddleware } from "./middleware-definition";
 
 /**
  * Composes middleware stack using a Koa-style `next()` chain.

@@ -1,4 +1,4 @@
-import { ValidationError, type Path, validationIssue } from "../errors";
+import { type Path, ValidationError, validationIssue } from "../errors";
 import type { OpenApiSchemaObject } from "../openapi";
 
 /**

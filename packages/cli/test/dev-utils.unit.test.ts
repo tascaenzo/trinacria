@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
+import test from "node:test";
 import { __devTestUtils } from "../src/commands/dev";
 
 test("resolveTsxCliPath returns a stable cached path", () => {

@@ -30,7 +30,11 @@ export class JwtVerificationError extends Error {
 export class Hs256JwtSigner implements JwtSigner {
   private readonly secret: Uint8Array;
 
-  constructor(secret: string) {
+  constructor(
+    secret: string,
+    private readonly issuer: string,
+    private readonly audience: string,
+  ) {
     this.secret = new TextEncoder().encode(secret);
   }
 
@@ -48,6 +52,8 @@ export class Hs256JwtSigner implements JwtSigner {
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setSubject(payload.sub)
+      .setIssuer(this.issuer)
+      .setAudience(this.audience)
       .setIssuedAt()
       .setExpirationTime(`${expiresInSeconds}s`)
       .sign(this.secret);
@@ -59,6 +65,8 @@ export class Hs256JwtSigner implements JwtSigner {
     try {
       const { payload } = await jose.jwtVerify(token, this.secret, {
         algorithms: ["HS256"],
+        issuer: this.issuer,
+        audience: this.audience,
       });
 
       return extractClaims(payload);

@@ -1,6 +1,6 @@
-import { Provider } from "../di/provider-types";
-import { ModuleDefinition } from "../module/module-definition";
-import { Plugin } from "../plugin";
+import type { Provider } from "../di/provider-types";
+import type { ModuleDefinition } from "../module/module-definition";
+import type { Plugin } from "../plugin";
 
 /**
  * Builder interface used during application setup.

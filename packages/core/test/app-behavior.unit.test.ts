@@ -1,16 +1,16 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { TrinacriaApp } from "../src/application/trinacria-app.ts";
 import { classProvider, valueProvider } from "../src/di/provider.ts";
 import { createProviderKind } from "../src/di/provider-kind.ts";
-import { createToken } from "../src/token/token.ts";
-import { defineModule } from "../src/module/module.ts";
-import { definePlugin } from "../src/plugin/plugin.ts";
 import {
   ApplicationStateError,
   ModuleUnregistrationError,
   ProviderNotFoundError,
 } from "../src/errors/core-errors.ts";
+import { defineModule } from "../src/module/module.ts";
+import { definePlugin } from "../src/plugin/plugin.ts";
+import { createToken } from "../src/token/token.ts";
 
 test("describeGraph returns modules sorted by name and providerKinds counts", async () => {
   const kind = createProviderKind<{ id: string }>("HTTP_KIND");

@@ -127,14 +127,15 @@ export class InternalEventBus implements ManagedEventBus {
 
     this.metrics.emitted += 1;
 
-    if (this.options.transport) {
+    const transport = this.options.transport;
+    if (transport) {
       await withRetry(
-        () => this.options.transport!.publish(envelope),
+        () => transport.publish(envelope),
         this.options.publishRetry,
       );
     }
 
-    if (!this.options.transport || this.options.dispatchLocalOnEmit !== false) {
+    if (!transport || this.options.dispatchLocalOnEmit !== false) {
       await this.dispatch(envelope, "outbound");
     }
 
@@ -165,15 +166,13 @@ export class InternalEventBus implements ManagedEventBus {
   }
 
   async start(): Promise<void> {
-    if (!this.options.transport || this.connected) {
+    const transport = this.options.transport;
+    if (!transport || this.connected) {
       return;
     }
 
     await withRetry(
-      () =>
-        this.options.transport!.connect((envelope) =>
-          this.dispatch(envelope, "inbound"),
-        ),
+      () => transport.connect((envelope) => this.dispatch(envelope, "inbound")),
       this.options.connectRetry,
     );
 

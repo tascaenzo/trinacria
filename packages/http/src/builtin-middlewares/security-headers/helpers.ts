@@ -29,7 +29,7 @@ export function isHttpsRequest(
   req: IncomingMessage,
   trustProxy: boolean,
 ): boolean {
-  if ("encrypted" in req.socket && Boolean(req.socket.encrypted)) {
+  if ("encrypted" in req.socket && req.socket.encrypted) {
     return true;
   }
 

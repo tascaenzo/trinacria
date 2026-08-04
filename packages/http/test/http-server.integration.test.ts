@@ -1,10 +1,10 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { Readable } from "node:stream";
+import test from "node:test";
+import type { RouteDefinition } from "../src/routing/route-definition";
 import { Router } from "../src/routing/router";
 import { HttpServer } from "../src/server/http-server";
-import type { RouteDefinition } from "../src/routing/route-definition";
 
 interface RequestResult {
   status: number;

@@ -4,7 +4,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: ${DOCKER_MONGO_INITDB_DATABASE}
     ports:
-      - "${DOCKER_MONGO_PORT}:27017"
+      - "127.0.0.1:${DOCKER_MONGO_PORT}:27017"
     volumes:
       - trinacria_api_mongo_data:/data/db
     healthcheck:
@@ -15,6 +15,9 @@ services:
       retries: 20
 
   api:
+    init: true
+    security_opt:
+      - no-new-privileges:true
     build:
       context: ../..
       dockerfile: apps/api-mongoose-mongodb/Dockerfile
@@ -25,7 +28,7 @@ services:
       OPENAPI_ENABLED: true
       DATABASE_URL: ${DOCKER_DATABASE_URL}
     ports:
-      - "${DOCKER_API_PORT}:4002"
+      - "${DOCKER_API_BIND_ADDRESS:-127.0.0.1}:${DOCKER_API_PORT}:4002"
     depends_on:
       mongo:
         condition: service_healthy

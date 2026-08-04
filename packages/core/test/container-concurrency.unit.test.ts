@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { Container } from "../src/di/container.ts";
 import { factoryProvider, valueProvider } from "../src/di/provider.ts";
 import { createToken } from "../src/token/token.ts";

@@ -1,10 +1,9 @@
-import fs from "node:fs";
 import path from "node:path";
-import { createToken } from "@trinacria/core";
+import { createToken, loadEnvironmentFiles } from "@trinacria/core";
 import {
   formatValidationError,
+  type Infer,
   s,
-  Infer,
   ValidationError,
 } from "@trinacria/schema";
 
@@ -15,6 +14,7 @@ export const configSchema = s.object({
   // Server configuration
   PORT: s.number({ coerce: true, int: true, min: 1, max: 65535 }).default(5000),
   HOST: s.string().default("localhost"),
+  TRUST_PROXY: s.boolean({ coerce: true }).default(false),
 
   // Database configuration
   DATABASE_URL: s.string(),
@@ -58,6 +58,7 @@ export class ConfigService {
     this.loadEnvFile();
     try {
       this.config = configSchema.parse(process.env);
+      this.assertProductionSafety();
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new Error(
@@ -73,36 +74,41 @@ export class ConfigService {
 
   private loadEnvFile() {
     const currentEnv = process.env.ENV || "development";
-    const fileNames = [".env", `.env.${currentEnv}`];
     const roots = [process.cwd(), path.join(process.cwd(), "apps/playground")];
+    loadEnvironmentFiles({ roots, environment: currentEnv });
+  }
 
-    for (const fileName of fileNames) {
-      for (const root of roots) {
-        const filePath = path.join(root, fileName);
-        if (!fs.existsSync(filePath)) {
-          continue;
-        }
+  private assertProductionSafety(): void {
+    if (this.config.ENV === "development") return;
 
-        const data = fs.readFileSync(filePath, "utf8");
+    const secret = this.config.SECRET_KEY;
+    const forbidden = new Set([
+      "replace-with-a-strong-secret",
+      "change-me",
+      "secret",
+      "password",
+    ]);
+    if (Buffer.byteLength(secret, "utf8") < 32 || forbidden.has(secret)) {
+      throw new Error(
+        "Invalid environment configuration: SECRET_KEY must contain at least 32 bytes of non-placeholder material outside development",
+      );
+    }
 
-        data.split("\n").forEach((line) => {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith("#")) return;
+    if (this.config.CORS_ALLOWED_ORIGINS.length === 0) {
+      throw new Error(
+        "Invalid environment configuration: CORS_ALLOWED_ORIGINS must be explicit outside development",
+      );
+    }
 
-          const index = trimmed.indexOf("=");
-          if (index === -1) return;
-
-          const key = trimmed.slice(0, index).trim();
-          const rawValue = trimmed.slice(index + 1).trim();
-          const value =
-            (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
-            (rawValue.startsWith("'") && rawValue.endsWith("'"))
-              ? rawValue.slice(1, -1)
-              : rawValue;
-
-          process.env[key] = value;
-        });
-      }
+    if (
+      this.config.OPENAPI_ENABLED &&
+      (!this.config.SWAGGER_DOCS_USERNAME ||
+        !this.config.SWAGGER_DOCS_PASSWORD ||
+        this.config.SWAGGER_DOCS_PASSWORD.length < 16)
+    ) {
+      throw new Error(
+        "Invalid environment configuration: non-development API docs require a username and a password of at least 16 characters",
+      );
     }
   }
 

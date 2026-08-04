@@ -1,26 +1,26 @@
 import http from "node:http";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { ConsoleLogger } from "@trinacria/core";
-import type { Router } from "../routing/router";
-import type { HttpMethod } from "../routing/route-definition";
-import type { HttpContext } from "./http-context";
-import type { HttpMiddleware } from "../middleware/middleware-definition";
-import { HttpExecutor } from "./http-executor";
 import {
   BadRequestException,
+  defaultExceptionHandler,
   type HttpExceptionHandler,
   MethodNotAllowedException,
   NotFoundException,
   PayloadTooLargeException,
-  defaultExceptionHandler,
   type SerializedHttpError,
 } from "../errors";
+import type { HttpMiddleware } from "../middleware/middleware-definition";
 import {
   defaultResponseSerializer,
   type HttpResponseSerializer,
   type SerializedHttpResponse,
 } from "../response";
+import type { HttpMethod } from "../routing/route-definition";
+import type { Router } from "../routing/router";
+import type { HttpContext } from "./http-context";
+import { HttpExecutor } from "./http-executor";
 
 const DEFAULT_JSON_BODY_LIMIT_BYTES = 1_048_576;
 const DEFAULT_STREAMING_BODY_CONTENT_TYPES = [
@@ -34,12 +34,16 @@ export type HttpServerErrorSerializer = (
 ) => SerializedHttpError;
 export type { HttpExceptionHandler };
 
-interface HttpServerOptions {
+export interface HttpServerOptions {
   globalMiddlewares?: HttpMiddleware[];
   jsonBodyLimitBytes?: number;
   streamingBodyContentTypes?: string[];
   exceptionHandler?: HttpExceptionHandler;
   responseSerializer?: HttpResponseSerializer;
+  requestTimeoutMs?: number;
+  headersTimeoutMs?: number;
+  keepAliveTimeoutMs?: number;
+  maxRequestsPerSocket?: number;
   /**
    * @deprecated Use `exceptionHandler`.
    */
@@ -77,6 +81,26 @@ export class HttpServer {
       options.responseSerializer ?? defaultResponseSerializer;
 
     this.server = http.createServer(this.handleRequest.bind(this));
+    this.server.requestTimeout = normalizeTimeout(
+      options.requestTimeoutMs,
+      30_000,
+      "requestTimeoutMs",
+    );
+    this.server.headersTimeout = normalizeTimeout(
+      options.headersTimeoutMs,
+      15_000,
+      "headersTimeoutMs",
+    );
+    this.server.keepAliveTimeout = normalizeTimeout(
+      options.keepAliveTimeoutMs,
+      5_000,
+      "keepAliveTimeoutMs",
+    );
+    this.server.maxRequestsPerSocket = normalizePositiveInteger(
+      options.maxRequestsPerSocket,
+      1_000,
+      "maxRequestsPerSocket",
+    );
   }
 
   listen(port: number, host: string = "0.0.0.0"): Promise<void> {
@@ -233,7 +257,8 @@ export class HttpServer {
     const normalizedContentType = contentType.toLowerCase();
 
     if (this.isStreamingContentType(normalizedContentType)) {
-      return req;
+      this.assertDeclaredBodySizeWithinLimit(req, this.jsonBodyLimitBytes);
+      return this.createLimitedBodyStream(req, this.jsonBodyLimitBytes);
     }
 
     const rawBody = await this.readRawBody(req);
@@ -275,6 +300,7 @@ export class HttpServer {
   }
 
   private async readRawBody(req: http.IncomingMessage): Promise<Buffer> {
+    this.assertDeclaredBodySizeWithinLimit(req, this.jsonBodyLimitBytes);
     return new Promise<Buffer>((resolve, reject) => {
       const chunks: Buffer[] = [];
       let total = 0;
@@ -303,6 +329,48 @@ export class HttpServer {
       );
       req.on("error", (error) => reject(error));
     });
+  }
+
+  private assertDeclaredBodySizeWithinLimit(
+    req: http.IncomingMessage,
+    limitBytes: number,
+  ): void {
+    const value = this.getHeader(req.headers["content-length"]);
+    if (!value) return;
+
+    const declared = Number(value);
+    if (Number.isFinite(declared) && declared > limitBytes) {
+      throw new PayloadTooLargeException("Payload too large", {
+        code: "PAYLOAD_TOO_LARGE",
+      });
+    }
+  }
+
+  private createLimitedBodyStream(
+    req: http.IncomingMessage,
+    limitBytes: number,
+  ): Readable {
+    let total = 0;
+    const limiter = new Transform({
+      transform(chunk: Buffer | string, _encoding, callback) {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        total += buffer.length;
+        if (total > limitBytes) {
+          callback(
+            new PayloadTooLargeException("Payload too large", {
+              code: "PAYLOAD_TOO_LARGE",
+            }),
+          );
+          return;
+        }
+        callback(null, buffer);
+      },
+    });
+
+    // Always handle the limiter error even if a route ignores the stream.
+    limiter.on("error", () => req.destroy());
+    req.pipe(limiter);
+    return limiter;
   }
 
   private writeErrorResponse(
@@ -373,4 +441,28 @@ export class HttpServer {
     if (!value) return undefined;
     return Array.isArray(value) ? value[0] : value;
   }
+}
+
+function normalizeTimeout(
+  value: number | undefined,
+  fallback: number,
+  name: string,
+): number {
+  if (value === undefined) return fallback;
+  if (!Number.isFinite(value) || value < 1) {
+    throw new RangeError(`HttpServer.${name} must be >= 1`);
+  }
+  return Math.floor(value);
+}
+
+function normalizePositiveInteger(
+  value: number | undefined,
+  fallback: number,
+  name: string,
+): number {
+  if (value === undefined) return fallback;
+  if (!Number.isInteger(value) || value < 1) {
+    throw new RangeError(`HttpServer.${name} must be an integer >= 1`);
+  }
+  return value;
 }

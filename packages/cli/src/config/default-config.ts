@@ -1,4 +1,4 @@
-import { ResolvedConfig } from "./config.contract.js";
+import type { ResolvedConfig } from "./config.contract.js";
 
 export const defaultConfig: ResolvedConfig = {
   entry: "src/main.ts",

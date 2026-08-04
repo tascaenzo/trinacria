@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { Router } from "../src/routing/router";
+import test from "node:test";
 import type { RouteDefinition } from "../src/routing/route-definition";
+import { Router } from "../src/routing/router";
 
 function route(
   method: RouteDefinition["method"],

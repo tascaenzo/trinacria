@@ -1,6 +1,6 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
+import test from "node:test";
 import { HttpResponse } from "../src/response/http-response";
 import { defaultResponseSerializer } from "../src/response/response-serializer";
 

@@ -1,14 +1,14 @@
-import type { ModuleDefinition } from "./module-definition";
-import type { FactoryProvider, Provider } from "../di/provider-types";
-import type { Token } from "../token";
-import { Container } from "../di/container";
 import type { ProviderKind } from "../di";
+import { Container } from "../di/container";
+import type { FactoryProvider, Provider } from "../di/provider-types";
 import {
   ModuleDependencyError,
   ModuleExportError,
   ModuleUnregistrationError,
   TokenConflictError,
 } from "../errors";
+import type { Token } from "../token";
+import type { ModuleDefinition } from "./module-definition";
 
 export interface ModuleGraphNode {
   name: string;
@@ -210,8 +210,9 @@ export class ModuleRegistry {
   // --------------------------------------------------
 
   private buildModuleRecursive(module: ModuleDefinition): Container {
-    if (this.moduleContainers.has(module)) {
-      return this.moduleContainers.get(module)!;
+    const existingContainer = this.moduleContainers.get(module);
+    if (existingContainer) {
+      return existingContainer;
     }
 
     // 1) Create module container with root as parent scope.
@@ -275,7 +276,10 @@ export class ModuleRegistry {
   }
 
   private indexProviderByKind(provider: Provider<any>): void {
-    const key = provider.kind!.key;
+    const kind = provider.kind;
+    if (!kind) return;
+
+    const key = kind.key;
 
     const existing = this.kindIndex.get(key);
 

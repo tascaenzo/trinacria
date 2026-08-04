@@ -21,6 +21,7 @@ const workspacePatterns = Array.isArray(rootPackage.workspaces)
 const WORKSPACES = discoverWorkspaces(workspacePatterns);
 
 const GLOBAL_FILES = new Set([
+  "biome.json",
   "package.json",
   "package-lock.json",
   "tsconfig.base.json",
@@ -33,8 +34,8 @@ if (stagedFiles.length === 0) {
   process.exit(0);
 }
 
-const eslintTargets = stagedFiles.filter((file) =>
-  /\.(ts|mts|cts|js|mjs|cjs)$/.test(file),
+const biomeTargets = stagedFiles.filter((file) =>
+  /\.(ts|mts|cts|js|mjs|cjs|json|jsonc)$/.test(file),
 );
 
 const runAll =
@@ -61,14 +62,17 @@ const testTargets = runAll
 if (
   lintTargets.length === 0 &&
   testTargets.length === 0 &&
-  eslintTargets.length === 0
+  biomeTargets.length === 0
 ) {
   process.exit(0);
 }
 
-if (eslintTargets.length > 0) {
-  console.log("[pre-commit] Running eslint static checks...");
-  run(`npx eslint ${eslintTargets.map(shellQuote).join(" ")}`);
+if (runAll) {
+  console.log("[pre-commit] Running full Biome checks...");
+  run("npx biome check .");
+} else if (biomeTargets.length > 0) {
+  console.log("[pre-commit] Running Biome checks...");
+  run(`npx biome check ${biomeTargets.map(shellQuote).join(" ")}`);
 }
 
 console.log("[pre-commit] Running workspace build checks...");
@@ -86,7 +90,7 @@ if (testTargets.length > 0) {
 console.log("[pre-commit] Checks passed.");
 
 function shellQuote(value) {
-  return `'${String(value).replace(/'/g, `'\"'\"'`)}'`;
+  return `'${String(value).replace(/'/g, `'"'"'`)}'`;
 }
 
 function discoverWorkspaces(patterns) {
@@ -98,9 +102,6 @@ function discoverWorkspaces(patterns) {
     }
 
     const baseDir = pattern.slice(0, -2);
-    if (baseDir !== "packages") {
-      continue;
-    }
     if (!fs.existsSync(baseDir)) {
       continue;
     }

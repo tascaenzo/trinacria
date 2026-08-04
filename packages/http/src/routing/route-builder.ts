@@ -1,10 +1,10 @@
+import type { HttpMiddleware } from "../middleware/middleware-definition";
 import type {
-  RouteDefinition,
   HttpMethod,
+  RouteDefinition,
   RouteHandler,
   RouteOptions,
 } from "./route-definition";
-import type { HttpMiddleware } from "../middleware/middleware-definition";
 
 type HandlerInput<C> = RouteHandler | keyof C;
 

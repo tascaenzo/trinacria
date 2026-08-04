@@ -1,9 +1,8 @@
-import fs from "node:fs";
 import path from "node:path";
-import { createToken } from "@trinacria/core";
+import { createToken, loadEnvironmentFiles } from "@trinacria/core";
 import {
   formatValidationError,
-  Infer,
+  type Infer,
   s,
   ValidationError,
 } from "@trinacria/schema";
@@ -12,6 +11,7 @@ export const configSchema = s.object({
   ENV: s.enum(["development", "staging", "production"]).default("development"),
   PORT: s.number({ coerce: true, int: true, min: 1, max: 65535 }).default(4001),
   HOST: s.string().default("127.0.0.1"),
+  TRUST_PROXY: s.boolean({ coerce: true }).default(false),
   DATABASE_URL: s.string(),
   OPENAPI_ENABLED: s.boolean({ coerce: true }).default(true),
   CORS_ALLOWED_ORIGINS: s.array(s.string(), { coerce: true }).default([]),
@@ -28,6 +28,9 @@ export class ConfigService {
 
     try {
       this.config = configSchema.parse(process.env);
+      if (this.config.ENV === "production" && this.config.OPENAPI_ENABLED) {
+        throw new Error("OPENAPI_ENABLED must be false in production examples");
+      }
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new Error(
@@ -43,43 +46,11 @@ export class ConfigService {
 
   private loadEnvFile() {
     const currentEnv = process.env.ENV || "development";
-    const fileNames = [".env", `.env.${currentEnv}`];
     const roots = [
       process.cwd(),
       path.join(process.cwd(), "apps/api-prisma-postgresql"),
     ];
-
-    fileNames.forEach((fileName) => {
-      roots.forEach((root) => {
-        const filePath = path.join(root, fileName);
-        if (!fs.existsSync(filePath)) {
-          return;
-        }
-
-        const data = fs.readFileSync(filePath, "utf8");
-        data.split("\n").forEach((line) => {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith("#")) {
-            return;
-          }
-
-          const separatorIndex = trimmed.indexOf("=");
-          if (separatorIndex === -1) {
-            return;
-          }
-
-          const key = trimmed.slice(0, separatorIndex).trim();
-          const rawValue = trimmed.slice(separatorIndex + 1).trim();
-          const value =
-            (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
-            (rawValue.startsWith("'") && rawValue.endsWith("'"))
-              ? rawValue.slice(1, -1)
-              : rawValue;
-
-          process.env[key] = value;
-        });
-      });
-    });
+    loadEnvironmentFiles({ roots, environment: currentEnv });
   }
 
   get<K extends keyof ConfigModel>(key: K): ConfigModel[K] {

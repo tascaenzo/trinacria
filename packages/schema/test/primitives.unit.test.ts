@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { registerStringValidator, s, ValidationError } from "../src/index.ts";
 
 test("string applies trim and case transforms before constraints", () => {

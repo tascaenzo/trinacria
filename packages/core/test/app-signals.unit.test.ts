@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { TrinacriaApp } from "../src/application/trinacria-app.ts";
 
 test("signal handler exits with 0 when shutdown succeeds", async () => {

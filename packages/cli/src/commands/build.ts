@@ -1,6 +1,6 @@
-import ts from "typescript";
 import { performance } from "node:perf_hooks";
-import { ResolvedConfig } from "../config/config.contract";
+import ts from "typescript";
+import type { ResolvedConfig } from "../config/config.contract";
 
 const color = {
   reset: "\x1b[0m",

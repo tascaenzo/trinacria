@@ -1,3 +1,10 @@
+import {
+  CircularDependencyError,
+  ContainerStateError,
+  DuplicateProviderError,
+  ProviderNotFoundError,
+  UnknownProviderTypeError,
+} from "../errors";
 import type { Token } from "../token";
 import {
   isClassProvider,
@@ -6,13 +13,6 @@ import {
 } from "./provider";
 import type { ProviderKind } from "./provider-kind";
 import type { MaybePromise, Provider } from "./provider-types";
-import {
-  CircularDependencyError,
-  ContainerStateError,
-  DuplicateProviderError,
-  ProviderNotFoundError,
-  UnknownProviderTypeError,
-} from "../errors";
 
 /**
  * Hierarchical dependency injection container.

@@ -1,26 +1,25 @@
 import {
   type ApplicationContext,
-  type ModuleDefinition,
-  type Plugin,
   ConsoleLogger,
   definePlugin,
+  type ModuleDefinition,
+  type Plugin,
 } from "@trinacria/core";
-
-import { Router } from "./routing/router";
 import { HTTP_CONTROLLER_KIND } from "./controller/kind";
-import {
-  HttpServer,
-  type HttpExceptionHandler,
-  type HttpServerErrorSerializer,
-} from "./server/http-server";
-import { HttpMiddleware } from "./middleware/middleware-definition";
-import type { HttpResponseSerializer } from "./response";
-import type { RouteDefinition } from "./routing";
+import type { HttpMiddleware } from "./middleware/middleware-definition";
 import {
   buildOpenApiDocument,
   type OpenApiDocument,
   type OpenApiRouteEntry,
 } from "./openapi";
+import type { HttpResponseSerializer } from "./response";
+import type { RouteDefinition } from "./routing";
+import { Router } from "./routing/router";
+import {
+  type HttpExceptionHandler,
+  HttpServer,
+  type HttpServerErrorSerializer,
+} from "./server/http-server";
 
 export interface HttpPluginOpenApiOptions {
   enabled?: boolean;
@@ -30,6 +29,8 @@ export interface HttpPluginOpenApiOptions {
   description?: string;
   transformDocument?: (document: OpenApiDocument) => OpenApiDocument;
   onDocumentGenerated?: (document: OpenApiDocument) => void;
+  /** Optional middleware applied only to the generated OpenAPI JSON route. */
+  jsonMiddlewares?: HttpMiddleware[];
 }
 
 export interface HttpPluginOptions {
@@ -40,6 +41,10 @@ export interface HttpPluginOptions {
   streamingBodyContentTypes?: string[];
   exceptionHandler?: HttpExceptionHandler;
   responseSerializer?: HttpResponseSerializer;
+  requestTimeoutMs?: number;
+  headersTimeoutMs?: number;
+  keepAliveTimeoutMs?: number;
+  maxRequestsPerSocket?: number;
   /**
    * @deprecated Use `exceptionHandler`.
    */
@@ -64,6 +69,10 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
     streamingBodyContentTypes,
     exceptionHandler,
     responseSerializer,
+    requestTimeoutMs,
+    headersTimeoutMs,
+    keepAliveTimeoutMs,
+    maxRequestsPerSocket,
     errorSerializer,
     onRoutesRebuilt,
     openApi,
@@ -144,6 +153,7 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
     const route: RouteDefinition = {
       method: "GET",
       path: openApiJsonPath,
+      middlewares: openApi.jsonMiddlewares,
       handler: () => {
         if (!currentOpenApiDocument) {
           return {
@@ -172,6 +182,10 @@ export function createHttpPlugin(options: HttpPluginOptions = {}): Plugin {
         streamingBodyContentTypes,
         exceptionHandler,
         responseSerializer,
+        requestTimeoutMs,
+        headersTimeoutMs,
+        keepAliveTimeoutMs,
+        maxRequestsPerSocket,
         errorSerializer,
       });
 

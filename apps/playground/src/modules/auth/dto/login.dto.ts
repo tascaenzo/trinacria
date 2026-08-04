@@ -1,4 +1,4 @@
-import { Infer, s } from "@trinacria/schema";
+import { type Infer, s } from "@trinacria/schema";
 
 export const LoginDtoSchema = s.object(
   {

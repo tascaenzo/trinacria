@@ -1,5 +1,4 @@
-import type { EventRecord } from "./events.store";
-import { EventsStore } from "./events.store";
+import type { EventRecord, EventsStore } from "./events.store";
 
 export class EventsService {
   constructor(private readonly store: EventsStore) {}

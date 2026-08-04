@@ -1,6 +1,6 @@
 import type { HttpMiddleware } from "../middleware/middleware-definition";
 
-type OriginValue = "*" | string | RegExp | Array<string | RegExp>;
+type OriginValue = false | "*" | string | RegExp | Array<string | RegExp>;
 
 export interface CorsOptions {
   origin?: OriginValue;
@@ -30,6 +30,12 @@ export function cors(options: CorsOptions = {}): HttpMiddleware {
   const maxAge = options.maxAge;
   const optionsSuccessStatus = options.optionsSuccessStatus ?? 204;
 
+  if (credentials && (options.origin === undefined || options.origin === "*")) {
+    throw new Error(
+      "cors: credentials=true requires an explicit origin allowlist; wildcard origins are unsafe",
+    );
+  }
+
   return async (ctx, next) => {
     const requestOriginHeader = ctx.req.headers.origin;
     const requestOrigin = Array.isArray(requestOriginHeader)
@@ -51,7 +57,7 @@ export function cors(options: CorsOptions = {}): HttpMiddleware {
       appendVary(ctx.res, "Origin");
     }
 
-    if (credentials) {
+    if (credentials && allowedOrigin) {
       ctx.res.setHeader("access-control-allow-credentials", "true");
     }
 
@@ -64,8 +70,8 @@ export function cors(options: CorsOptions = {}): HttpMiddleware {
 
     if (
       ctx.req.method?.toUpperCase() === "OPTIONS" &&
-      Boolean(requestOrigin) &&
-      Boolean(requestedMethod)
+      requestOrigin &&
+      requestedMethod
     ) {
       ctx.res.setHeader("access-control-allow-methods", methods.join(", "));
 
@@ -102,6 +108,10 @@ function resolveAllowedOrigin(
   requestOrigin: string | undefined,
   credentials: boolean,
 ): string | null {
+  if (origin === false) {
+    return null;
+  }
+
   if (origin === undefined || origin === "*") {
     if (credentials) {
       return requestOrigin ?? null;

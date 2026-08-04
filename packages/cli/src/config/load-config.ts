@@ -1,8 +1,8 @@
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { defaultConfig } from "./default-config";
 import type { ResolvedConfig, TrinacriaConfig } from "./config.contract";
+import { defaultConfig } from "./default-config";
 
 export async function loadConfig(args: string[]): Promise<ResolvedConfig> {
   const configFlagIndex = args.indexOf("--config");

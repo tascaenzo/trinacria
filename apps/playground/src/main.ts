@@ -1,14 +1,13 @@
 import {
   ConsoleLogger,
-  TrinacriaApp,
   classProvider,
+  TrinacriaApp,
   valueProvider,
 } from "@trinacria/core";
-import { AuthModule } from "./modules/auth/auth.module";
-import { UserModule } from "./modules/users/user.module";
-import { CronModule } from "./modules/cron/cron.module";
-import { CRON_LOCK_SERVICE } from "./modules/cron/cron.tokens";
+import { createCronPlugin } from "@trinacria/cron";
+import { createEventsPlugin } from "@trinacria/events";
 import {
+  basicAuth,
   cors,
   createHttpPlugin,
   createSecurityHeadersBuilder,
@@ -17,13 +16,14 @@ import {
   requestLogger,
   requestTimeout,
 } from "@trinacria/http";
-import { createCronPlugin } from "@trinacria/cron";
-import { createEventsPlugin } from "@trinacria/events";
-import { CONFIG_SERVICE, ConfigService } from "./global-service/config.service";
-import { registerGlobalControllers } from "./global-controller/register-global-controllers";
-import { PrismaService } from "./global-service/prisma.service";
-import { PRISMA_SERVICE } from "./global-service/prisma.service";
 import { withSecuritySchemes } from "./bootstrap/bootstrap.helpers";
+import { registerGlobalControllers } from "./global-controller/register-global-controllers";
+import { CONFIG_SERVICE, ConfigService } from "./global-service/config.service";
+import { PRISMA_SERVICE, PrismaService } from "./global-service/prisma.service";
+import { AuthModule } from "./modules/auth/auth.module";
+import { CronModule } from "./modules/cron/cron.module";
+import { CRON_LOCK_SERVICE } from "./modules/cron/cron.tokens";
+import { UserModule } from "./modules/users/user.module";
 
 async function bootstrap() {
   const app = new TrinacriaApp();
@@ -33,17 +33,24 @@ async function bootstrap() {
   const eventsLogger = new ConsoleLogger("playground:events");
   const securityHeadersMiddleware = createSecurityHeadersBuilder()
     .preset(config.ENV)
-    .trustProxy(false)
+    .trustProxy(config.TRUST_PROXY)
     .build();
   const isProduction = config.ENV === "production";
   const corsOrigins = configService.get("CORS_ALLOWED_ORIGINS");
+  const docsAuth = {
+    username: config.SWAGGER_DOCS_USERNAME,
+    password: config.SWAGGER_DOCS_PASSWORD,
+    realm: "Trinacria Docs",
+  };
   app.registerGlobalProvider(valueProvider(CONFIG_SERVICE, configService));
 
   /**
    * Global providers are available across modules without importing a dedicated
    * module. Playground keeps infra primitives (config/db) in global scope.
    */
-  app.registerGlobalProvider(classProvider(PRISMA_SERVICE, PrismaService));
+  app.registerGlobalProvider(
+    classProvider(PRISMA_SERVICE, PrismaService, [CONFIG_SERVICE]),
+  );
   registerGlobalControllers(app, configService);
 
   app.use(
@@ -54,14 +61,14 @@ async function bootstrap() {
         requestId(),
         requestLogger({ includeUserAgent: !isProduction }),
         cors({
-          origin: corsOrigins.length > 0 ? corsOrigins : "*",
+          origin: corsOrigins.length > 0 ? corsOrigins : false,
           credentials: true,
           methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
         }),
         rateLimit({
           windowMs: 60_000,
           max: isProduction ? 240 : 2_000,
-          trustProxy: false,
+          trustProxy: config.TRUST_PROXY,
         }),
         requestTimeout({ timeoutMs: 15_000 }),
         securityHeadersMiddleware,
@@ -78,6 +85,7 @@ async function bootstrap() {
             description:
               "Playground API used to test Trinacria modules, middleware, auth, and database integration.",
             transformDocument: withSecuritySchemes,
+            jsonMiddlewares: [basicAuth(docsAuth)],
           }
         : undefined,
     }),

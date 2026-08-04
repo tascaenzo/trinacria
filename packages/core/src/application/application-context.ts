@@ -1,8 +1,8 @@
-import type { Token } from "../token";
-import type { Provider } from "../di/provider-types";
 import type { ProviderKind } from "../di/provider-kind";
-import type { ModuleDefinition } from "../module/module-definition";
+import type { Provider } from "../di/provider-types";
 import type { ModuleGraphSnapshot } from "../module";
+import type { ModuleDefinition } from "../module/module-definition";
+import type { Token } from "../token";
 
 /**
  * Public runtime API exposed to plugins.

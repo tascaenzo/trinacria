@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { ConsoleLogger } from "../src/logger/console-logger.ts";
 import { CoreLog } from "../src/logger/core-logger.ts";
 

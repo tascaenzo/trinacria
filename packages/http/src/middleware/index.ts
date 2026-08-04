@@ -1,2 +1,2 @@
-export * from "./middleware-definition";
 export * from "./compose";
+export * from "./middleware-definition";

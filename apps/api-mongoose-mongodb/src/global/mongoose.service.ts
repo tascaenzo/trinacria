@@ -1,5 +1,5 @@
-import mongoose, { type Connection } from "mongoose";
 import { createToken } from "@trinacria/core";
+import mongoose, { type Connection } from "mongoose";
 import type { ConfigService } from "./config.service";
 
 export const MONGOOSE_SERVICE =
@@ -20,7 +20,7 @@ export class MongooseService {
   }
 
   getConnection(): Connection {
-    if (!this.connection || this.connection.readyState !== 1) {
+    if (this.connection?.readyState !== 1) {
       throw new Error("Mongoose connection is not ready");
     }
 

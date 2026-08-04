@@ -1,15 +1,15 @@
 import {
   ConflictException,
+  type HttpContext,
   HttpController,
-  HttpContext,
   response,
 } from "@trinacria/http";
-import { UsersService } from "./users.service";
 import {
   CreateUserDtoSchema,
   PublicUserDtoSchema,
   PublicUserListDtoSchema,
 } from "./dto";
+import type { UsersService } from "./users.service";
 
 export class UsersController extends HttpController {
   constructor(private readonly users: UsersService) {

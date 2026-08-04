@@ -1,9 +1,9 @@
+import { getCachedHeaderEntries } from "./cache";
 import {
   DEFAULT_HEADERS,
   DEFAULT_HSTS_MAX_AGE,
   SECURITY_PRESETS,
 } from "./constants";
-import { getCachedHeaderEntries } from "./cache";
 import { compileContentSecurityPolicy } from "./csp";
 import { hasResponseHeader, isHttpsRequest, resolveMode } from "./helpers";
 import {
@@ -11,11 +11,6 @@ import {
   mergeSecurityHeadersOptions,
 } from "./options";
 import { buildPermissionsPolicyHeader } from "./permissions";
-import {
-  assertSafeHeaderValue,
-  validateHeaders,
-  validateStrictTransportSecurityOptions,
-} from "./validation";
 import type {
   HeaderValue,
   SecurityHeadersBuilder,
@@ -24,6 +19,11 @@ import type {
   StrictTransportSecurityOptions,
   TrinacriaSecurityMode,
 } from "./types";
+import {
+  assertSafeHeaderValue,
+  validateHeaders,
+  validateStrictTransportSecurityOptions,
+} from "./validation";
 
 /**
  * Returns a reusable preset object for security headers.

@@ -1,10 +1,10 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
+  formatValidationError,
   registerStringValidator,
   s,
   ValidationError,
-  formatValidationError,
 } from "../src/index.ts";
 
 test("object validates required fields and strict unknown keys", () => {
@@ -153,7 +153,11 @@ test("superRefine supports custom issue paths", () => {
 
   assert.equal(result.success, false);
   if (!result.success) {
-    assert.deepEqual(result.error.issues[0].path, ["dependencies", 0, "pluginId"]);
+    assert.deepEqual(result.error.issues[0].path, [
+      "dependencies",
+      0,
+      "pluginId",
+    ]);
     assert.equal(result.error.issues[0].code, "self_dependency");
   }
 });

@@ -1,14 +1,13 @@
 import {
+  type ApplicationContext,
   ConsoleLogger,
   definePlugin,
-  type ApplicationContext,
   type ModuleDefinition,
   type Plugin,
 } from "@trinacria/core";
-
+import type { CronJobDefinition, CronPluginOptions } from "./contracts";
 import { CRON_JOB_PROVIDER_KIND } from "./provider";
 import { CronScheduler } from "./scheduler";
-import type { CronJobDefinition, CronPluginOptions } from "./contracts";
 
 /**
  * Creates a cron scheduler plugin.

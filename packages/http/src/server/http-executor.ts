@@ -1,7 +1,7 @@
-import type { HttpContext } from "../server/http-context";
-import type { RouteDefinition } from "../routing/route-definition";
 import { compose } from "../middleware/compose";
-import { HttpMiddleware } from "../middleware/middleware-definition";
+import type { HttpMiddleware } from "../middleware/middleware-definition";
+import type { RouteDefinition } from "../routing/route-definition";
+import type { HttpContext } from "../server/http-context";
 
 /**
  * Builds and executes middleware + handler pipelines for matched routes.

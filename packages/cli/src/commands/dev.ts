@@ -1,8 +1,8 @@
-import { spawn, ChildProcess } from "node:child_process";
-import chokidar from "chokidar";
+import { type ChildProcess, spawn } from "node:child_process";
 import path from "node:path";
 import { ConsoleLogger } from "@trinacria/core";
-import { ResolvedConfig } from "../config/config.contract";
+import chokidar from "chokidar";
+import type { ResolvedConfig } from "../config/config.contract";
 
 const context = "TrinacriaCLI";
 const log = new ConsoleLogger(context);
@@ -209,7 +209,7 @@ function resolveTsxCliPath(): string {
     return tsxCliEntryCache;
   } catch (error) {
     throw new Error(
-      `Unable to resolve tsx CLI entry. Ensure \"tsx\" is installed. ${
+      `Unable to resolve tsx CLI entry. Ensure "tsx" is installed. ${
         error instanceof Error ? error.message : String(error)
       }`,
     );

@@ -1,8 +1,8 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { compose } from "../src/middleware/compose";
-import { HttpExecutor } from "../src/server/http-executor";
 import type { RouteDefinition } from "../src/routing/route-definition";
+import { HttpExecutor } from "../src/server/http-executor";
 
 test("compose executes middlewares in order around handler", async () => {
   const order: string[] = [];
