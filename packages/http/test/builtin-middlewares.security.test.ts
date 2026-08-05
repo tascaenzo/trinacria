@@ -6,6 +6,7 @@ import {
   createMemoryRateLimitStore,
   createSecurityHeadersBuilder,
   rateLimit,
+  securityHeaders,
 } from "../src/builtin-middlewares";
 import { Router } from "../src/routing";
 import { HttpServer } from "../src/server/http-server";
@@ -16,6 +17,7 @@ function createContext(
     method?: string;
     remoteAddress?: string;
     forwardedFor?: string;
+    forwardedProto?: string;
   } = {},
 ) {
   const headers = new Map<string, string | string[]>();
@@ -28,6 +30,7 @@ function createContext(
         headers: {
           origin: options.origin,
           "x-forwarded-for": options.forwardedFor,
+          "x-forwarded-proto": options.forwardedProto,
         },
         socket: { remoteAddress: options.remoteAddress ?? "127.0.0.1" },
       },
@@ -130,6 +133,238 @@ test("production security preset emits CSP and baseline headers", async () => {
   assert.match(
     String(request.headers.get("content-security-policy")),
     /default-src 'self'/,
+  );
+});
+
+test("security headers emits nonce, reporting, HSTS, and policy headers", async () => {
+  const builder = createSecurityHeadersBuilder()
+    .mode("production")
+    .trustProxy(true)
+    .headers({ "x-custom-header": "enabled", "x-frame-options": false })
+    .contentSecurityPolicy({
+      reportOnly: true,
+      overrideDirectives: true,
+      directives: {
+        "default-src": ["'self'"],
+        "script-src": ["'self'"],
+        "style-src": ["'self'"],
+      },
+      nonce: {
+        generator: () => "fixed-nonce",
+        stateKey: "docsNonce",
+      },
+      addStrictDynamicWhenNonce: true,
+      reportUri: "/csp-report",
+      reportTo: "csp-endpoint",
+      reportToHeader: {
+        group: "csp-endpoint",
+        maxAge: 60.9,
+        endpoints: [{ url: "https://reports.example/csp" }],
+        includeSubDomains: true,
+      },
+    })
+    .strictTransportSecurity({
+      maxAge: 123.9,
+      includeSubDomains: false,
+      preload: true,
+    })
+    .permissionsPolicy({ camera: [] }, "strict")
+    .crossOriginEmbedderPolicy("require-corp");
+
+  const builtOptions = builder.buildOptions();
+  assert.equal(builtOptions.mode, "production");
+  assert.equal(builtOptions.trustProxy, true);
+
+  const middleware = builder.build();
+
+  const request = createContext({ forwardedProto: "https" });
+  const result = await middleware(request.ctx, async () => "next-result");
+
+  const csp = String(
+    request.headers.get("content-security-policy-report-only"),
+  );
+  assert.match(csp, /script-src 'self' 'strict-dynamic' 'nonce-fixed-nonce'/);
+  assert.match(csp, /style-src 'self' 'nonce-fixed-nonce'/);
+  assert.match(csp, /report-uri \/csp-report/);
+  assert.match(csp, /report-to csp-endpoint/);
+  assert.equal(request.ctx.state.docsNonce, "fixed-nonce");
+  assert.equal(
+    request.headers.get("strict-transport-security"),
+    "max-age=123; preload",
+  );
+  assert.equal(result, "next-result");
+  assert.equal(request.headers.get("permissions-policy"), "camera=()");
+  assert.equal(
+    request.headers.get("cross-origin-embedder-policy"),
+    "require-corp",
+  );
+  assert.equal(request.headers.get("x-custom-header"), "enabled");
+  assert.equal(request.headers.has("x-frame-options"), false);
+
+  const reportTo = JSON.parse(String(request.headers.get("report-to")));
+  assert.deepEqual(reportTo, {
+    group: "csp-endpoint",
+    max_age: 60,
+    endpoints: [{ url: "https://reports.example/csp" }],
+    include_subdomains: true,
+  });
+});
+
+test("security headers preserves existing response headers", async () => {
+  const middleware = securityHeaders({ mode: "production" });
+  const request = createContext();
+  request.ctx.res.setHeader("x-content-type-options", "custom");
+  request.ctx.res.setHeader("content-security-policy", "default-src 'none'");
+
+  await middleware(request.ctx, async () => undefined);
+
+  assert.equal(request.headers.get("x-content-type-options"), "custom");
+  assert.equal(
+    request.headers.get("content-security-policy"),
+    "default-src 'none'",
+  );
+  assert.equal(request.headers.has("strict-transport-security"), false);
+});
+
+test("security header configuration rejects unsafe and malformed values", () => {
+  const invalidConfigurations = [
+    () => securityHeaders({ headers: { "x-test": "bad\nvalue" } }),
+    () =>
+      securityHeaders({
+        mode: "production",
+        strictTransportSecurity: { maxAge: -1 },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          directives: { "Bad Directive": ["'self'"] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          schemaValidation: "strict",
+          directives: { "unknown-src": ["'self'"] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          directives: { "default-src": "'self'" as never },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          directives: { "upgrade-insecure-requests": ["'self'"] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          directives: { "report-uri": ["/one", "/two"] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          schemaValidation: "strict",
+          directives: { "default-src": [] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          directives: { "default-src": ["unsafe-inline"] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          directives: { "script-src": ["'nonce-invalid?'"] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          directives: { "script-src": ["'sha999-invalid'"] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: { nonce: { stateKey: "" } },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          nonce: { generator: "invalid" as never },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          reportToHeader: { maxAge: -1, endpoints: [] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          reportToHeader: { maxAge: 10, endpoints: [] },
+        },
+      }),
+    () =>
+      securityHeaders({
+        contentSecurityPolicy: {
+          reportToHeader: {
+            maxAge: 10,
+            endpoints: [{ url: "" }],
+          },
+        },
+      }),
+    () =>
+      securityHeaders({
+        permissionsPolicy: { "future-feature": [] },
+        permissionsPolicyValidation: "strict",
+      }),
+    () => securityHeaders({ permissionsPolicy: { camera: "none" as never } }),
+    () => securityHeaders({ permissionsPolicy: { camera: [42] as never } }),
+  ];
+
+  for (const createMiddleware of invalidConfigurations) {
+    assert.throws(createMiddleware);
+  }
+});
+
+test("security header warn mode reports forward-compatible policies", () => {
+  const messages: string[] = [];
+  const originalWarn = console.warn;
+  console.warn = (message) => messages.push(String(message));
+
+  try {
+    securityHeaders({
+      mode: "development",
+      contentSecurityPolicy: {
+        schemaValidation: "warn",
+        directives: {
+          "future-src": [],
+          "script-src": ["unsafe-future"],
+        },
+      },
+      permissionsPolicy: { "future-feature": [] },
+      permissionsPolicyValidation: "warn",
+    });
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.equal(messages.length >= 4, true);
+  assert.equal(
+    messages.some((message) => /future-src/.test(message)),
+    true,
+  );
+  assert.equal(
+    messages.some((message) => /future-feature/.test(message)),
+    true,
   );
 });
 
