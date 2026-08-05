@@ -86,7 +86,7 @@ jobs:
 
       - name: Send major update email
         if: steps.major.outputs.has_major == 'true' && env.MAJOR_UPDATE_EMAIL_TO != '' && env.SMTP_SERVER != ''
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v18
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT }}
