@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
-## [0.1.1] - Unreleased
+## [0.1.1] - 2026-08-05
 
 Stabilization release for `@trinacria/cli`, `@trinacria/core`,
 `@trinacria/cron`, `@trinacria/events`, `@trinacria/http`, and

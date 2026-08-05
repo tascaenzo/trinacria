@@ -1,6 +1,6 @@
 {
   "name": "@trinacria/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "license": "MIT",
   "engines": {
@@ -21,7 +21,7 @@
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "peerDependencies": {
-    "@trinacria/core": "^0.1.0"
+    "@trinacria/core": "^0.1.1"
   },
   "repository": {
     "type": "git",
