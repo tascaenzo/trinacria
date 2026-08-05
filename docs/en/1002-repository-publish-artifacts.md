@@ -6,12 +6,9 @@ Primary script:
 
 - `scripts/publish-libs.mjs`
 
-Convenience npm scripts (root `package.json`):
+Publish npm script (root `package.json`):
 
-- `npm run publish:libs:pack`
-- `npm run publish:libs:npm`
-- `npm run publish:libs:npm:dry`
-- `npm run release:npm` (guided publish flow)
+- `npm run deploy:npm` (single guided publish flow)
 
 ## Goal
 
@@ -22,27 +19,27 @@ Convenience npm scripts (root `package.json`):
 
 ## Available modes
 
-### 1) `pack` (artifacts only)
+### 1) `pack` (artifacts only, advanced)
 
 Generates tarballs without publishing.
 
 ```bash
-npm run publish:libs:pack
+node scripts/publish-libs.mjs --mode pack
 ```
 
-### 2) `npm` (registry publish)
+### 2) `npm` (registry publish, advanced)
 
 Publishes generated tarballs via `npm publish <tarball>`.
 This guarantees the published content matches the validated artifact.
 
 ```bash
-npm run publish:libs:npm
+node scripts/publish-libs.mjs --mode npm
 ```
 
 Dry-run (no real publish):
 
 ```bash
-npm run publish:libs:npm:dry
+node scripts/publish-libs.mjs --mode npm --dry-run
 ```
 
 Before real publish, `--mode npm` runs the CLI template smoke gate by default:
@@ -71,11 +68,11 @@ Default output: `.tmp/artifacts/npm`
 
 ## Recommended flow
 
-1. Local validation without publishing:
+1. Local validation without publishing (advanced):
 
 ```bash
-npm run publish:libs:pack
-npm run publish:libs:npm:dry
+node scripts/publish-libs.mjs --mode pack
+node scripts/publish-libs.mjs --mode npm --dry-run
 ```
 
 2. Verify artifacts:
@@ -85,10 +82,10 @@ cat .tmp/artifacts/npm/manifest.json
 tar -tzf .tmp/artifacts/npm/<package>/<version>/<file>.tgz
 ```
 
-3. Real registry publish:
+3. Real registry publish (recommended):
 
 ```bash
-npm run release:npm
+npm run deploy:npm
 ```
 
 ## Useful options

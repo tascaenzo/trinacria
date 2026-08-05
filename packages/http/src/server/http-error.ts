@@ -1,5 +1,6 @@
 import { HttpException, type HttpExceptionOptions } from "../errors";
 import type { HttpHeaderValue } from "../response/http-response";
+
 export type { SerializedHttpError } from "../errors";
 
 export interface HttpErrorOptions {

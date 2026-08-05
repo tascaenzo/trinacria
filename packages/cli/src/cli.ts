@@ -1,9 +1,9 @@
-import { dev } from "./commands/dev";
-import { build } from "./commands/build";
-import { start } from "./commands/start";
-import { createNewApp } from "./commands/new";
-import { loadConfig } from "./config/load-config";
 import { ConsoleLogger } from "@trinacria/core";
+import { build } from "./commands/build";
+import { dev } from "./commands/dev";
+import { createNewApp } from "./commands/new";
+import { start } from "./commands/start";
+import { loadConfig } from "./config/load-config";
 
 const context = "TrinacriaCLI";
 const log = new ConsoleLogger(context);

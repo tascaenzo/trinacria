@@ -1,12 +1,12 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { TrinacriaApp } from "../src/application/trinacria-app.ts";
 import { classProvider } from "../src/di/provider.ts";
-import { createToken } from "../src/token/token.ts";
 import { defineModule } from "../src/module/module.ts";
 import type { ModuleDefinition } from "../src/module/module-definition.ts";
 import { definePlugin } from "../src/plugin/plugin.ts";
 import type { Plugin } from "../src/plugin/plugin-lifecycle.ts";
+import { createToken } from "../src/token/token.ts";
 
 test("shutdown destroys imported modules after importers", async () => {
   const order: string[] = [];

@@ -1,2 +1,2 @@
-export * from "./redis-event-transport";
 export * from "./rabbitmq-event-transport";
+export * from "./redis-event-transport";

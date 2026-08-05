@@ -1,5 +1,15 @@
-import { asInternal, createSchema, type Schema } from "../core";
-import { throwValidation } from "../errors";
+import {
+  asInternal,
+  createSchema,
+  type ParseOptions,
+  type Schema,
+} from "../core";
+import {
+  throwValidation,
+  ValidationError,
+  type ValidationIssue,
+  validationIssue,
+} from "../errors";
 
 export interface ArrayOptions<T> {
   /**
@@ -61,7 +71,7 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
 
   return createSchema(
     "array",
-    (input, path) => {
+    (input, path, parseOptions: ParseOptions = {}) => {
       const normalizedInput =
         options.coerce && typeof input === "string"
           ? input
@@ -74,28 +84,62 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
         throwValidation(path, "Expected array", "invalid_type");
       }
 
+      const isCollectAll = parseOptions.mode === "all";
+      const issues: ValidationIssue[] | null = isCollectAll ? [] : null;
+
       if (normalizedInput.length < minItems) {
-        throwValidation(
-          path,
-          `Array must contain at least ${minItems} items`,
-          "too_small",
-        );
+        if (isCollectAll) {
+          issues?.push(
+            validationIssue(
+              path,
+              `Array must contain at least ${minItems} items`,
+              "too_small",
+            ),
+          );
+        } else {
+          throwValidation(
+            path,
+            `Array must contain at least ${minItems} items`,
+            "too_small",
+          );
+        }
       }
 
       if (
         options.maxItems !== undefined &&
         normalizedInput.length > options.maxItems
       ) {
-        throwValidation(
-          path,
-          `Array must contain at most ${options.maxItems} items`,
-          "too_big",
-        );
+        if (isCollectAll) {
+          issues?.push(
+            validationIssue(
+              path,
+              `Array must contain at most ${options.maxItems} items`,
+              "too_big",
+            ),
+          );
+        } else {
+          throwValidation(
+            path,
+            `Array must contain at most ${options.maxItems} items`,
+            "too_big",
+          );
+        }
       }
 
-      const parsed = normalizedInput.map((value, index) =>
-        internalItem.parseAtPath(value, [...path, index]),
-      );
+      const parsed: T[] = [];
+      for (const [index, value] of normalizedInput.entries()) {
+        try {
+          parsed.push(
+            internalItem.parseAtPath(value, [...path, index], parseOptions),
+          );
+        } catch (error) {
+          if (isCollectAll && error instanceof ValidationError) {
+            issues?.push(...error.issues);
+            continue;
+          }
+          throw error;
+        }
+      }
 
       if (options.unique) {
         const selector =
@@ -107,6 +151,16 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
         for (const [index, item] of parsed.entries()) {
           const key = selector(item);
           if (seen.has(key)) {
+            if (isCollectAll) {
+              issues?.push(
+                validationIssue(
+                  [...path, index],
+                  "Array items must be unique",
+                  "not_unique",
+                ),
+              );
+              continue;
+            }
             throwValidation(
               [...path, index],
               "Array items must be unique",
@@ -115,6 +169,10 @@ export function array<T>(itemSchema: Schema<T>, options: ArrayOptions<T> = {}) {
           }
           seen.add(key);
         }
+      }
+
+      if (issues && issues.length > 0) {
+        throw new ValidationError(issues);
       }
 
       return parsed;

@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { s, ValidationError } from "../src/index.ts";
+import test from "node:test";
 import { createSchema } from "../src/core/schema.ts";
+import { s, ValidationError } from "../src/index.ts";
 
 test("string constraints expose expected validation codes", () => {
   assert.equal(s.string({ email: true }).safeParse("not-email").success, false);
@@ -42,6 +42,16 @@ test("string constraints expose expected validation codes", () => {
   assert.equal(s.string({ ip: "v4" }).safeParse("999.1.1.1").success, false);
   assert.equal(
     s.string({ hostname: true }).safeParse("bad host").success,
+    false,
+  );
+  assert.equal(s.string({ semver: true }).safeParse("1.2").success, false);
+  assert.equal(
+    s.string({ semverRange: true }).safeParse("^1.2.3 || >=2.0.0").success,
+    true,
+  );
+  assert.equal(
+    s.string({ semverRange: { allowOr: false } }).safeParse("^1.2.3 || >=2.0.0")
+      .success,
     false,
   );
 });

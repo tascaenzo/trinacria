@@ -61,7 +61,9 @@ packages/cli/
   - `trinacria dev`
   - `trinacria build`
   - `trinacria start`
-- converts workspace-local `@trinacria/*` versions (`*`) to `latest`
+- uses semver-compatible ranges for generated `@trinacria/*` dependencies based on versions bundled in CLI templates
+- creates `.env` from `.env.example` when available
+- ensures `.gitignore` exists in generated projects
 - optional post steps:
   - dependency install (`--no-install` to skip)
   - git init (`--no-git` to skip)

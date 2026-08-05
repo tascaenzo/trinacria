@@ -3,6 +3,9 @@
   "private": true,
   "author": "Enzo Tasca",
   "license": "MIT",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "clean": "rm -rf packages/**/dist apps/**/dist",
     "build:core": "npm run build -w @trinacria/core",
@@ -19,11 +22,15 @@
     "build:api-mongoose-mongodb": "npm run build -w api-mongoose-mongodb",
     "build:api-events-redis": "npm run build -w api-events-redis",
     "build:api-events-rabbitmq": "npm run build -w api-events-rabbitmq",
-    "build": "npm run build:packages",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier . --write",
-    "format:check": "prettier . --check",
+    "toolchain:check": "node scripts/check-typescript-toolchain.mjs",
+    "build:apps": "npm run build:playground && npm run build:app-starter && npm run build:cron-example && npm run build:api-prisma-postgresql && npm run build:api-mongoose-mongodb && npm run build:api-events-redis && npm run build:api-events-rabbitmq",
+    "build": "npm run build:packages && npm run build:apps",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write . && prettier \"**/*.{md,yml,yaml}\" --write",
+    "format:check": "biome format . && prettier \"**/*.{md,yml,yaml}\" --check",
     "dev:playground": "npm run dev -w playground",
     "dev:app-starter": "npm run dev -w app-starter",
     "dev:cron-example": "npm run dev -w cron-example",
@@ -32,6 +39,9 @@
     "dev:api-events-redis": "npm run dev -w api-events-redis",
     "dev:api-events-rabbitmq": "npm run dev -w api-events-rabbitmq",
     "test:packages": "npm run test -w @trinacria/core && npm run test -w @trinacria/schema && npm run test -w @trinacria/http && npm run test -w @trinacria/cron && npm run test -w @trinacria/events && npm run test -w @trinacria/cli",
+    "test:apps": "npm run test -w playground --if-present",
+    "test": "npm run test:packages && npm run test:apps",
+    "verify": "npm run format:check && npm run check && npm run build && npm run test && npm audit --audit-level=high",
     "coverage:events": "npm run test:coverage -w @trinacria/events",
     "coverage:cli": "npm run test:coverage -w @trinacria/cli",
     "coverage:core": "npm run test:coverage -w @trinacria/core",
@@ -47,14 +57,7 @@
     "version-packages": "changeset version",
     "version-packages:alpha": "changeset version --snapshot alpha",
     "release": "changeset publish",
-    "release:npm": "node scripts/release-npm-guided.mjs",
-    "release:npm:stable": "npm run version-packages && node scripts/publish-libs.mjs --mode npm --registry https://registry.npmjs.org --access public --tag latest",
-    "release:npm:stable:dry": "npm run version-packages && node scripts/publish-libs.mjs --mode npm --registry https://registry.npmjs.org --access public --tag latest --dry-run",
-    "publish:libs:npm:alpha": "node scripts/publish-libs.mjs --mode npm --registry https://registry.npmjs.org --access public --tag alpha --skip-existing",
-    "publish:libs:npm:alpha:dry": "node scripts/publish-libs.mjs --mode npm --registry https://registry.npmjs.org --access public --tag alpha --dry-run",
-    "publish:libs:pack": "node scripts/publish-libs.mjs --mode pack",
-    "publish:libs:npm": "node scripts/publish-libs.mjs --mode npm",
-    "publish:libs:npm:dry": "node scripts/publish-libs.mjs --mode npm --dry-run",
+    "deploy:npm": "node scripts/release-npm-guided.mjs",
     "smoke:cli:templates": "node scripts/cli-template-smoke.mjs",
     "precommit:check": "node scripts/pre-commit.mjs",
     "hooks:install": "git config core.hooksPath .githooks && chmod +x .githooks/pre-commit"
@@ -64,13 +67,19 @@
     "apps/*"
   ],
   "devDependencies": {
+    "@biomejs/biome": "^2.5.7",
     "@changesets/cli": "^2.29.8",
-    "@eslint/js": "^10.0.1",
     "@types/node": "^25.2.3",
-    "eslint": "^10.0.2",
-    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1"
+    "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "@scarf/scarf": false,
+    "@prisma/engines@7.9.1": true,
+    "argon2@0.44.0": true,
+    "better-sqlite3@12.11.1": true,
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "prisma@7.9.1": true
   }
 }

@@ -28,6 +28,7 @@ export interface RedisEventTransportOptions {
     readonly publish?: RetryPolicy;
   };
   readonly onMessageError?: (error: unknown, raw: string) => void;
+  readonly maxMessageBytes?: number;
 }
 
 export class RedisEventTransport implements EventTransport {
@@ -36,13 +37,15 @@ export class RedisEventTransport implements EventTransport {
 
   constructor(private readonly options: RedisEventTransportOptions) {
     this.channel = options.channel ?? "trinacria:events";
+    assertPositiveMessageLimit(options.maxMessageBytes);
   }
 
   async connect(
     onEnvelope: (envelope: EventEnvelope) => MaybePromise<void>,
   ): Promise<void> {
-    this.onMessageRef = async (message: string) => {
+    const onMessage = async (message: string) => {
       try {
+        assertMessageSize(message, this.options.maxMessageBytes);
         const envelope = parseEnvelope(message);
         await onEnvelope(envelope);
       } catch (error) {
@@ -50,17 +53,19 @@ export class RedisEventTransport implements EventTransport {
         throw error;
       }
     };
+    this.onMessageRef = onMessage;
 
     await withRetry(
-      () => this.options.subscriber.subscribe(this.channel, this.onMessageRef!),
+      () => this.options.subscriber.subscribe(this.channel, onMessage),
       this.options.retry?.connect,
     );
   }
 
   async publish(envelope: EventEnvelope): Promise<void> {
+    const serialized = JSON.stringify(envelope);
+    assertMessageSize(serialized, this.options.maxMessageBytes);
     await withRetry(
-      () =>
-        this.options.publisher.publish(this.channel, JSON.stringify(envelope)),
+      () => this.options.publisher.publish(this.channel, serialized),
       this.options.retry?.publish,
     );
   }
@@ -82,15 +87,26 @@ function parseEnvelope(raw: string): EventEnvelope {
     throw new Error("Invalid event envelope payload: expected object.");
   }
 
-  if (typeof parsed.id !== "string" || parsed.id.length === 0) {
+  if (
+    typeof parsed.id !== "string" ||
+    parsed.id.length === 0 ||
+    parsed.id.length > 128
+  ) {
     throw new Error("Invalid event envelope payload: missing id.");
   }
 
-  if (typeof parsed.name !== "string" || parsed.name.length === 0) {
+  if (
+    typeof parsed.name !== "string" ||
+    parsed.name.length === 0 ||
+    parsed.name.length > 256
+  ) {
     throw new Error("Invalid event envelope payload: missing name.");
   }
 
-  if (typeof parsed.publishedAt !== "string") {
+  if (
+    typeof parsed.publishedAt !== "string" ||
+    !Number.isFinite(Date.parse(parsed.publishedAt))
+  ) {
     throw new Error("Invalid event envelope payload: missing publishedAt.");
   }
 
@@ -98,6 +114,21 @@ function parseEnvelope(raw: string): EventEnvelope {
     ...parsed,
     publishedAt: new Date(parsed.publishedAt),
   };
+}
+
+const DEFAULT_MAX_MESSAGE_BYTES = 1_048_576;
+
+function assertMessageSize(raw: string, configuredLimit?: number): void {
+  const limit = configuredLimit ?? DEFAULT_MAX_MESSAGE_BYTES;
+  if (Buffer.byteLength(raw, "utf8") > limit) {
+    throw new Error(`Event message exceeds ${limit} bytes.`);
+  }
+}
+
+function assertPositiveMessageLimit(value: number | undefined): void {
+  if (value !== undefined && (!Number.isInteger(value) || value < 1)) {
+    throw new RangeError("RedisEventTransport.maxMessageBytes must be >= 1");
+  }
 }
 
 async function withRetry<T>(

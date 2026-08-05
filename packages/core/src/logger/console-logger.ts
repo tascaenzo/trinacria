@@ -1,4 +1,4 @@
-import { BaseLogger } from "./logger";
+import type { BaseLogger } from "./logger";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 

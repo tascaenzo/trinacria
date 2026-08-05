@@ -1,10 +1,10 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
-  RedisEventTransport,
-  RabbitMqEventTransport,
   type EventEnvelope,
+  RabbitMqEventTransport,
   type RabbitMqMessage,
+  RedisEventTransport,
 } from "../src";
 
 test("RedisEventTransport publish + subscribe loopback", async () => {
@@ -335,5 +335,70 @@ test("RabbitMqEventTransport throws when confirms are enabled but channel lacks 
         publishedAt: new Date(),
       }),
     /waitForConfirms is not available/,
+  );
+});
+
+test("event transports reject invalid limits and oversized outbound messages", async () => {
+  const redisOptions = {
+    publisher: { publish: async () => 1 },
+    subscriber: {
+      subscribe: async () => {},
+      unsubscribe: async () => {},
+    },
+  };
+
+  assert.throws(
+    () => new RedisEventTransport({ ...redisOptions, maxMessageBytes: 0 }),
+    /must be >= 1/,
+  );
+
+  const redis = new RedisEventTransport({
+    ...redisOptions,
+    maxMessageBytes: 64,
+  });
+  await assert.rejects(
+    () =>
+      redis.publish({
+        id: "evt-large",
+        name: "large.event",
+        payload: "x".repeat(100),
+        publishedAt: new Date(),
+      }),
+    /exceeds 64 bytes/,
+  );
+
+  const rabbitOptions = {
+    channel: {
+      async assertExchange() {},
+      async assertQueue() {
+        return { queue: "q" };
+      },
+      async bindQueue() {},
+      async consume() {
+        return { consumerTag: "consumer" };
+      },
+      publish() {
+        return true;
+      },
+    },
+  };
+  assert.throws(
+    () => new RabbitMqEventTransport({ ...rabbitOptions, maxMessageBytes: -1 }),
+    /must be >= 1/,
+  );
+
+  const rabbit = new RabbitMqEventTransport({
+    ...rabbitOptions,
+    maxMessageBytes: 64,
+  });
+  await assert.rejects(
+    () =>
+      rabbit.publish({
+        id: "evt-large",
+        name: "large.event",
+        payload: "x".repeat(100),
+        publishedAt: new Date(),
+      }),
+    /exceeds 64 bytes/,
   );
 });

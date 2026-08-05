@@ -1,8 +1,8 @@
-import { HttpController, HttpContext, response } from "@trinacria/http";
 import type { EventBus } from "@trinacria/events";
+import { type HttpContext, HttpController, response } from "@trinacria/http";
 import { EventListDtoSchema, PublishEventDtoSchema } from "./dto";
 import { DEMO_EVENT_NAME } from "./events.provider";
-import { EventsService } from "./events.service";
+import type { EventsService } from "./events.service";
 
 export class EventsController extends HttpController {
   constructor(

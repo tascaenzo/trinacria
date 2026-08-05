@@ -1,10 +1,10 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
-  parseBearerToken,
-  readHeaderValue,
-  readCookieValue,
   isSafeHttpMethod,
+  parseBearerToken,
+  readCookieValue,
+  readHeaderValue,
   resolveClientAddress,
 } from "../src/auth/http-auth-utils";
 

@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import ts from "typescript";
 import { ConsoleLogger } from "@trinacria/core";
-import { ResolvedConfig } from "../config/config.contract";
+import ts from "typescript";
+import type { ResolvedConfig } from "../config/config.contract";
 
 const context = "TrinacriaCLI";
 const log = new ConsoleLogger(context);
@@ -128,10 +128,10 @@ function commonDirectory(a: string, b: string): string {
 }
 
 function replaceSourceExtension(filePath: string): string {
-  if (filePath.endsWith(".mts")) return filePath.slice(0, -4) + ".mjs";
-  if (filePath.endsWith(".cts")) return filePath.slice(0, -4) + ".cjs";
-  if (filePath.endsWith(".tsx")) return filePath.slice(0, -4) + ".js";
-  if (filePath.endsWith(".ts")) return filePath.slice(0, -3) + ".js";
+  if (filePath.endsWith(".mts")) return `${filePath.slice(0, -4)}.mjs`;
+  if (filePath.endsWith(".cts")) return `${filePath.slice(0, -4)}.cjs`;
+  if (filePath.endsWith(".tsx")) return `${filePath.slice(0, -4)}.js`;
+  if (filePath.endsWith(".ts")) return `${filePath.slice(0, -3)}.js`;
   return filePath;
 }
 

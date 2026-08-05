@@ -1,9 +1,9 @@
 import { classProvider, defineModule } from "@trinacria/core";
 import { httpProvider } from "@trinacria/http";
 import { PRISMA_SERVICE } from "../../global/prisma.service";
-import { USERS_CONTROLLER, USERS_SERVICE } from "./users.tokens";
 import { UsersController } from "./users.controller";
 import { UsersService } from "./users.service";
+import { USERS_CONTROLLER, USERS_SERVICE } from "./users.tokens";
 
 export const UsersModule = defineModule({
   name: "UsersModule",

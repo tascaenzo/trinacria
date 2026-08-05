@@ -1,19 +1,21 @@
+import type { EventBus } from "@trinacria/events";
 import {
   ConflictException,
+  ForbiddenException,
+  type HttpContext,
   HttpController,
-  HttpContext,
   NotFoundException,
   response,
 } from "@trinacria/http";
-import type { EventBus } from "@trinacria/events";
-import { AuthGuardFactory } from "../auth/auth-guard.factory";
+import type { AuthGuardFactory } from "../auth/auth-guard.factory";
+import type { JwtClaims } from "../auth/jwt";
 import {
   CreateUserDtoSchema,
   PublicUserDtoSchema,
   PublicUserListDtoSchema,
   UpdateUserDtoSchema,
 } from "./dto";
-import { UserService } from "./user.service";
+import type { UserService } from "./user.service";
 
 export class UserController extends HttpController {
   constructor(
@@ -26,9 +28,11 @@ export class UserController extends HttpController {
 
   routes() {
     const protectedRoute = this.authGuardFactory.requireProtectedRoute();
+    const adminOnly = this.authGuardFactory.requireRoles("admin");
 
     return this.router()
       .get("/users", this.listUsers, {
+        middlewares: [protectedRoute, adminOnly],
         docs: {
           tags: ["Users"],
           summary: "List users",
@@ -41,6 +45,7 @@ export class UserController extends HttpController {
         },
       })
       .get("/users/:id", this.getUserById, {
+        middlewares: [protectedRoute],
         docs: {
           tags: ["Users"],
           summary: "Get user by id",
@@ -56,14 +61,13 @@ export class UserController extends HttpController {
         },
       })
       .post("/users", this.createUser, {
-        middlewares: [protectedRoute],
+        middlewares: [protectedRoute, adminOnly],
         docs: {
           tags: ["Users"],
           summary: "Create user",
           security: [
             { bearerAuth: [] },
-            { accessTokenCookie: [] },
-            { csrfHeader: [] },
+            { accessTokenCookie: [], csrfHeader: [] },
           ],
           requestBody: {
             required: true,
@@ -84,8 +88,7 @@ export class UserController extends HttpController {
           summary: "Replace user",
           security: [
             { bearerAuth: [] },
-            { accessTokenCookie: [] },
-            { csrfHeader: [] },
+            { accessTokenCookie: [], csrfHeader: [] },
           ],
           requestBody: {
             required: true,
@@ -106,8 +109,7 @@ export class UserController extends HttpController {
           summary: "Patch user",
           security: [
             { bearerAuth: [] },
-            { accessTokenCookie: [] },
-            { csrfHeader: [] },
+            { accessTokenCookie: [], csrfHeader: [] },
           ],
           requestBody: {
             required: true,
@@ -128,8 +130,7 @@ export class UserController extends HttpController {
           summary: "Delete user",
           security: [
             { bearerAuth: [] },
-            { accessTokenCookie: [] },
-            { csrfHeader: [] },
+            { accessTokenCookie: [], csrfHeader: [] },
           ],
           responses: {
             204: {
@@ -146,6 +147,7 @@ export class UserController extends HttpController {
   }
 
   async getUserById(ctx: HttpContext) {
+    this.assertCanAccessUser(ctx, ctx.params.id);
     const user = await this.users.findById(ctx.params.id);
     if (!user) {
       throw new NotFoundException("User not found");
@@ -177,6 +179,7 @@ export class UserController extends HttpController {
   }
 
   async replaceUser(ctx: HttpContext) {
+    this.assertCanAccessUser(ctx, ctx.params.id);
     const payload = CreateUserDtoSchema.parse(ctx.body);
     const existing = await this.users.findById(ctx.params.id);
 
@@ -189,15 +192,20 @@ export class UserController extends HttpController {
     }
 
     const updated = await this.users.update(existing.id, payload);
+    if (!updated) {
+      throw new NotFoundException("User not found");
+    }
+
     await this.eventBus.emit("users.updated", {
-      id: updated!.id,
-      email: updated!.email,
-      updatedAt: updated!.updatedAt,
+      id: updated.id,
+      email: updated.email,
+      updatedAt: updated.updatedAt,
     });
-    return updated!;
+    return updated;
   }
 
   async updateUser(ctx: HttpContext) {
+    this.assertCanAccessUser(ctx, ctx.params.id);
     const payload = UpdateUserDtoSchema.parse(ctx.body);
     const existing = await this.users.findById(ctx.params.id);
 
@@ -213,15 +221,20 @@ export class UserController extends HttpController {
     }
 
     const updated = await this.users.update(existing.id, payload);
+    if (!updated) {
+      throw new NotFoundException("User not found");
+    }
+
     await this.eventBus.emit("users.updated", {
-      id: updated!.id,
-      email: updated!.email,
-      updatedAt: updated!.updatedAt,
+      id: updated.id,
+      email: updated.email,
+      updatedAt: updated.updatedAt,
     });
-    return updated!;
+    return updated;
   }
 
   async deleteUser(ctx: HttpContext) {
+    this.assertCanAccessUser(ctx, ctx.params.id);
     const deleted = await this.users.delete(ctx.params.id);
 
     if (!deleted) {
@@ -235,5 +248,15 @@ export class UserController extends HttpController {
     });
 
     return response(undefined, { status: 204 });
+  }
+
+  private assertCanAccessUser(ctx: HttpContext, userId: string): void {
+    const auth = ctx.state.auth as JwtClaims | undefined;
+    if (!auth) {
+      throw new ForbiddenException("Authentication context is missing");
+    }
+    if (auth.role !== "admin" && auth.sub !== userId) {
+      throw new ForbiddenException("You cannot access another user");
+    }
   }
 }

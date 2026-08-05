@@ -1,10 +1,11 @@
-import * as argon2 from "argon2";
-import type { Prisma } from "@prisma/client";
+import { timingSafeEqual } from "node:crypto";
 import { createToken } from "@trinacria/core";
-import { UnauthorizedException } from "@trinacria/http";
-import { PrismaService } from "../../global-service/prisma.service";
-import { AuthLoginResult, AuthRefreshResult } from "./auth.types";
-import { JwtClaims, JwtSigner, JwtVerificationError } from "./jwt";
+import { ForbiddenException, UnauthorizedException } from "@trinacria/http";
+import * as argon2 from "argon2";
+import type { Prisma } from "../../generated/prisma/client";
+import type { PrismaService } from "../../global-service/prisma.service";
+import type { AuthLoginResult, AuthRefreshResult } from "./auth.types";
+import { type JwtClaims, type JwtSigner, JwtVerificationError } from "./jwt";
 
 const authLoginUserSelect = {
   id: true,
@@ -25,6 +26,9 @@ type PublicAuthUserRecord = Prisma.UserGetPayload<{
   select: typeof publicAuthUserSelect;
 }>;
 
+const DUMMY_PASSWORD_HASH =
+  "$argon2id$v=19$m=65536,t=3,p=4$GA6N2zm4o/W3tepMdZwGSQ$0EZj0LVjyConOfdFJwei8V4Eiz62C5voRZPjU3prhlg";
+
 export const AUTH_SERVICE = createToken<AuthService>("AUTH_SERVICE");
 
 export class AuthService {
@@ -44,6 +48,7 @@ export class AuthService {
     });
 
     if (!userRecord) {
+      await argon2.verify(DUMMY_PASSWORD_HASH, password);
       throw new UnauthorizedException("Invalid credentials");
     }
 
@@ -56,30 +61,17 @@ export class AuthService {
       Date.now() + this.refreshTokenTtlSeconds * 1000,
     );
 
-    /**
-     * Playground-only behavior: create a secondary session on each login
-     * to stress-test session handling and cleanup paths.
-     */
-    const [session] = await this.prisma.$transaction([
-      this.prisma.authSession.create({
-        data: {
-          csrfToken: crypto.randomUUID(),
-          expiresAt: refreshExpiresAt,
-          userId: userRecord.id,
-        },
-        select: {
-          sid: true,
-          csrfToken: true,
-        },
-      }),
-      this.prisma.authSession.create({
-        data: {
-          csrfToken: `probe_${crypto.randomUUID()}`,
-          expiresAt: refreshExpiresAt,
-          userId: userRecord.id,
-        },
-      }),
-    ]);
+    const session = await this.prisma.authSession.create({
+      data: {
+        csrfToken: crypto.randomUUID(),
+        expiresAt: refreshExpiresAt,
+        userId: userRecord.id,
+      },
+      select: {
+        sid: true,
+        csrfToken: true,
+      },
+    });
 
     const [accessToken, refreshToken] = await Promise.all([
       this.signAccessToken(userRecord, session.sid),
@@ -93,7 +85,7 @@ export class AuthService {
       tokenType: "Bearer",
       accessExpiresIn: this.accessTokenTtlSeconds,
       refreshExpiresIn: this.refreshTokenTtlSeconds,
-      sessionsCreated: 2,
+      sessionsCreated: 1,
       user: {
         id: userRecord.id,
         name: userRecord.name,
@@ -177,7 +169,26 @@ export class AuthService {
         throw new JwtVerificationError("Invalid token type");
       }
 
-      return claims;
+      const session = await this.prisma.authSession.findUnique({
+        where: { sid: claims.sid },
+        select: {
+          expiresAt: true,
+          user: { select: publicAuthUserSelect },
+        },
+      });
+      if (
+        !session ||
+        session.expiresAt.getTime() <= Date.now() ||
+        session.user.id !== claims.sub
+      ) {
+        throw new JwtVerificationError("Session is revoked or expired");
+      }
+
+      return {
+        ...claims,
+        email: session.user.email,
+        role: session.user.role,
+      };
     } catch (error) {
       if (error instanceof JwtVerificationError) {
         throw new UnauthorizedException("Invalid or expired token");
@@ -185,6 +196,40 @@ export class AuthService {
 
       throw error;
     }
+  }
+
+  async verifySessionCsrf(
+    sid: string,
+    cookieToken: string | undefined,
+    headerToken: string | undefined,
+  ): Promise<void> {
+    if (!safeTokenEqual(cookieToken, headerToken)) {
+      throw new ForbiddenException("Invalid CSRF token");
+    }
+
+    const session = await this.prisma.authSession.findUnique({
+      where: { sid },
+      select: { csrfToken: true, expiresAt: true },
+    });
+    if (
+      !session ||
+      session.expiresAt.getTime() <= Date.now() ||
+      !safeTokenEqual(session.csrfToken, cookieToken)
+    ) {
+      throw new ForbiddenException("Invalid or expired CSRF session");
+    }
+  }
+
+  async verifyRefreshRequest(
+    refreshToken: string | undefined,
+    cookieCsrf: string | undefined,
+    headerCsrf: string | undefined,
+  ): Promise<void> {
+    if (!refreshToken) {
+      throw new UnauthorizedException("Missing refresh token");
+    }
+    const claims = await this.verifyRefreshToken(refreshToken);
+    await this.verifySessionCsrf(claims.sid, cookieCsrf, headerCsrf);
   }
 
   private async verifyRefreshToken(token: string): Promise<JwtClaims> {
@@ -235,4 +280,17 @@ export class AuthService {
       this.refreshTokenTtlSeconds,
     );
   }
+}
+
+function safeTokenEqual(
+  left: string | undefined,
+  right: string | undefined,
+): boolean {
+  if (!left || !right) return false;
+  const leftBuffer = Buffer.from(left, "utf8");
+  const rightBuffer = Buffer.from(right, "utf8");
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    timingSafeEqual(leftBuffer, rightBuffer)
+  );
 }

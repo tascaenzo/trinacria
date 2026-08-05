@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { EventEmitter } from "node:events";
 import type { ChildProcess } from "node:child_process";
+import { EventEmitter } from "node:events";
+import test from "node:test";
 import { runDev } from "../src/commands/dev";
 import type { ResolvedConfig } from "../src/config/config.contract";
 

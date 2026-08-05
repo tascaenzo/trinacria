@@ -1,7 +1,7 @@
-export { CreateUserDtoSchema, type CreateUserDto } from "./create-user.dto";
-export { UpdateUserDtoSchema, type UpdateUserDto } from "./update-user.dto";
+export { type CreateUserDto, CreateUserDtoSchema } from "./create-user.dto";
 export {
+  type PublicUserDto,
   PublicUserDtoSchema,
   PublicUserListDtoSchema,
-  type PublicUserDto,
 } from "./public-user.dto";
+export { type UpdateUserDto, UpdateUserDtoSchema } from "./update-user.dto";

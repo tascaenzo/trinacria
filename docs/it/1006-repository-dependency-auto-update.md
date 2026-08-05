@@ -3,9 +3,11 @@
 Questo flusso aggiorna in automatico le dipendenze in modo **semver-safe** e invia una mail quando sono disponibili update **major**.
 
 Workflow:
+
 - `.github/workflows/dependency-auto-update.yml`
 
 Script di supporto:
+
 - `scripts/dependency-major-report.mjs`
 
 ## Cosa fa

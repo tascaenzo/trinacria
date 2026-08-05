@@ -1,6 +1,11 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { s, ValidationError, formatValidationError } from "../src/index.ts";
+import test from "node:test";
+import {
+  formatValidationError,
+  registerStringValidator,
+  s,
+  ValidationError,
+} from "../src/index.ts";
 
 test("object validates required fields and strict unknown keys", () => {
   const schema = s.object(
@@ -116,6 +121,88 @@ test("refine applies custom validation after parse", () => {
   assert.equal(result.success, false);
   if (!result.success) {
     assert.equal(result.error.issues[0].code, "not_even");
+  }
+});
+
+test("superRefine supports custom issue paths", () => {
+  const schema = s
+    .object({
+      id: s.string(),
+      dependencies: s.array(
+        s.object({
+          pluginId: s.string(),
+        }),
+      ),
+    })
+    .superRefine((value, ctx) => {
+      value.dependencies.forEach((dependency, index) => {
+        if (dependency.pluginId === value.id) {
+          ctx.addIssue({
+            path: ["dependencies", index, "pluginId"],
+            message: "Plugin cannot depend on itself",
+            code: "self_dependency",
+          });
+        }
+      });
+    });
+
+  const result = schema.safeParse({
+    id: "trinacria/core",
+    dependencies: [{ pluginId: "trinacria/core" }],
+  });
+
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.deepEqual(result.error.issues[0].path, [
+      "dependencies",
+      0,
+      "pluginId",
+    ]);
+    assert.equal(result.error.issues[0].code, "self_dependency");
+  }
+});
+
+test("safeParse mode all collects multiple nested issues", () => {
+  registerStringValidator("plugin-id-test", (value) =>
+    /^[a-z0-9][a-z0-9-._/]*$/.test(value),
+  );
+
+  const schema = s.object(
+    {
+      name: s.string({ minLength: 3 }),
+      dependencies: s.array(
+        s.object({
+          pluginId: s.string({
+            custom: {
+              name: "plugin-id-test",
+            },
+          }),
+          versionRange: s.string({ semverRange: true }),
+        }),
+        { minItems: 2 },
+      ),
+    },
+    { strict: true },
+  );
+
+  const result = schema.safeParse(
+    {
+      name: "ab",
+      dependencies: [{ pluginId: "Bad ID", versionRange: ">= 1" }],
+      extra: true,
+    },
+    { mode: "all" },
+  );
+
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.equal(result.error.issues.length >= 4, true);
+    const paths = result.error.issues.map((issue) => issue.path.join("."));
+    assert.equal(paths.includes("name"), true);
+    assert.equal(paths.includes("dependencies"), true);
+    assert.equal(paths.includes("dependencies.0.pluginId"), true);
+    assert.equal(paths.includes("dependencies.0.versionRange"), true);
+    assert.equal(paths.includes("extra"), true);
   }
 });
 

@@ -1,4 +1,4 @@
-import { HttpContext } from "../server";
+import type { HttpContext } from "../server";
 
 export type HttpMiddleware<T = unknown> = (
   ctx: HttpContext,

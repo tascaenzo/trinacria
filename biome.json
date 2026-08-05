@@ -1,0 +1,81 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.7/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!!**/dist",
+      "!!**/coverage",
+      "!!**/.tmp",
+      "!!**/src/generated"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 80
+  },
+  "linter": {
+    "enabled": true,
+    "includes": [
+      "**/*.{js,mjs,cjs,ts,mts,cts}",
+      "!**/*.d.ts",
+      "!**/test/**",
+      "!**/tests/**",
+      "!**/*.test.*",
+      "!**/*.spec.*"
+    ],
+    "rules": {
+      "preset": "recommended",
+      "complexity": {
+        "noStaticOnlyClass": "off",
+        "noUselessEscapeInRegex": "off"
+      },
+      "correctness": {
+        "noUnusedVariables": "warn"
+      },
+      "style": {
+        "noCommonJs": "off",
+        "useConst": "warn",
+        "useErrorCause": "off"
+      },
+      "suspicious": {
+        "noControlCharactersInRegex": "off",
+        "noExplicitAny": "off"
+      }
+    }
+  },
+  "javascript": {
+    "globals": [
+      "clearTimeout",
+      "console",
+      "fetch",
+      "process",
+      "require",
+      "setTimeout"
+    ],
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}

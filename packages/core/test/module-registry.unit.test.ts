@@ -1,14 +1,14 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { ModuleRegistry } from "../src/module/module-registry.ts";
+import test from "node:test";
 import { classProvider, valueProvider } from "../src/di/provider.ts";
-import { createToken } from "../src/token/token.ts";
-import { defineModule } from "../src/module/module.ts";
 import {
   ModuleDependencyError,
   ModuleUnregistrationError,
   TokenConflictError,
 } from "../src/errors/core-errors.ts";
+import { defineModule } from "../src/module/module.ts";
+import { ModuleRegistry } from "../src/module/module-registry.ts";
+import { createToken } from "../src/token/token.ts";
 
 test("module registry wraps provider destroy failures during unregister", async () => {
   const TOKEN = createToken<BrokenService>("BROKEN_SERVICE");

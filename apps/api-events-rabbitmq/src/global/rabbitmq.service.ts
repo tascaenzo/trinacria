@@ -1,6 +1,6 @@
 import { createToken } from "@trinacria/core";
 import type { RabbitMqChannelLike } from "@trinacria/events";
-import { connect, type Channel, type ChannelModel } from "amqplib";
+import { type Channel, type ChannelModel, connect } from "amqplib";
 import type { ConfigService } from "./config.service";
 
 export const RABBITMQ_SERVICE =

@@ -1,9 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { DEFAULT_CSP_DIRECTIVES, DEFAULT_NONCE_STATE_KEY } from "./constants";
 import { getCachedCspValue, stableStringify } from "./cache";
+import { DEFAULT_CSP_DIRECTIVES, DEFAULT_NONCE_STATE_KEY } from "./constants";
 import { addSourceToken, renderCsp, renderDirective, uniq } from "./helpers";
 import { buildReportToHeader } from "./report-to";
-import { validateCspOptions } from "./validation";
 import type {
   CompiledContentSecurityPolicy,
   ContentSecurityPolicyNonceOptions,
@@ -11,6 +10,7 @@ import type {
   NormalizedContentSecurityPolicy,
   TrinacriaSecurityMode,
 } from "./types";
+import { validateCspOptions } from "./validation";
 
 export function compileContentSecurityPolicy(
   options: false | ContentSecurityPolicyOptions | undefined,
@@ -85,10 +85,7 @@ function normalizeContentSecurityPolicy(
 
   if (
     mode === "development" &&
-    !Object.prototype.hasOwnProperty.call(
-      options?.directives ?? {},
-      "upgrade-insecure-requests",
-    )
+    !Object.hasOwn(options?.directives ?? {}, "upgrade-insecure-requests")
   ) {
     delete directives["upgrade-insecure-requests"];
   }

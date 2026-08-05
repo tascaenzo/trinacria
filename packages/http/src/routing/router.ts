@@ -1,7 +1,7 @@
 import {
   HTTP_METHODS,
-  type RouteDefinition,
   type HttpMethod,
+  type RouteDefinition,
 } from "./route-definition";
 
 export interface RouteMatch {
@@ -57,10 +57,9 @@ export class Router {
         current = current.paramChild;
       } else {
         // Static segment
-        if (!current.children.has(segment)) {
-          current.children.set(segment, this.createNode(segment));
-        }
-        current = current.children.get(segment)!;
+        const child = current.children.get(segment) ?? this.createNode(segment);
+        current.children.set(segment, child);
+        current = child;
       }
     }
 
@@ -170,8 +169,9 @@ export class Router {
     const params: Record<string, string> = {};
 
     for (const segment of segments) {
-      if (current.children.has(segment)) {
-        current = current.children.get(segment)!;
+      const child = current.children.get(segment);
+      if (child) {
+        current = child;
         continue;
       }
 

@@ -1,5 +1,5 @@
-import type { Prisma } from "@prisma/client";
-import { PrismaService } from "../../global/prisma.service";
+import type { Prisma } from "../../generated/prisma/client";
+import type { PrismaService } from "../../global/prisma.service";
 import type { CreateUserDto } from "./dto";
 
 const userSelect = {

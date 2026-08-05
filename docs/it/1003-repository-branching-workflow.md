@@ -1,11 +1,10 @@
-# Repository: Workflow Branching (`unstable` -> `develop` -> `main`)
+# Repository: Workflow Branching (`unstable` -> `main`)
 
-Questo documento definisce un flusso a 3 branch per supportare sviluppo quotidiano, test continui e release progressive.
+Questo documento definisce un flusso a due branch per integrazione quotidiana e release stabili.
 
 ## Obiettivo
 
 - `unstable`: integrazione rapida (PR giornaliere, test frequenti)
-- `develop`: consolidamento funzionale e prerelease (`alpha`/`beta`)
 - `main`: release stabili (`latest`)
 
 ## Regole per branch
@@ -16,44 +15,40 @@ Questo documento definisce un flusso a 3 branch per supportare sviluppo quotidia
 - Tutte le feature/fix branch fanno PR verso `unstable`.
 - CI obbligatoria (lint + build + test package).
 - Eseguire una PR al giorno, piccola e verificabile.
-
-### `develop`
-
-- Riceve PR solo da `unstable` quando la baseline e` stabile.
-- Usato per prerelease (`alpha`/`beta`).
-- Le regressioni bloccano la promozione verso `main`.
+- Le prerelease (`alpha`, `beta` o `rc`) possono essere pubblicate da un commit
+  validato di questo branch.
 
 ### `main`
 
-- Riceve PR solo da `develop`.
+- Riceve PR di promozione da `unstable`.
 - Contiene solo codice pronto a release stabile.
 - Pubblicazione npm stabile con tag `latest`.
+- Le PR di promozione devono preservare l'ascendenza. Usa un merge commit; non
+  eseguire squash della promozione `unstable` -> `main`.
 
 ## Flusso operativo consigliato
 
 1. Crea branch feature da `unstable`.
 2. Apri PR verso `unstable` (con changeset se tocchi package pubblicati).
-3. Quando `unstable` e`stabile, apri PR`unstable`->`develop`.
-4. Da `develop`, esegui prerelease:
-   - `npm run version-packages:alpha`
-   - `npm run publish:libs:npm:alpha`
-5. Dopo validazione, apri PR `develop` -> `main`.
-6. Da `main`, esegui release stabile:
-   - `npm run release:npm:stable`
+3. Se necessario, esegui una prerelease dal commit validato di `unstable` e
+   seleziona `alpha`, `beta` o `rc`:
+   - `npm run deploy:npm`
+4. Quando `unstable` è stabile, apri PR `unstable` -> `main`.
+5. Esegui la promozione con un merge commit, senza squash.
+6. Avanza `unstable` in fast-forward al merge commit risultante su `main`.
+7. Da `main`, esegui la release stabile guidata e seleziona `latest`:
+   - `npm run deploy:npm`
 
 ## Cadenza test
 
 - Test a ogni PR/push tramite CI.
-- Test di promozione su PR verso `develop` e `main` tramite workflow `Promotion Branch Tests`.
+- Test di promozione sulle PR verso `main` tramite workflow `Promotion Branch Tests`.
 
 ## Setup iniziale branch
 
 ```bash
 git checkout main
 git pull
-
-git checkout -b develop
-git push -u origin develop
 
 git checkout -b unstable
 git push -u origin unstable
@@ -63,4 +58,6 @@ git push -u origin unstable
 
 - Mantieni PR piccole su `unstable` per velocizzare feedback e rollback.
 - Evita merge diretti su `main`.
+- Non eseguire squash delle PR di promozione: preservare l'ascendenza evita
+  divergenze e conflitti ripetuti tra branch.
 - Per package pubblicati, non saltare il file changeset.

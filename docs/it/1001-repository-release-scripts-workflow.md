@@ -119,10 +119,13 @@ npm run changeset
 La CI fa:
 
 1. `npm ci`
-2. `npm run lint`
-3. `npm run build`
-4. `npm run test:packages`
-5. verifica changeset su PR con:
+2. `npm audit --audit-level=high`
+3. `npm run format:check`
+4. `npm run check`
+5. `npm run build` (package e app)
+6. `npm test`
+7. `npm run coverage:all` (soglia linee al 90% per ogni package pubblicato)
+8. verifica changeset su PR con:
 
 ```bash
 npx changeset status --since=origin/main
@@ -135,7 +138,7 @@ Se manca il changeset per una modifica che impatta package pubblicati, la PR dov
 La release viene eseguita con il comando guidato:
 
 ```bash
-npm run release:npm
+npm run deploy:npm
 ```
 
 Cosa fa:

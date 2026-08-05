@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim
+FROM node:24-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -10,4 +10,12 @@ RUN npm ci
 RUN npm run build:packages
 RUN npm run build -w app-starter
 
+FROM node:24-bookworm-slim AS runtime
+
+ENV NODE_ENV=production
+WORKDIR /app
+
+COPY --from=build --chown=node:node /app /app
+
+USER node
 CMD ["npm", "run", "start", "-w", "app-starter"]

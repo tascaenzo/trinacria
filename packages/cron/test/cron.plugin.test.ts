@@ -1,17 +1,17 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
-  TrinacriaApp,
   createToken,
   defineModule,
   type Token,
+  TrinacriaApp,
 } from "../../core/src";
 
 import {
-  createCronPlugin,
-  cronProvider,
   type CronJobDefinition,
   type CronJobProvider,
+  createCronPlugin,
+  cronProvider,
 } from "../src";
 
 function wait(ms: number): Promise<void> {

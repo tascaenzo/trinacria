@@ -2,13 +2,13 @@ import { classProvider, defineModule, factoryProvider } from "@trinacria/core";
 import { httpProvider } from "@trinacria/http";
 import {
   CONFIG_SERVICE,
-  ConfigService,
+  type ConfigService,
 } from "../../global-service/config.service";
 import { PRISMA_SERVICE } from "../../global-service/prisma.service";
-import { AUTH_CONFIG, AuthConfig } from "./auth.config";
+import { AUTH_CONFIG, type AuthConfig } from "./auth.config";
 import { AUTH_CONTROLLER, AuthController } from "./auth.controller";
-import { AUTH_GUARD_FACTORY, AuthGuardFactory } from "./auth-guard.factory";
 import { AUTH_SERVICE, AuthService } from "./auth.service";
+import { AUTH_GUARD_FACTORY, AuthGuardFactory } from "./auth-guard.factory";
 import { Hs256JwtSigner, JWT_SIGNER } from "./jwt";
 
 export const AuthModule = defineModule({
@@ -18,9 +18,11 @@ export const AuthModule = defineModule({
       AUTH_CONFIG,
       (appConfig: ConfigService): AuthConfig => ({
         jwtSecret: appConfig.get("SECRET_KEY"),
+        jwtIssuer: "trinacria-playground",
+        jwtAudience: "trinacria-playground-api",
         accessTokenTtlSeconds: appConfig.get("JWT_ACCESS_TOKEN_TTL_SECONDS"),
         refreshTokenTtlSeconds: appConfig.get("JWT_REFRESH_TOKEN_TTL_SECONDS"),
-        trustProxy: false,
+        trustProxy: appConfig.get("TRUST_PROXY"),
         cookieDomain: appConfig.get("AUTH_COOKIE_DOMAIN"),
         secureCookies: appConfig.get("ENV") === "production",
       }),
@@ -28,7 +30,12 @@ export const AuthModule = defineModule({
     ),
     factoryProvider(
       JWT_SIGNER,
-      (config: AuthConfig) => new Hs256JwtSigner(config.jwtSecret),
+      (config: AuthConfig) =>
+        new Hs256JwtSigner(
+          config.jwtSecret,
+          config.jwtIssuer,
+          config.jwtAudience,
+        ),
       [AUTH_CONFIG],
     ),
     factoryProvider(

@@ -1,21 +1,21 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
-  TrinacriaApp,
   createToken,
   defineModule,
   type Token,
+  TrinacriaApp,
 } from "@trinacria/core";
 
 import {
-  EVENT_BUS_TOKEN,
   createEventsPlugin,
-  eventProvider,
+  EVENT_BUS_TOKEN,
   type EventBus,
   type EventEnvelope,
   type EventProvider,
   type EventSubscription,
   type EventTransport,
+  eventProvider,
   type ManagedEventBus,
 } from "../src";
 

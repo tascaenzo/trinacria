@@ -3,9 +3,11 @@
 This flow updates dependencies automatically in a **semver-safe** way and sends an email when **major** updates are available.
 
 Workflow:
+
 - `.github/workflows/dependency-auto-update.yml`
 
 Support script:
+
 - `scripts/dependency-major-report.mjs`
 
 ## What it does

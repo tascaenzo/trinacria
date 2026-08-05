@@ -1,4 +1,4 @@
-import { TrinacriaApp, classProvider, valueProvider } from "@trinacria/core";
+import { classProvider, TrinacriaApp, valueProvider } from "@trinacria/core";
 import {
   cors,
   createHttpPlugin,
@@ -21,7 +21,7 @@ async function bootstrap() {
   const corsOrigins = config.CORS_ALLOWED_ORIGINS;
   const securityHeadersMiddleware = createSecurityHeadersBuilder()
     .preset(config.ENV)
-    .trustProxy(false)
+    .trustProxy(config.TRUST_PROXY)
     .build();
 
   app.registerGlobalProvider(valueProvider(CONFIG_SERVICE, configService));
@@ -38,14 +38,14 @@ async function bootstrap() {
         requestId(),
         requestLogger({ includeUserAgent: !isProduction }),
         cors({
-          origin: corsOrigins.length > 0 ? corsOrigins : "*",
+          origin: corsOrigins.length > 0 ? corsOrigins : false,
           credentials: true,
           methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
         }),
         rateLimit({
           windowMs: 60_000,
           max: isProduction ? 240 : 2_000,
-          trustProxy: false,
+          trustProxy: config.TRUST_PROXY,
         }),
         requestTimeout({ timeoutMs: 15_000 }),
         securityHeadersMiddleware,

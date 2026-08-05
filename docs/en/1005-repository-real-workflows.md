@@ -1,6 +1,6 @@
 # Repository: Real Active Workflows
 
-This document describes the workflows that are actually active in the repository as of **February 27, 2026**.
+This document describes the workflows that are actually active in the repository as of **August 5, 2026**.
 
 ## Active GitHub Actions workflows
 
@@ -8,32 +8,40 @@ This document describes the workflows that are actually active in the repository
 
 Triggers:
 
-- `push` on `unstable`, `develop`, `main`
-- `pull_request`
+- `push` on `unstable` and `main`
+- `pull_request` targeting `unstable`
 - `workflow_dispatch`
 
 Steps:
 
 1. `npm ci`
-2. `npm run lint`
-3. `npm run build`
-4. `npm run test:packages`
-5. on PR: `npx changeset status --since=origin/main`
+2. `npm audit --audit-level=high`
+3. `npm run format:check`
+4. `npm run toolchain:check`
+5. `npm run check`
+6. `npm run build`
+7. `npm test`
+8. `npm run coverage:all`
+9. on PR: `npx changeset status --since=origin/main`
 
 ### `Promotion Branch Tests` (`.github/workflows/promotion-branch-tests.yml`)
 
 Triggers:
 
-- `pull_request` targeting `develop` and `main`
+- `pull_request` targeting `main`
 - `workflow_dispatch`
 
 Steps:
 
 1. checkout PR code
 2. `npm ci`
-3. `npm run lint`
-4. `npm run build`
-5. `npm run test:packages`
+3. `npm audit --audit-level=high`
+4. `npm run format:check`
+5. `npm run toolchain:check`
+6. `npm run check`
+7. `npm run build`
+8. `npm test`
+9. `npm run coverage:all`
 
 ### `CLI Template Smoke` (`.github/workflows/cli-template-smoke.yml`)
 
@@ -79,9 +87,8 @@ There is **no automatic** GitHub `release.yml` workflow in this repository.
 
 Releases are currently script-driven:
 
-- guided: `npm run release:npm`
-- stable: `npm run release:npm:stable`
-- alpha: `npm run publish:libs:npm:alpha`
+- guided (single entrypoint): `npm run deploy:npm`
+- stable/prerelease are selected inside the wizard via `tag` (`latest`, `alpha`, `beta`, `rc`)
 
 ## Real local pre-commit flow
 
@@ -91,7 +98,7 @@ Hook:
 
 Current checks:
 
-1. ESLint static check on staged code files (`*.ts, *.js, ...`)
+1. Biome static check on staged code files (`*.ts, *.js, ...`)
 2. build for touched workspaces
 3. test for touched workspaces
 4. when global/script files change, checks expand across `packages/*`

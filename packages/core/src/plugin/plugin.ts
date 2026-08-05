@@ -1,4 +1,4 @@
-import { Plugin } from "./plugin-lifecycle";
+import type { Plugin } from "./plugin-lifecycle";
 
 /**
  * Typed factory used to declare plugins.

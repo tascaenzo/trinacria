@@ -1,5 +1,5 @@
 import type { EventProvider } from "@trinacria/events";
-import { EventsService } from "./events.service";
+import type { EventsService } from "./events.service";
 
 export const DEMO_EVENT_NAME = "events.demo";
 

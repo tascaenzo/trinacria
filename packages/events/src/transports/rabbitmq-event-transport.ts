@@ -65,6 +65,7 @@ export interface RabbitMqEventTransportOptions {
     readonly routingPrefix?: string;
   };
   readonly onConsumeError?: (error: unknown, raw: string) => void;
+  readonly maxMessageBytes?: number;
 }
 
 export class RabbitMqEventTransport implements EventTransport {
@@ -82,6 +83,7 @@ export class RabbitMqEventTransport implements EventTransport {
     this.routingPattern = options.routingPattern ?? "#";
     this.dlxExchange = options.deadLetter?.exchange;
     this.dlxRoutingPrefix = options.deadLetter?.routingPrefix ?? "dlq";
+    assertPositiveMessageLimit(options.maxMessageBytes);
   }
 
   async connect(
@@ -98,12 +100,13 @@ export class RabbitMqEventTransport implements EventTransport {
         });
       }
 
+      const isNamedQueue = this.queueName !== undefined;
       const assertedQueue = await this.options.channel.assertQueue(
         this.queueName ?? `trinacria.events.${crypto.randomUUID()}`,
         {
-          exclusive: this.queueName ? false : true,
-          durable: this.queueName ? true : false,
-          autoDelete: this.queueName ? false : true,
+          exclusive: !isNamedQueue,
+          durable: isNamedQueue,
+          autoDelete: !isNamedQueue,
         },
       );
 
@@ -125,6 +128,7 @@ export class RabbitMqEventTransport implements EventTransport {
           const raw = message.content.toString("utf8");
 
           try {
+            assertMessageSize(message.content, this.options.maxMessageBytes);
             const envelope = parseEnvelope(raw);
             await onEnvelope(envelope);
             this.options.channel.ack?.(message);
@@ -156,12 +160,14 @@ export class RabbitMqEventTransport implements EventTransport {
 
   async publish(envelope: EventEnvelope): Promise<void> {
     const routingKey = toRoutingKey(envelope.name);
+    const content = Buffer.from(JSON.stringify(envelope), "utf8");
+    assertMessageSize(content, this.options.maxMessageBytes);
 
     await withRetry(async () => {
       const published = this.options.channel.publish(
         this.exchange,
         routingKey,
-        Buffer.from(JSON.stringify(envelope), "utf8"),
+        content,
         { persistent: true },
       );
 
@@ -214,15 +220,26 @@ function parseEnvelope(raw: string): EventEnvelope {
     throw new Error("Invalid event envelope payload: expected object.");
   }
 
-  if (typeof parsed.id !== "string" || parsed.id.length === 0) {
+  if (
+    typeof parsed.id !== "string" ||
+    parsed.id.length === 0 ||
+    parsed.id.length > 128
+  ) {
     throw new Error("Invalid event envelope payload: missing id.");
   }
 
-  if (typeof parsed.name !== "string" || parsed.name.length === 0) {
+  if (
+    typeof parsed.name !== "string" ||
+    parsed.name.length === 0 ||
+    parsed.name.length > 256
+  ) {
     throw new Error("Invalid event envelope payload: missing name.");
   }
 
-  if (typeof parsed.publishedAt !== "string") {
+  if (
+    typeof parsed.publishedAt !== "string" ||
+    !Number.isFinite(Date.parse(parsed.publishedAt))
+  ) {
     throw new Error("Invalid event envelope payload: missing publishedAt.");
   }
 
@@ -230,6 +247,21 @@ function parseEnvelope(raw: string): EventEnvelope {
     ...parsed,
     publishedAt: new Date(parsed.publishedAt),
   };
+}
+
+const DEFAULT_MAX_MESSAGE_BYTES = 1_048_576;
+
+function assertMessageSize(content: Buffer, configuredLimit?: number): void {
+  const limit = configuredLimit ?? DEFAULT_MAX_MESSAGE_BYTES;
+  if (content.byteLength > limit) {
+    throw new Error(`Event message exceeds ${limit} bytes.`);
+  }
+}
+
+function assertPositiveMessageLimit(value: number | undefined): void {
+  if (value !== undefined && (!Number.isInteger(value) || value < 1)) {
+    throw new RangeError("RabbitMqEventTransport.maxMessageBytes must be >= 1");
+  }
 }
 
 function tryParseEnvelope(raw: string): EventEnvelope | null {

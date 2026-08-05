@@ -1,10 +1,11 @@
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import { ConsoleLogger } from "@trinacria/core";
 
 const context = "TrinacriaCLI";
 const log = new ConsoleLogger(context);
+const DEFAULT_GITIGNORE = "node_modules\ndist\n.env\n";
 
 const TEMPLATE_APP_NAMES = [
   "app-starter",
@@ -84,10 +85,12 @@ export async function createNewApp(
   const options = parseNewArgs(args);
   const sourceDir = resolveTemplatePath(options.template, deps.templatesRoot());
   const targetDir = path.resolve(deps.cwd(), options.projectName);
+  const cliVersion = resolveCurrentCliVersion();
 
   ensureTargetDirectory(targetDir, options.force, deps);
   copyDirectory(sourceDir, targetDir, deps);
-  adaptGeneratedPackageJson(targetDir, options.projectName, deps);
+  ensureGeneratedProjectFiles(targetDir, deps);
+  adaptGeneratedPackageJson(targetDir, options.projectName, cliVersion, deps);
 
   deps.info(
     `Project "${options.projectName}" generated from template "${options.template}".`,
@@ -268,9 +271,39 @@ function shouldSkipEntry(entryName: string): boolean {
   );
 }
 
+function resolveCurrentCliVersion(): string {
+  const packageJsonPath = path.resolve(__dirname, "../../package.json");
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as {
+    version?: unknown;
+  };
+
+  if (
+    typeof packageJson.version === "string" &&
+    packageJson.version.length > 0
+  ) {
+    return packageJson.version;
+  }
+
+  return "latest";
+}
+
+function ensureGeneratedProjectFiles(targetDir: string, deps: NewDeps): void {
+  const envExamplePath = path.resolve(targetDir, ".env.example");
+  const envPath = path.resolve(targetDir, ".env");
+  if (deps.pathExists(envExamplePath) && !deps.pathExists(envPath)) {
+    deps.writeFile(envPath, deps.readFile(envExamplePath));
+  }
+
+  const gitignorePath = path.resolve(targetDir, ".gitignore");
+  if (!deps.pathExists(gitignorePath)) {
+    deps.writeFile(gitignorePath, DEFAULT_GITIGNORE);
+  }
+}
+
 function adaptGeneratedPackageJson(
   targetDir: string,
   projectName: string,
+  cliVersion: string,
   deps: NewDeps,
 ): void {
   const packageJsonPath = path.resolve(targetDir, "package.json");
@@ -282,7 +315,8 @@ function adaptGeneratedPackageJson(
     string,
     unknown
   >;
-  packageJson.name = projectName;
+  const projectBaseName = path.basename(targetDir);
+  packageJson.name = projectBaseName || projectName;
 
   const scripts = normalizeScripts(
     packageJson.scripts as Record<string, unknown> | undefined,
@@ -291,18 +325,20 @@ function adaptGeneratedPackageJson(
 
   const dependencies = normalizeDependencyMap(
     packageJson.dependencies as Record<string, unknown> | undefined,
+    cliVersion,
   );
   const devDependencies = normalizeDependencyMap(
     packageJson.devDependencies as Record<string, unknown> | undefined,
+    cliVersion,
   );
 
-  const cliVersion =
+  const cliDependencyVersion =
     dependencies["@trinacria/cli"] ?? devDependencies["@trinacria/cli"];
-  if (cliVersion) {
+  if (cliDependencyVersion) {
     delete dependencies["@trinacria/cli"];
-    devDependencies["@trinacria/cli"] = cliVersion;
+    devDependencies["@trinacria/cli"] = cliDependencyVersion;
   } else {
-    devDependencies["@trinacria/cli"] = "latest";
+    devDependencies["@trinacria/cli"] = toCompatibleRange(cliVersion);
   }
 
   if (!devDependencies.typescript) {
@@ -337,6 +373,7 @@ function normalizeScripts(
 
 function normalizeDependencyMap(
   input: Record<string, unknown> | undefined,
+  cliVersion: string,
 ): Record<string, string> {
   const output: Record<string, string> = {};
 
@@ -345,11 +382,67 @@ function normalizeDependencyMap(
       continue;
     }
 
-    output[pkgName] =
-      pkgName.startsWith("@trinacria/") && version === "*" ? "latest" : version;
+    if (!pkgName.startsWith("@trinacria/")) {
+      output[pkgName] = version;
+      continue;
+    }
+
+    let resolvedVersion = version;
+    if (version === "*") {
+      if (pkgName === "@trinacria/cli") {
+        resolvedVersion = cliVersion;
+      } else {
+        resolvedVersion = resolveWorkspacePackageVersion(pkgName) || "latest";
+      }
+    }
+
+    output[pkgName] = toCompatibleRange(resolvedVersion);
   }
 
   return output;
+}
+
+function toCompatibleRange(version: string): string {
+  if (version === "latest") {
+    return version;
+  }
+
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(-.+)?$/);
+  if (!match) {
+    return version;
+  }
+
+  if (match[4]) {
+    return `^${version}`;
+  }
+
+  return `^${match[1]}.${match[2]}.${match[3]}`;
+}
+
+function resolveWorkspacePackageVersion(pkgName: string): string | null {
+  const shortName = pkgName.replace("@trinacria/", "");
+  const packageJsonPath = path.resolve(
+    __dirname,
+    "../../../../packages",
+    shortName,
+    "package.json",
+  );
+
+  if (!fs.existsSync(packageJsonPath)) {
+    return null;
+  }
+
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as {
+    version?: unknown;
+  };
+  if (
+    typeof packageJson.version !== "string" ||
+    packageJson.version.length === 0
+  ) {
+    return null;
+  }
+
+  return packageJson.version;
 }
 
 function detectPackageManager(): "npm" | "pnpm" | "yarn" | "bun" {
@@ -366,5 +459,6 @@ export const __newTestUtils = {
   normalizeDependencyMap,
   normalizeScripts,
   adaptGeneratedPackageJson,
+  ensureGeneratedProjectFiles,
   ensureTargetDirectory,
 };

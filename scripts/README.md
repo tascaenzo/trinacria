@@ -127,37 +127,10 @@ Note:
 
 - in `npm` mode the script publishes the generated tarball file, so published content is exactly the validated artifact.
 
-Common usage:
+Main usage (single guided command):
 
 ```bash
-npm run publish:libs:pack
-npm run publish:libs:npm
-npm run publish:libs:npm:dry
-```
-
-Channel-oriented usage:
-
-```bash
-# alpha/stable channels -> npmjs (guided flow)
-npm run release:npm
-```
-
-Manual npm release usage:
-
-```bash
-# stable on npm (changeset versions + publish with dist-tag latest)
-npm run release:npm:stable:dry
-npm run release:npm:stable
-
-# guided release on npm (package + suggested next version + confirmation)
-npm run release:npm
-```
-
-Publish already-versioned artifacts to npm alpha tag:
-
-```bash
-npm run publish:libs:npm:alpha:dry
-npm run publish:libs:npm:alpha
+npm run deploy:npm
 ```
 
 Notes:
@@ -209,15 +182,15 @@ Purpose:
 What it does:
 
 - asks menu-driven numeric choices (`package`, `tag`, bump strategy, version mode, publish/dry-run)
-- suggests next version (`alpha` progression or stable bump)
+- suggests next version (prerelease progression for `alpha`/`beta`/`rc` or stable bump for `latest`)
 - runs pre-checks (`npm whoami`, build, test, `npm pack --dry-run`)
 - updates package version (`npm version --no-git-tag-version`)
-- runs publish flow via `publish-libs.mjs` (or dry-run if publish is not confirmed)
+- runs publish flow via `publish-libs.mjs` with `--skip-cli-smoke` (or dry-run if publish is not confirmed)
 
 Related npm script:
 
 ```bash
-npm run release:npm
+npm run deploy:npm
 ```
 
 ---

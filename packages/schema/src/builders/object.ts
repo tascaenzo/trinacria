@@ -1,11 +1,17 @@
 import {
   asInternal,
   createSchema,
-  isRecord,
   type Infer,
+  isRecord,
+  type ParseOptions,
   type Schema,
 } from "../core";
-import { throwValidation } from "../errors";
+import {
+  throwValidation,
+  ValidationError,
+  type ValidationIssue,
+  validationIssue,
+} from "../errors";
 
 export interface ObjectOptions {
   /**
@@ -71,22 +77,39 @@ export function object<T extends Shape>(shape: T, options: ObjectOptions = {}) {
 
   return createSchema<InferShape<T>>(
     "object",
-    (input, path) => {
+    (input, path, parseOptions: ParseOptions = {}) => {
       if (!isRecord(input)) {
         throwValidation(path, "Expected object", "invalid_type");
       }
 
       const result = Object.create(null) as Record<string, unknown>;
+      const isCollectAll = parseOptions.mode === "all";
+      const issues: ValidationIssue[] | null = isCollectAll ? [] : null;
 
       for (const [key, schema] of Object.entries(internalShape)) {
         const hasKey = Object.hasOwn(input, key);
 
         if (!hasKey && !schema.acceptsUndefined) {
+          if (isCollectAll) {
+            issues?.push(
+              validationIssue([...path, key], "Required field", "required"),
+            );
+            continue;
+          }
           throwValidation([...path, key], "Required field", "required");
         }
 
         const value = hasKey ? input[key] : undefined;
-        const parsedValue = schema.parseAtPath(value, [...path, key]);
+        let parsedValue: unknown;
+        try {
+          parsedValue = schema.parseAtPath(value, [...path, key], parseOptions);
+        } catch (error) {
+          if (isCollectAll && error instanceof ValidationError) {
+            issues?.push(...error.issues);
+            continue;
+          }
+          throw error;
+        }
 
         if (hasKey || parsedValue !== undefined) {
           if (!isSafeObjectKey(key)) {
@@ -103,6 +126,12 @@ export function object<T extends Shape>(shape: T, options: ObjectOptions = {}) {
       if (strict) {
         for (const key of Object.keys(input)) {
           if (!(key in internalShape)) {
+            if (isCollectAll) {
+              issues?.push(
+                validationIssue([...path, key], "Unknown field", "unknown_key"),
+              );
+              continue;
+            }
             throwValidation([...path, key], "Unknown field", "unknown_key");
           }
         }
@@ -112,11 +141,25 @@ export function object<T extends Shape>(shape: T, options: ObjectOptions = {}) {
         minProperties !== undefined &&
         Object.keys(result).length < minProperties
       ) {
-        throwValidation(
-          path,
-          `Object must have at least ${minProperties} properties`,
-          "too_small",
-        );
+        if (isCollectAll) {
+          issues?.push(
+            validationIssue(
+              path,
+              `Object must have at least ${minProperties} properties`,
+              "too_small",
+            ),
+          );
+        } else {
+          throwValidation(
+            path,
+            `Object must have at least ${minProperties} properties`,
+            "too_small",
+          );
+        }
+      }
+
+      if (issues && issues.length > 0) {
+        throw new ValidationError(issues);
       }
 
       return result as InferShape<T>;

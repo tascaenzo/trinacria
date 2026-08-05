@@ -1,5 +1,5 @@
-import { createClient, type RedisClientType } from "redis";
 import { createToken } from "@trinacria/core";
+import { createClient, type RedisClientType } from "redis";
 import type { ConfigService } from "./config.service";
 
 export const REDIS_SERVICE = createToken<RedisService>("REDIS_SERVICE");

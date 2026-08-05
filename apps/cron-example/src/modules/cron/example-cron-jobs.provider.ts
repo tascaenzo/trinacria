@@ -1,6 +1,6 @@
 import { ConsoleLogger } from "@trinacria/core";
 import type { CronJobDefinition, CronJobProvider } from "@trinacria/cron";
-import { ConfigService } from "../../config.service";
+import type { ConfigService } from "../../config.service";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

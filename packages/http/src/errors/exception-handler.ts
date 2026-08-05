@@ -1,6 +1,6 @@
 import { STATUS_CODES } from "node:http";
-import type { HttpContext } from "../server/http-context";
 import type { HttpHeaderValue } from "../response/http-response";
+import type { HttpContext } from "../server/http-context";
 import { HttpException } from "./http-exception";
 import {
   BadRequestException,

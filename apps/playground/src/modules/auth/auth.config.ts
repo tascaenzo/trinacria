@@ -2,6 +2,8 @@ import { createToken } from "@trinacria/core";
 
 export interface AuthConfig {
   jwtSecret: string;
+  jwtIssuer: string;
+  jwtAudience: string;
   accessTokenTtlSeconds: number;
   refreshTokenTtlSeconds: number;
   trustProxy: boolean;

@@ -1,29 +1,33 @@
+export { type ArrayOptions, array } from "./array";
 export {
-  string,
-  number,
-  boolean,
-  literal,
-  type BooleanOptions,
-  type NumberOptions,
-  type StringOptions,
-} from "./primitives";
-export {
-  date,
-  dateString,
-  dateTimeString,
   type DateOptions,
   type DateStringOptions,
   type DateTimeStringOptions,
+  date,
+  dateString,
+  dateTimeString,
 } from "./date";
-export { array, type ArrayOptions } from "./array";
-export { tuple } from "./tuple";
+export { enumSchema } from "./enum";
+export { defaultValue, nullable, optional } from "./modifiers";
 export {
+  type ObjectOptions,
   object,
   objectOf,
-  type ObjectOptions,
   type SchemaShape,
 } from "./object";
-export { record, type InferRecord } from "./record";
-export { optional, nullable, defaultValue } from "./modifiers";
-export { enumSchema } from "./enum";
-export { union, type UnionOptions } from "./union";
+export {
+  type BooleanOptions,
+  boolean,
+  literal,
+  type NumberOptions,
+  number,
+  registerStringValidator,
+  type StringCustomValidatorFn,
+  type StringCustomValidatorInput,
+  type StringCustomValidatorResult,
+  type StringOptions,
+  string,
+} from "./primitives";
+export { type InferRecord, record } from "./record";
+export { tuple } from "./tuple";
+export { type UnionOptions, union } from "./union";

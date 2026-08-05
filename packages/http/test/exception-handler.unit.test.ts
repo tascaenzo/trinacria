@@ -1,8 +1,8 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
+import { defaultExceptionHandler } from "../src/errors/exception-handler";
 import { HttpException } from "../src/errors/http-exception";
 import { BadRequestException } from "../src/errors/http-exceptions";
-import { defaultExceptionHandler } from "../src/errors/exception-handler";
 
 const ctx = {} as any;
 

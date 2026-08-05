@@ -4,14 +4,14 @@ import { httpProvider } from "@trinacria/http";
 import { PRISMA_SERVICE } from "../../global-service/prisma.service";
 import { AuthModule } from "../auth/auth.module";
 import { AUTH_GUARD_FACTORY } from "../auth/auth-guard.factory";
-import { UserService } from "./user.service";
 import { UserController } from "./user.controller";
-import { UserEventsProvider } from "./user-events.provider";
+import { UserService } from "./user.service";
 import {
   USER_CONTROLLER,
   USER_EVENTS_PROVIDER,
   USER_SERVICE,
 } from "./user.tokens";
+import { UserEventsProvider } from "./user-events.provider";
 
 export const UserModule = defineModule({
   name: "UserModule",

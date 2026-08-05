@@ -1,17 +1,17 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
   BadRequestException,
-  UnauthorizedException,
-  ForbiddenException,
-  NotFoundException,
-  MethodNotAllowedException,
   ConflictException,
-  PayloadTooLargeException,
-  UnprocessableEntityException,
-  TooManyRequestsException,
+  ForbiddenException,
   InternalServerErrorException,
+  MethodNotAllowedException,
+  NotFoundException,
+  PayloadTooLargeException,
   ServiceUnavailableException,
+  TooManyRequestsException,
+  UnauthorizedException,
+  UnprocessableEntityException,
 } from "../src/errors/http-exceptions";
 
 test("named http exceptions expose expected status codes", () => {

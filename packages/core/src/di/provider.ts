@@ -1,14 +1,13 @@
-import type {
-  ClassProvider,
-  FactoryProvider,
-  ValueProvider,
-  DependencyList,
-  MaybePromise,
-  Provider,
-} from "./provider-types";
-
 import type { Token } from "../token";
 import type { ProviderKind } from "./provider-kind";
+import type {
+  ClassProvider,
+  DependencyList,
+  FactoryProvider,
+  MaybePromise,
+  Provider,
+  ValueProvider,
+} from "./provider-types";
 
 /**
  * Creates a typed ClassProvider.

@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${DOCKER_POSTGRES_USER}
       POSTGRES_PASSWORD: ${DOCKER_POSTGRES_PASSWORD}
     ports:
-      - "${DOCKER_POSTGRES_PORT}:5432"
+      - "127.0.0.1:${DOCKER_POSTGRES_PORT}:5432"
     volumes:
       - trinacria_api_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,6 +20,9 @@ services:
       retries: 20
 
   api:
+    init: true
+    security_opt:
+      - no-new-privileges:true
     build:
       context: ../..
       dockerfile: apps/api-prisma-postgresql/Dockerfile
@@ -28,8 +31,9 @@ services:
       HOST: 0.0.0.0
       PORT: 4001
       DATABASE_URL: ${DOCKER_DATABASE_URL}
+      AUTO_DB_PUSH: "true"
     ports:
-      - "${DOCKER_API_PORT}:4001"
+      - "${DOCKER_API_BIND_ADDRESS:-127.0.0.1}:${DOCKER_API_PORT}:4001"
     depends_on:
       postgres:
         condition: service_healthy

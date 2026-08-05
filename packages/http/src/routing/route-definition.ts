@@ -1,4 +1,4 @@
-import { HttpMiddleware } from "../middleware/middleware-definition";
+import type { HttpMiddleware } from "../middleware/middleware-definition";
 import type { HttpContext } from "../server/http-context";
 
 /**

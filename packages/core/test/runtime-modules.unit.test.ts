@@ -1,12 +1,12 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { TrinacriaApp } from "../src/application/trinacria-app.ts";
 import { classProvider } from "../src/di/provider.ts";
 import { createProviderKind } from "../src/di/provider-kind.ts";
-import { createToken } from "../src/token/token.ts";
+import { ModuleRegistrationError } from "../src/errors/core-errors.ts";
 import { defineModule } from "../src/module/module.ts";
 import { definePlugin } from "../src/plugin/plugin.ts";
-import { ModuleRegistrationError } from "../src/errors/core-errors.ts";
+import { createToken } from "../src/token/token.ts";
 
 test("runtime register rollback compensates already-notified plugins in reverse order", async () => {
   const calls: string[] = [];

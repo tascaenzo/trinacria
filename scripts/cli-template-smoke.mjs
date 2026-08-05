@@ -2,14 +2,14 @@
 
 import { spawn } from "node:child_process";
 import {
+  copyFileSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
-  copyFileSync,
 } from "node:fs";
-import path from "node:path";
 import { tmpdir } from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);

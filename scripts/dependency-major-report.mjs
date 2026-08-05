@@ -10,14 +10,20 @@ function parseMajor(version) {
 
 function runOutdatedJson() {
   try {
-    const out = execSync("npm outdated --json --long --workspaces --include-workspace-root", {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const out = execSync(
+      "npm outdated --json --long --workspaces --include-workspace-root",
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     return out.trim() ? JSON.parse(out) : {};
   } catch (error) {
     // npm outdated exits with code 1 when outdated deps are found. Use stdout anyway.
-    const stdout = error && typeof error === "object" && "stdout" in error ? String(error.stdout || "") : "";
+    const stdout =
+      error && typeof error === "object" && "stdout" in error
+        ? String(error.stdout || "")
+        : "";
     return stdout.trim() ? JSON.parse(stdout) : {};
   }
 }
@@ -28,9 +34,9 @@ function collectEntries(node, out = []) {
   }
 
   const looksLikeOutdatedEntry =
-    Object.prototype.hasOwnProperty.call(node, "current") &&
-    Object.prototype.hasOwnProperty.call(node, "latest") &&
-    Object.prototype.hasOwnProperty.call(node, "wanted");
+    Object.hasOwn(node, "current") &&
+    Object.hasOwn(node, "latest") &&
+    Object.hasOwn(node, "wanted");
 
   if (looksLikeOutdatedEntry) {
     out.push(node);
@@ -55,7 +61,9 @@ function findMajorUpdates(entries) {
     }
     if (latestMajor > currentMajor) {
       majors.push({
-        name: String(entry.name || entry.package || entry.dependent || "unknown"),
+        name: String(
+          entry.name || entry.package || entry.dependent || "unknown",
+        ),
         current: String(entry.current),
         latest: String(entry.latest),
         wanted: String(entry.wanted),
@@ -81,7 +89,10 @@ function uniqByKey(items, keyFn) {
 
 const outdated = runOutdatedJson();
 const entries = collectEntries(outdated);
-const majors = uniqByKey(findMajorUpdates(entries), (x) => `${x.dependent}:${x.name}`);
+const majors = uniqByKey(
+  findMajorUpdates(entries),
+  (x) => `${x.dependent}:${x.name}`,
+);
 
 const report = {
   hasMajor: majors.length > 0,
@@ -90,6 +101,10 @@ const report = {
 };
 
 fs.mkdirSync(".tmp", { recursive: true });
-fs.writeFileSync(".tmp/dependency-major-report.json", `${JSON.stringify(report, null, 2)}\n`, "utf8");
+fs.writeFileSync(
+  ".tmp/dependency-major-report.json",
+  `${JSON.stringify(report, null, 2)}\n`,
+  "utf8",
+);
 
 console.log(JSON.stringify(report));

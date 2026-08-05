@@ -1,1 +1,1 @@
-export { toOpenApi, type OpenApiSchemaObject } from "./openapi";
+export { type OpenApiSchemaObject, toOpenApi } from "./openapi";

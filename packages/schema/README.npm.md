@@ -7,6 +7,10 @@ It provides:
 - runtime parsing/validation
 - TypeScript type inference
 - optional coercion for env/API inputs
+- semver/semver-range validators
+- context-aware `superRefine(...)` for cross-field checks
+- configurable `safeParse(..., { mode: "all" })` for full issue collection
+- reusable custom validator registry (`registerStringValidator`)
 - OpenAPI schema projection
 
 ## Install
@@ -35,6 +39,43 @@ const data: User = userSchema.parse({
 });
 
 console.log(data.active); // true
+```
+
+## Platform contracts example
+
+```ts
+import { registerStringValidator, s } from "@trinacria/schema";
+
+registerStringValidator("plugin-id", (value) =>
+  /^[a-z0-9][a-z0-9-._/]*$/.test(value),
+);
+
+const pluginManifestSchema = s
+  .object({
+    id: s.string({ custom: { name: "plugin-id" } }),
+    version: s.string({ semver: true }),
+    requiresCore: s.string({ semverRange: true }),
+    dependencies: s.array(
+      s.object({
+        pluginId: s.string({ custom: { name: "plugin-id" } }),
+        versionRange: s.string({ semverRange: true }),
+        optional: s.boolean().default(false),
+      }),
+    ),
+  })
+  .superRefine((value, ctx) => {
+    value.dependencies.forEach((dependency, index) => {
+      if (dependency.pluginId === value.id) {
+        ctx.addIssue({
+          path: ["dependencies", index, "pluginId"],
+          message: "Plugin cannot depend on itself",
+          code: "self_dependency",
+        });
+      }
+    });
+  });
+
+const result = pluginManifestSchema.safeParse(input, { mode: "all" });
 ```
 
 ## OpenAPI

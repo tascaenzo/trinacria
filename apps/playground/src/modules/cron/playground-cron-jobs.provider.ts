@@ -1,8 +1,8 @@
-import type { CronJobDefinition, CronJobProvider } from "@trinacria/cron";
 import { ConsoleLogger } from "@trinacria/core";
-import { PrismaService } from "../../global-service/prisma.service";
-import { ConfigService } from "../../global-service/config.service";
-import { CronLockService } from "./cron-lock.service";
+import type { CronJobDefinition, CronJobProvider } from "@trinacria/cron";
+import type { ConfigService } from "../../global-service/config.service";
+import type { PrismaService } from "../../global-service/prisma.service";
+import type { CronLockService } from "./cron-lock.service";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

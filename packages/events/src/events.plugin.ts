@@ -1,10 +1,10 @@
 import {
+  type ApplicationContext,
   createToken,
   definePlugin,
-  valueProvider,
-  type ApplicationContext,
   type ModuleDefinition,
   type Plugin,
+  valueProvider,
 } from "@trinacria/core";
 
 import { InternalEventBus } from "./bus/internal-event-bus";

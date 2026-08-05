@@ -32,4 +32,5 @@ const userSchema = new Schema<UserEntity>(
 );
 
 userSchema.index({ email: 1 }, { unique: true });
+
 export { userSchema };

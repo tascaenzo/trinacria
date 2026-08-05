@@ -3,7 +3,7 @@ services:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${DOCKER_REDIS_PORT}:6379"
+      - "127.0.0.1:${DOCKER_REDIS_PORT}:6379"
     volumes:
       - trinacria_api_redis_data:/data
     healthcheck:
@@ -13,6 +13,9 @@ services:
       retries: 20
 
   api:
+    init: true
+    security_opt:
+      - no-new-privileges:true
     build:
       context: ../..
       dockerfile: apps/api-events-redis/Dockerfile
@@ -24,7 +27,7 @@ services:
       REDIS_URL: ${DOCKER_REDIS_URL}
       REDIS_CHANNEL: ${DOCKER_REDIS_CHANNEL}
     ports:
-      - "${DOCKER_API_PORT}:4003"
+      - "${DOCKER_API_BIND_ADDRESS:-127.0.0.1}:${DOCKER_API_PORT}:4003"
     depends_on:
       redis:
         condition: service_healthy

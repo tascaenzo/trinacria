@@ -1,15 +1,14 @@
 import type { BaseLogger } from "@trinacria/core";
-
-import { matchesCronExpression, parseCronExpression } from "./cron-expression";
 import type {
   CronExecutionContext,
   CronJobDefinition,
-  CronJobRunEvent,
   CronJobLockHooks,
+  CronJobRunEvent,
   CronJobRunLock,
   CronJobRunResult,
   CronRetryPolicy,
 } from "../contracts";
+import { matchesCronExpression, parseCronExpression } from "./cron-expression";
 
 interface CronTimerState {
   readonly stop: () => void;
@@ -452,7 +451,7 @@ function computeRetryDelayMs(
   const exponent = Math.max(0, attempt - 1);
   const backoff = Math.min(
     policy.maxBackoffMs,
-    policy.backoffMs * Math.pow(policy.multiplier, exponent),
+    policy.backoffMs * policy.multiplier ** exponent,
   );
   const jitter =
     policy.jitterMs > 0 ? Math.floor(Math.random() * (policy.jitterMs + 1)) : 0;

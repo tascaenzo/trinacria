@@ -1,12 +1,11 @@
 import { createToken } from "@trinacria/core";
 import {
+  type HttpContext,
   HttpController,
-  HttpContext,
-  UnauthorizedException,
   response,
+  UnauthorizedException,
 } from "@trinacria/http";
-import { AuthConfig } from "./auth.config";
-import { AuthGuardFactory } from "./auth-guard.factory";
+import type { AuthConfig } from "./auth.config";
 import {
   createCookieSecurityOptions,
   readRefreshTokenFromCookieHeader,
@@ -19,9 +18,10 @@ import {
   createAuthMutationRateLimitMiddleware,
   createLoginRateLimitMiddleware,
 } from "./auth.middleware";
-import { AuthService } from "./auth.service";
-import { JwtClaims } from "./jwt";
+import type { AuthService } from "./auth.service";
+import type { AuthGuardFactory } from "./auth-guard.factory";
 import { AuthResultDtoSchema, LoginDtoSchema } from "./dto";
+import type { JwtClaims } from "./jwt";
 
 export const AUTH_CONTROLLER = createToken<AuthController>("AUTH_CONTROLLER");
 
@@ -39,7 +39,7 @@ export class AuthController extends HttpController {
     const authMutationRateLimit = createAuthMutationRateLimitMiddleware(
       this.authConfig,
     );
-    const csrfMiddleware = this.guardFactory.requireCsrf();
+    const csrfMiddleware = this.guardFactory.requireRefreshCsrf();
 
     return this.router()
       .post("/auth/login", this.login, {
@@ -64,7 +64,7 @@ export class AuthController extends HttpController {
         docs: {
           tags: ["Auth"],
           summary: "Refresh access token",
-          security: [{ accessTokenCookie: [] }, { csrfHeader: [] }],
+          security: [{ accessTokenCookie: [], csrfHeader: [] }],
           responses: {
             200: {
               description: "Refreshed session payload",
@@ -78,7 +78,7 @@ export class AuthController extends HttpController {
         docs: {
           tags: ["Auth"],
           summary: "Logout current session",
-          security: [{ accessTokenCookie: [] }, { csrfHeader: [] }],
+          security: [{ accessTokenCookie: [], csrfHeader: [] }],
           responses: {
             200: {
               description: "Logout result",
