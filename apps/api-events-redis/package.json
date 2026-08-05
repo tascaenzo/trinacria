@@ -13,7 +13,7 @@
     "@trinacria/events": "*",
     "@trinacria/http": "*",
     "@trinacria/schema": "*",
-    "redis": "^5.10.0",
+    "redis": "^6.2.0",
     "swagger-ui-dist": "^5.32.12"
   }
 }
