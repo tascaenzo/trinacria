@@ -13,13 +13,13 @@
     "prisma:studio": "prisma studio --schema prisma/schema.prisma"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.4.1",
-    "@prisma/client": "^7.4.1",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "@trinacria/cli": "*",
     "@trinacria/core": "*",
     "@trinacria/http": "*",
     "@trinacria/schema": "*",
-    "pg": "^8.16.3",
+    "pg": "^8.22.0",
     "swagger-ui-dist": "^5.32.12"
   },
   "devDependencies": {
