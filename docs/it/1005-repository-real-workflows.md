@@ -1,6 +1,6 @@
 # Repository: Flussi Reali Attivi
 
-Questo documento descrive i flussi realmente presenti nel repository al **27 febbraio 2026**.
+Questo documento descrive i flussi realmente presenti nel repository al **5 agosto 2026**.
 
 ## Workflow GitHub Actions attivi
 
@@ -8,32 +8,40 @@ Questo documento descrive i flussi realmente presenti nel repository al **27 feb
 
 Trigger:
 
-- `push` su `unstable`, `develop`, `main`
-- `pull_request`
+- `push` su `unstable` e `main`
+- `pull_request` verso `unstable`
 - `workflow_dispatch`
 
 Passi:
 
 1. `npm ci`
-2. `npm run lint`
-3. `npm run build`
-4. `npm run test:packages`
-5. su PR: `npx changeset status --since=origin/main`
+2. `npm audit --audit-level=high`
+3. `npm run format:check`
+4. `npm run toolchain:check`
+5. `npm run check`
+6. `npm run build`
+7. `npm test`
+8. `npm run coverage:all`
+9. su PR: `npx changeset status --since=origin/main`
 
 ### `Promotion Branch Tests` (`.github/workflows/promotion-branch-tests.yml`)
 
 Trigger:
 
-- `pull_request` verso `develop` e `main`
+- `pull_request` verso `main`
 - `workflow_dispatch`
 
 Passi:
 
 1. checkout codice della PR
 2. `npm ci`
-3. `npm run lint`
-4. `npm run build`
-5. `npm run test:packages`
+3. `npm audit --audit-level=high`
+4. `npm run format:check`
+5. `npm run toolchain:check`
+6. `npm run check`
+7. `npm run build`
+8. `npm test`
+9. `npm run coverage:all`
 
 ### `CLI Template Smoke` (`.github/workflows/cli-template-smoke.yml`)
 

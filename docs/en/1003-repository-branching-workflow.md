@@ -1,11 +1,10 @@
-# Repository Branching Workflow (`unstable` -> `develop` -> `main`)
+# Repository Branching Workflow (`unstable` -> `main`)
 
-This document defines a 3-branch model to support daily development, continuous testing, and progressive releases.
+This document defines a two-branch model for daily integration and stable releases.
 
 ## Goal
 
 - `unstable`: fast integration (daily PRs, frequent tests)
-- `develop`: stabilization and prereleases (`alpha`/`beta`)
 - `main`: stable releases (`latest`)
 
 ## Branch rules
@@ -16,43 +15,40 @@ This document defines a 3-branch model to support daily development, continuous 
 - All feature/fix branches open PRs into `unstable`.
 - CI required (lint + build + package tests).
 - Prefer one small, reviewable PR per day.
-
-### `develop`
-
-- Accepts PRs only from `unstable` once baseline is stable.
-- Used for prereleases (`alpha`/`beta`).
-- Regressions must be fixed before promotion to `main`.
+- Prereleases (`alpha`, `beta`, or `rc`) may be published from a validated
+  commit on this branch.
 
 ### `main`
 
-- Accepts PRs only from `develop`.
+- Accepts promotion PRs from `unstable`.
 - Contains only release-ready stable code.
 - Stable npm publication with `latest` tag.
+- Promotion PRs must preserve ancestry. Use a merge commit; do not squash the
+  `unstable` -> `main` promotion.
 
 ## Recommended flow
 
 1. Create feature branch from `unstable`.
 2. Open PR to `unstable` (add changeset if you touch published packages).
-3. Once `unstable` is stable, open PR `unstable` -> `develop`.
-4. From `develop`, run guided prerelease and select `alpha` tag:
+3. If needed, run a guided prerelease from the validated `unstable` commit and
+   select `alpha`, `beta`, or `rc`:
    - `npm run deploy:npm`
-5. After validation, open PR `develop` -> `main`.
-6. From `main`, run guided stable release and select `latest` tag:
+4. Once `unstable` is stable, open PR `unstable` -> `main`.
+5. Merge the promotion with a merge commit, not squash merge.
+6. Fast-forward `unstable` to the resulting `main` merge commit.
+7. From `main`, run the guided stable release and select `latest`:
    - `npm run deploy:npm`
 
 ## Test cadence
 
 - Test on every PR/push via CI.
-- Promotion tests on PRs targeting `develop` and `main` via the `Promotion Branch Tests` workflow.
+- Promotion tests on PRs targeting `main` via the `Promotion Branch Tests` workflow.
 
 ## Initial branch setup
 
 ```bash
 git checkout main
 git pull
-
-git checkout -b develop
-git push -u origin develop
 
 git checkout -b unstable
 git push -u origin unstable
@@ -62,4 +58,6 @@ git push -u origin unstable
 
 - Keep PRs small on `unstable` for faster feedback and rollback.
 - Avoid direct merges into `main`.
+- Do not squash promotion PRs: preserving ancestry prevents branch divergence
+  and repeated merge conflicts.
 - For published packages, always include a changeset file.

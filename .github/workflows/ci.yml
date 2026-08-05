@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - unstable
-      - develop
       - main
   pull_request:
     branches-ignore:
-      - develop
       - main
   workflow_dispatch:
 
