@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN npm ci
 RUN npm run build:packages
 RUN npm run build -w api-mongoose-mongodb
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:25-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 WORKDIR /app
