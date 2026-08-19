@@ -14,7 +14,7 @@
     "@trinacria/http": "*",
     "@trinacria/schema": "*",
     "amqplib": "^0.10.9",
-    "swagger-ui-dist": "^5.32.12"
+    "swagger-ui-dist": "^5.32.13"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.8"
