@@ -28,7 +28,7 @@
     "swagger-ui-dist": "^5.32.12"
   },
   "devDependencies": {
-    "prisma": "^7.9.1",
+    "prisma": "^7.10.0",
     "tsx": "^4.23.5"
   }
 }

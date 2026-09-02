@@ -23,6 +23,6 @@
     "swagger-ui-dist": "^5.32.12"
   },
   "devDependencies": {
-    "prisma": "^7.4.1"
+    "prisma": "^7.10.0"
   }
 }
